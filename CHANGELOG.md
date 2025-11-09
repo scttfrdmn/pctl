@@ -8,7 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- None
+- ParallelCluster configuration generator (pkg/config)
+  - Converts pctl templates to ParallelCluster YAML configs
+  - Supports multiple instance types per queue
+  - Generates bootstrap scripts for software installation
+  - S3 mount configuration with IAM policies
+  - Custom AMI support
+- Cluster state management system (pkg/state)
+  - JSON-based state storage in ~/.pctl/state/
+  - Track cluster status, creation time, configuration
+  - List, load, save, delete state operations
+- Provisioner with ParallelCluster CLI integration (pkg/provisioner)
+  - Create, delete, describe cluster operations
+  - Wraps pcluster CLI commands
+  - State management integration
+  - Context-aware operations
 
 ### Changed
 - None
