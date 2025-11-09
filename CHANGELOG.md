@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- None
+
+### Changed
+- None
+
+### Fixed
+- None
+
+## [0.5.0] - 2025-11-09
+
+### Added
 - **Custom AMI building system** (pkg/ami, Issue #21)
   - Automated AMI creation from pctl templates
   - Pre-bakes all software into custom AMIs
@@ -26,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Snapshot cleanup on AMI deletion
   - Progress reporting during 30-90 minute build process
   - Integration with --custom-ami flag in pctl create
+
+## [0.4.0] - 2025-11-09
+
+### Added
 - **Template registry system** (pkg/registry, Issue #13)
   - GitHub-based template registry for sharing and discovery
   - Registry interface with pluggable backends
@@ -63,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Installed software detection
     - Automatic template generation from captured config
     - Module-to-Spack conversion during capture
+
+## [0.3.0] - 2025-11-09
+
+### Added
 - **Production-ready software management system** (pkg/software)
   - Spack installation framework with configurable versions and paths
   - AWS Spack buildcache integration for faster package installations
@@ -82,6 +101,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Section-based organization (users, S3, software)
   - Improved error handling and logging
   - Support for software-only installations
+
+## [0.2.0] - 2025-11-09
+
+### Added
 - **AWS SDK integration for automatic VPC/networking** (pkg/network)
   - Automatic VPC creation with 10.0.0.0/16 CIDR
   - Public subnet (10.0.1.0/24) for head node with auto-assign public IP
@@ -192,5 +215,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - None
 
-[Unreleased]: https://github.com/scttfrdmn/pctl/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/scttfrdmn/pctl/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/scttfrdmn/pctl/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/scttfrdmn/pctl/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/scttfrdmn/pctl/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/scttfrdmn/pctl/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/scttfrdmn/pctl/releases/tag/v0.1.0
