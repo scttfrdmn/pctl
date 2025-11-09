@@ -8,6 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Template registry system** (pkg/registry, Issue #13)
+  - GitHub-based template registry for sharing and discovery
+  - Registry interface with pluggable backends
+  - GitHub registry implementation with HTTP client
+  - Template metadata with search and filtering
+  - `pctl registry list` - List all available templates
+  - `pctl registry search` - Search templates by keyword
+  - `pctl registry pull` - Download templates locally
+  - Support for multiple registries
+  - Template versioning and author information
+  - URL parsing for GitHub repositories
+- **On-prem to AWS migration tools** (pkg/capture)
+  - Module mapping database (Issue #16)
+    - 50+ pre-configured module-to-Spack mappings
+    - Compilers (gcc, intel, llvm)
+    - MPI libraries (openmpi, mpich, intelmpi)
+    - Bioinformatics tools (samtools, bwa, gatk, blast)
+    - Computational chemistry (gromacs, lammps, quantum-espresso)
+    - Machine learning (pytorch, tensorflow, cuda)
+    - Math libraries (fftw, blas, lapack, hdf5)
+    - Module name normalization (handles versions, suffixes)
+    - Confidence scoring for mappings
+    - Unmapped module suggestions
+  - Batch script analysis (Issue #15)
+    - SLURM, PBS, and SGE script support
+    - Automatic scheduler detection
+    - Module load extraction
+    - Resource requirement parsing (nodes, tasks, CPUs, memory, walltime)
+    - Executable command detection
+    - Partition/queue identification
+  - Remote cluster capture (Issue #14)
+    - SSH-based configuration capture
+    - Module availability detection
+    - User account discovery (non-system users)
+    - Installed software detection
+    - Automatic template generation from captured config
+    - Module-to-Spack conversion during capture
 - **Production-ready software management system** (pkg/software)
   - Spack installation framework with configurable versions and paths
   - AWS Spack buildcache integration for faster package installations
