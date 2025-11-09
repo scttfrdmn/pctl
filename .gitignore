@@ -47,3 +47,4 @@ docs/.jekyll-cache/
 # Local state and temp files
 .pctl/
 *.log
+venv/
