@@ -1,0 +1,16 @@
+# Minimal pctl Template Example
+# This is the simplest possible cluster configuration
+
+cluster:
+  name: minimal-cluster
+  region: us-east-1
+
+compute:
+  head_node: t3.medium
+
+  queues:
+    - name: compute
+      instance_types:
+        - c5.xlarge
+      min_count: 0
+      max_count: 10

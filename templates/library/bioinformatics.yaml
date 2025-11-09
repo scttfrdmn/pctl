@@ -1,0 +1,83 @@
+# Bioinformatics HPC Cluster Template
+# Optimized for genomics and bioinformatics workflows
+# Includes common tools: samtools, bwa, gatk, blast+
+
+cluster:
+  name: bio-cluster
+  region: us-east-1
+
+compute:
+  # Head node for job scheduling and management
+  head_node: t3.xlarge
+
+  queues:
+    # Memory-optimized queue for assembly and alignment
+    - name: memory
+      instance_types:
+        - r5.4xlarge
+        - r5.8xlarge
+      min_count: 0
+      max_count: 20
+
+    # Compute-optimized queue for variant calling
+    - name: compute
+      instance_types:
+        - c5.4xlarge
+        - c5.9xlarge
+      min_count: 0
+      max_count: 30
+
+    # General purpose queue for varied workloads
+    - name: general
+      instance_types:
+        - m5.2xlarge
+        - m5.4xlarge
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # Bioinformatics tools
+    - samtools@1.17
+    - bwa@0.7.17
+    - gatk@4.3.0
+    - blast-plus@2.14.0
+    - bedtools2@2.30.0
+    - bowtie2@2.4.5
+    - fastqc@0.11.9
+    - trimmomatic@0.39
+
+    # Languages and libraries
+    - python@3.10
+    - r@4.2.0
+    - perl@5.36.0
+
+    # Data processing
+    - hdf5@1.14.0
+    - parallel@20230422
+
+users:
+  - name: biouser1
+    uid: 5001
+    gid: 5001
+  - name: biouser2
+    uid: 5002
+    gid: 5002
+
+data:
+  s3_mounts:
+    # Reference genomes
+    - bucket: my-reference-genomes
+      mount_point: /shared/references
+
+    # Raw sequencing data
+    - bucket: my-sequencing-data
+      mount_point: /shared/data
+
+    # Results output
+    - bucket: my-analysis-results
+      mount_point: /shared/results

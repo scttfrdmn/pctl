@@ -9,20 +9,62 @@ A Go-based CLI tool that simplifies AWS ParallelCluster deployment using intuiti
 
 ## Overview
 
-AWS ParallelCluster is powerful but has gaps between infrastructure provisioning and production readiness. Users need:
-- Scientific software installed and configured
-- Consistent user management (UID/GID)
-- Data accessibility (S3, EFS, FSx mounting)
-- Simple, reusable configurations
+**pctl delivers ready-to-use HPC clusters, not just empty infrastructure.**
 
-pctl provides a template-driven approach that addresses all these needs with simple YAML configurations.
+AWS ParallelCluster provisions compute nodes, but researchers still face the gap between infrastructure and productivity:
+- **Days of manual work** installing compilers, MPI, scientific software
+- **Inconsistent environments** across users and nodes
+- **Complex data access** setup for S3, EFS, FSx
+- **No repeatability** - hard to recreate working environments
 
-## Features
+**pctl solves this:** One simple YAML template provisions a complete, working cluster with your scientific software pre-installed, users configured, and data accessible. Submit jobs immediately, not after days of setup.
 
-- **Simple YAML Templates**: 20-50 lines vs 100+ for raw ParallelCluster configs
-- **Software Management**: Automatic Spack installation with Lmod module system
-- **User Management**: Consistent UID/GID across all cluster nodes
-- **Data Integration**: Easy S3, EFS, and FSx mounting
+From template to working cluster with software installed - that's pctl.
+
+## Key Features
+
+### 🚀 Ready-to-Use Clusters
+**Not just nodes - complete working environments.** Your cluster comes with scientific software installed and configured:
+- Bioinformatics: samtools, bwa, gatk, blast+
+- Machine Learning: PyTorch, TensorFlow, CUDA
+- Computational Chemistry: GROMACS, LAMMPS, Quantum ESPRESSO
+- Or bring your own: 6000+ packages via Spack
+
+### 📦 Automatic Software Installation
+**No more days installing dependencies.** Specify packages in your template, pctl installs them with Spack and generates Lmod modules:
+```yaml
+software:
+  spack_packages:
+    - gcc@11.3.0
+    - openmpi@4.1.4
+    - samtools@1.17
+    - python@3.10
+```
+Users do: `module load samtools` and start working immediately.
+
+### 👥 User Management
+**Consistent UID/GID across all nodes.** Define users once, they work everywhere:
+```yaml
+users:
+  - name: researcher1
+    uid: 5001
+    gid: 5001
+```
+
+### 💾 Data Access
+**S3 buckets mounted as filesystem paths.** No manual s3fs setup:
+```yaml
+data:
+  s3_mounts:
+    - bucket: my-research-data
+      mount_point: /shared/data
+```
+Users access data like local files: `ls /shared/data/`
+
+### 📝 Simple Templates
+**20-50 lines vs 100+ for raw ParallelCluster configs.** Focus on what matters: instances, software, users, data.
+
+### 🔄 Other Features
 - **Template Registry**: Share and discover templates via GitHub
 - **Configuration Capture**: Migrate existing on-prem clusters to cloud
 - **Self-Contained**: Manages its own ParallelCluster installation

@@ -1,0 +1,94 @@
+# Machine Learning HPC Cluster Template
+# Optimized for deep learning training and inference
+# Includes PyTorch, TensorFlow, and Jupyter
+
+cluster:
+  name: ml-cluster
+  region: us-west-2
+
+compute:
+  # Larger head node for Jupyter and development
+  head_node: t3.2xlarge
+
+  queues:
+    # GPU queue for deep learning training
+    - name: gpu
+      instance_types:
+        - g4dn.xlarge
+        - g4dn.2xlarge
+        - g4dn.4xlarge
+        - p3.2xlarge
+      min_count: 0
+      max_count: 10
+
+    # CPU queue for data preprocessing
+    - name: cpu
+      instance_types:
+        - c5.4xlarge
+        - c5.9xlarge
+        - c5.18xlarge
+      min_count: 0
+      max_count: 20
+
+    # High-memory queue for large models
+    - name: highmem
+      instance_types:
+        - r5.8xlarge
+        - r5.12xlarge
+      min_count: 0
+      max_count: 5
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # CUDA and GPU libraries
+    - cuda@11.8.0
+    - cudnn@8.6.0
+
+    # Python and ML frameworks
+    - python@3.10
+    - py-pip@23.1.2
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+    - py-torch@2.0.0
+    - py-tensorflow@2.12.0
+    - py-scikit-learn@1.2.0
+
+    # Development tools
+    - cmake@3.26.0
+    - git@2.40.0
+    - vim@9.0
+
+    # Data processing
+    - hdf5@1.14.0
+    - opencv@4.7.0
+
+users:
+  - name: mluser1
+    uid: 5001
+    gid: 5001
+  - name: mluser2
+    uid: 5002
+    gid: 5002
+  - name: mluser3
+    uid: 5003
+    gid: 5003
+
+data:
+  s3_mounts:
+    # Training datasets
+    - bucket: my-ml-datasets
+      mount_point: /shared/datasets
+
+    # Model checkpoints
+    - bucket: my-model-checkpoints
+      mount_point: /shared/models
+
+    # Experiment results
+    - bucket: my-ml-experiments
+      mount_point: /shared/experiments

@@ -1,0 +1,40 @@
+# Starter pctl Template
+# A basic cluster with common software and user setup
+
+cluster:
+  name: starter-cluster
+  region: us-east-1
+
+compute:
+  head_node: t3.large
+
+  queues:
+    # General purpose compute queue
+    - name: compute
+      instance_types:
+        - c5.2xlarge
+        - c5.4xlarge
+      min_count: 0
+      max_count: 20
+
+software:
+  spack_packages:
+    # Basic compiler toolchain
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # Common utilities
+    - python@3.10
+    - cmake@3.26.0
+    - git@2.40.0
+
+users:
+  - name: user1
+    uid: 5001
+    gid: 5001
+
+data:
+  s3_mounts:
+    # Shared data bucket
+    - bucket: my-data-bucket
+      mount_point: /shared/data
