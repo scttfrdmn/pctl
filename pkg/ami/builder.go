@@ -161,6 +161,10 @@ type BuildOptions struct {
 	Tags map[string]string
 	// WaitTimeout is the maximum time to wait for software installation
 	WaitTimeout time.Duration
+	// SkipCleanup disables automatic cleanup before AMI creation
+	SkipCleanup bool
+	// CustomCleanupScript runs in addition to default cleanup
+	CustomCleanupScript string
 }
 
 // DefaultBuildOptions returns default build options.
@@ -188,6 +192,15 @@ func (b *Builder) launchBuildInstance(ctx context.Context, tmpl *template.Templa
 	// Generate user data script for software installation
 	manager := software.NewManager()
 	userData := manager.GenerateBootstrapScript(tmpl, false, false) // Software only, no users/S3
+
+	// Append cleanup script unless skipped
+	if !opts.SkipCleanup {
+		userData += "\n\n# AMI Cleanup Script\n"
+		userData += "echo '========================================'\n"
+		userData += "echo 'Running AMI cleanup for optimal size and security...'\n"
+		userData += "echo '========================================'\n"
+		userData += GenerateCleanupScript(opts.CustomCleanupScript)
+	}
 
 	// Base64 encode user data
 	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))

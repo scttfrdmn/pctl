@@ -33,6 +33,7 @@ var (
 	amiSubnetID     string
 	amiKeyName      string
 	amiTimeout      int
+	amiSkipCleanup  bool
 )
 
 // amiCmd represents the ami command group
@@ -98,6 +99,7 @@ func init() {
 	buildAMICmd.Flags().StringVar(&amiSubnetID, "subnet-id", "", "subnet ID for build instance (required)")
 	buildAMICmd.Flags().StringVar(&amiKeyName, "key-name", "", "EC2 key pair name for SSH access (optional)")
 	buildAMICmd.Flags().IntVar(&amiTimeout, "timeout", 90, "timeout in minutes for software installation")
+	buildAMICmd.Flags().BoolVar(&amiSkipCleanup, "no-cleanup", false, "skip automatic cleanup before AMI creation (not recommended)")
 
 	buildAMICmd.MarkFlagRequired("template")
 	buildAMICmd.MarkFlagRequired("name")
@@ -141,6 +143,14 @@ func runBuildAMI(cmd *cobra.Command, args []string) error {
 	opts.SubnetID = amiSubnetID
 	opts.KeyName = amiKeyName
 	opts.WaitTimeout = time.Duration(amiTimeout) * time.Minute
+	opts.SkipCleanup = amiSkipCleanup
+
+	// Show cleanup status
+	if amiSkipCleanup {
+		fmt.Printf("⚠️  Cleanup disabled - AMI will be larger and may contain sensitive data\n\n")
+	} else {
+		fmt.Printf("✅ Cleanup enabled - AMI will be optimized for size and security\n\n")
+	}
 
 	// Build AMI
 	metadata, err := builder.BuildAMI(ctx, tmpl, opts)
