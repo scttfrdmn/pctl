@@ -18,6 +18,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/scttfrdmn/pctl/pkg/software"
 	"github.com/scttfrdmn/pctl/pkg/template"
 	"gopkg.in/yaml.v3"
 )
@@ -176,70 +177,8 @@ func (g *Generator) buildParallelClusterConfig(tmpl *template.Template) map[stri
 }
 
 // GenerateBootstrapScript generates a bootstrap script for software installation and user setup.
+// This now delegates to the software.Manager for a more robust implementation.
 func (g *Generator) GenerateBootstrapScript(tmpl *template.Template) string {
-	script := "#!/bin/bash\n"
-	script += "set -e\n\n"
-	script += "# pctl bootstrap script\n"
-	script += "# Generated for cluster: " + tmpl.Cluster.Name + "\n\n"
-
-	// User creation
-	if len(tmpl.Users) > 0 {
-		script += "# Create users\n"
-		for _, user := range tmpl.Users {
-			script += fmt.Sprintf("groupadd -g %d %s || true\n", user.GID, user.Name)
-			script += fmt.Sprintf("useradd -u %d -g %d -m -s /bin/bash %s || true\n", user.UID, user.GID, user.Name)
-		}
-		script += "\n"
-	}
-
-	// S3 mount setup
-	if len(tmpl.Data.S3Mounts) > 0 {
-		script += "# Install s3fs for S3 mounts\n"
-		script += "yum install -y s3fs-fuse\n\n"
-		script += "# Mount S3 buckets\n"
-		for _, mount := range tmpl.Data.S3Mounts {
-			script += fmt.Sprintf("mkdir -p %s\n", mount.MountPoint)
-			script += fmt.Sprintf("s3fs %s %s -o iam_role=auto -o allow_other\n", mount.Bucket, mount.MountPoint)
-			script += fmt.Sprintf("echo 's3fs#%s %s fuse _netdev,allow_other,iam_role=auto 0 0' >> /etc/fstab\n", mount.Bucket, mount.MountPoint)
-		}
-		script += "\n"
-	}
-
-	// Spack installation
-	if len(tmpl.Software.SpackPackages) > 0 {
-		script += "# Install Spack\n"
-		script += "cd /opt\n"
-		script += "git clone -c feature.manyFiles=true https://github.com/spack/spack.git\n"
-		script += "cd spack\n"
-		script += "git checkout releases/latest\n"
-		script += ". share/spack/setup-env.sh\n\n"
-
-		script += "# Install packages\n"
-		for _, pkg := range tmpl.Software.SpackPackages {
-			script += fmt.Sprintf("spack install %s\n", pkg)
-		}
-		script += "\n"
-
-		script += "# Install Lmod\n"
-		script += "yum install -y lua lua-devel lua-filesystem lua-posix\n"
-		script += "cd /opt\n"
-		script += "wget https://github.com/TACC/Lmod/archive/8.7.tar.gz\n"
-		script += "tar xzf 8.7.tar.gz\n"
-		script += "cd Lmod-8.7\n"
-		script += "./configure --prefix=/opt/apps\n"
-		script += "make install\n\n"
-
-		script += "# Generate Lmod modules\n"
-		script += "cd /opt/spack\n"
-		script += ". share/spack/setup-env.sh\n"
-		script += "spack module lmod refresh -y\n\n"
-
-		script += "# Setup Lmod for all users\n"
-		script += "cat > /etc/profile.d/z00_lmod.sh << 'EOF'\n"
-		script += "export MODULEPATH=/opt/spack/share/spack/lmod/linux-amzn2-x86_64/Core\n"
-		script += "source /opt/apps/lmod/lmod/init/bash\n"
-		script += "EOF\n"
-	}
-
-	return script
+	manager := software.NewManager()
+	return manager.GenerateBootstrapScript(tmpl, true, true)
 }

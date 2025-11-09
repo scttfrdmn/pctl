@@ -119,7 +119,7 @@ func TestGenerateBootstrapScript(t *testing.T) {
 		t.Error("Script missing shebang")
 	}
 
-	if !strings.Contains(script, "Create users") {
+	if !strings.Contains(script, "USER CREATION") {
 		t.Error("Script missing user creation section")
 	}
 
@@ -127,15 +127,19 @@ func TestGenerateBootstrapScript(t *testing.T) {
 		t.Error("Script missing user1 creation")
 	}
 
-	if !strings.Contains(script, "Install Spack") {
-		t.Error("Script missing Spack installation")
+	if !strings.Contains(script, "SOFTWARE INSTALLATION") {
+		t.Error("Script missing software installation section")
 	}
 
-	if !strings.Contains(script, "spack install gcc@11.3.0") {
-		t.Error("Script missing GCC installation")
+	if !strings.Contains(script, "gcc@11.3.0") {
+		t.Error("Script missing GCC package")
 	}
 
-	if !strings.Contains(script, "Install Lmod") {
+	if !strings.Contains(script, "openmpi@4.1.4") {
+		t.Error("Script missing OpenMPI package")
+	}
+
+	if !strings.Contains(script, "Lmod Installation") {
 		t.Error("Script missing Lmod installation")
 	}
 

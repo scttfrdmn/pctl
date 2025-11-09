@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Production-ready software management system** (pkg/software)
+  - Spack installation framework with configurable versions and paths
+  - AWS Spack buildcache integration for faster package installations
+  - Automatic buildcache mirror configuration (https://binaries.spack.io)
+  - Trusted GPG key management for buildcache
+  - Compiler detection and installation (gcc, llvm, intel-oneapi)
+  - Parallel package installation with fallback to source builds
+  - Lmod module system integration
+  - Hierarchical module organization (Core, Compiler, MPI)
+  - Automatic module generation from Spack packages
+  - Custom module file creation with environment variables
+  - Comprehensive bootstrap script generation
+  - Detailed logging and progress reporting
+  - Error handling with graceful fallbacks
+- Enhanced bootstrap script generation
+  - Modular software management (replaces monolithic script)
+  - Section-based organization (users, S3, software)
+  - Improved error handling and logging
+  - Support for software-only installations
 - **AWS SDK integration for automatic VPC/networking** (pkg/network)
   - Automatic VPC creation with 10.0.0.0/16 CIDR
   - Public subnet (10.0.1.0/24) for head node with auto-assign public IP
