@@ -23,6 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Wraps pcluster CLI commands
   - State management integration
   - Context-aware operations
+- Complete CLI command implementations:
+  - `pctl create` - Full cluster provisioning with --key-name and --subnet-id flags
+    - Bootstrap script generation and software installation
+    - --wait flag for synchronous cluster creation
+    - --custom-ami flag for custom AMI support
+  - `pctl list` - Beautiful table output showing all managed clusters
+    - Status emojis (✅ complete, 🔄 in progress, ❌ failed)
+    - Relative time formatting (e.g., "2 hours ago")
+    - Dynamic column widths
+  - `pctl status` - Detailed cluster status with actionable next steps
+    - Head node IP and SSH instructions
+    - Compute node counts
+    - Scheduler state
+    - Context-aware action suggestions
+  - `pctl delete` - Safe cluster deletion with confirmation prompt
+    - Type cluster name to confirm (or use --force)
+    - Checks cluster exists before attempting deletion
+    - Preserves S3 bucket data
 
 ### Changed
 - None

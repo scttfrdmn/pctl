@@ -15,8 +15,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/scttfrdmn/pctl/pkg/provisioner"
 	"github.com/spf13/cobra"
 )
 
@@ -52,17 +54,71 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Checking status for cluster: %s\n\n", clusterName)
 	}
 
-	// TODO: Implement cluster status checking
+	// Create provisioner
+	prov, err := provisioner.NewProvisioner()
+	if err != nil {
+		return fmt.Errorf("failed to create provisioner: %w", err)
+	}
+
+	// Get cluster status
+	ctx := context.Background()
+	status, err := prov.GetClusterStatus(ctx, clusterName)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster status: %w", err)
+	}
+
+	// Print status header
+	statusEmoji := getStatusEmoji(status.Status)
 	fmt.Printf("📊 Cluster Status: %s\n\n", clusterName)
-	fmt.Printf("⚠️  Status checking not yet implemented (v0.2.0)\n")
-	fmt.Printf("This will be implemented in the AWS Integration milestone.\n\n")
-	fmt.Printf("Will show:\n")
-	fmt.Printf("  - Cluster state\n")
-	fmt.Printf("  - Head node: IP, instance type, status\n")
-	fmt.Printf("  - Compute nodes: count, types, status\n")
-	fmt.Printf("  - SLURM scheduler status\n")
-	fmt.Printf("  - Software installation progress\n")
-	fmt.Printf("  - Recent events and errors\n")
+	fmt.Printf("Status: %s %s\n", statusEmoji, status.Status)
+	fmt.Printf("Region: %s\n", status.Region)
+
+	// Print head node information if available
+	if status.HeadNodeIP != "" {
+		fmt.Printf("\nHead Node:\n")
+		fmt.Printf("  Public IP:  %s\n", status.HeadNodeIP)
+		fmt.Printf("  SSH:        ssh -i ~/.ssh/<key>.pem ec2-user@%s\n", status.HeadNodeIP)
+	}
+
+	// Print compute node information if available
+	if status.ComputeNodes > 0 {
+		fmt.Printf("\nCompute Nodes: %d\n", status.ComputeNodes)
+	}
+
+	// Print scheduler information if available
+	if status.SchedulerState != "" {
+		fmt.Printf("\nScheduler:\n")
+		fmt.Printf("  Type:   SLURM\n")
+		fmt.Printf("  State:  %s\n", status.SchedulerState)
+	}
+
+	// Print next steps based on status
+	fmt.Printf("\nActions:\n")
+	switch status.Status {
+	case "CREATE_IN_PROGRESS":
+		fmt.Printf("  ⏳ Cluster is being created. Check again in a few minutes.\n")
+		fmt.Printf("  💡 Monitor progress: pctl status %s\n", clusterName)
+	case "CREATE_COMPLETE":
+		fmt.Printf("  ✅ Cluster is ready to use!\n")
+		if status.HeadNodeIP != "" {
+			fmt.Printf("  🔗 SSH to head node: ssh -i ~/.ssh/<key>.pem ec2-user@%s\n", status.HeadNodeIP)
+		}
+		fmt.Printf("  🗑️  Delete cluster: pctl delete %s\n", clusterName)
+	case "CREATE_FAILED":
+		fmt.Printf("  ❌ Cluster creation failed.\n")
+		fmt.Printf("  🔍 Check CloudFormation console for detailed error messages.\n")
+		fmt.Printf("  🗑️  Clean up: pctl delete %s\n", clusterName)
+	case "DELETE_IN_PROGRESS":
+		fmt.Printf("  🗑️  Cluster is being deleted.\n")
+	default:
+		fmt.Printf("  💡 Monitor: pctl status %s\n", clusterName)
+		fmt.Printf("  🗑️  Delete:  pctl delete %s\n", clusterName)
+	}
+
+	if verbose {
+		fmt.Printf("\nVerbose Details:\n")
+		fmt.Printf("  Full Status: %+v\n", status)
+	}
 
 	return nil
 }

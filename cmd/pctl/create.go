@@ -15,16 +15,23 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	"github.com/scttfrdmn/pctl/pkg/provisioner"
 	"github.com/scttfrdmn/pctl/pkg/template"
 	"github.com/spf13/cobra"
 )
 
 var (
-	createTemplate string
-	createName     string
-	dryRun         bool
+	createTemplate  string
+	createName      string
+	createKeyName   string
+	createSubnetID  string
+	createCustomAMI string
+	createWait      bool
+	dryRun          bool
 )
 
 var createCmd = &cobra.Command{
@@ -39,21 +46,34 @@ This command:
 4. Installs software packages (if specified)
 5. Configures users and data mounts
 
-The cluster name can be specified with --name, or will use the name from the template.`,
+The cluster name can be specified with --name, or will use the name from the template.
+
+Note: Currently requires --key-name and --subnet-id. These will become optional
+after AWS SDK integration (v0.2.0) which will auto-create VPC/networking.`,
 	Example: `  # Create a cluster from template
-  pctl create -t bioinformatics.yaml
+  pctl create -t bioinformatics.yaml --key-name my-key --subnet-id subnet-abc123
 
   # Create with custom name
-  pctl create -t my-cluster.yaml --name production-cluster
+  pctl create -t my-cluster.yaml --name production-cluster --key-name my-key --subnet-id subnet-abc123
 
-  # Dry run to see what would be created
-  pctl create -t my-cluster.yaml --dry-run`,
+  # Create with custom AMI
+  pctl create -t my-cluster.yaml --key-name my-key --subnet-id subnet-abc123 --custom-ami ami-0123456789
+
+  # Dry run to see what would be created (no AWS credentials needed)
+  pctl create -t my-cluster.yaml --dry-run
+
+  # Create and wait for completion
+  pctl create -t my-cluster.yaml --key-name my-key --subnet-id subnet-abc123 --wait`,
 	RunE: runCreate,
 }
 
 func init() {
 	createCmd.Flags().StringVarP(&createTemplate, "template", "t", "", "path to template file (required)")
 	createCmd.Flags().StringVarP(&createName, "name", "n", "", "cluster name (overrides template)")
+	createCmd.Flags().StringVarP(&createKeyName, "key-name", "k", "", "EC2 key pair name for SSH access (required)")
+	createCmd.Flags().StringVarP(&createSubnetID, "subnet-id", "s", "", "subnet ID for the cluster (required)")
+	createCmd.Flags().StringVar(&createCustomAMI, "custom-ami", "", "custom AMI ID to use")
+	createCmd.Flags().BoolVar(&createWait, "wait", false, "wait for cluster creation to complete")
 	createCmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate and show plan without creating")
 	createCmd.MarkFlagRequired("template")
 	rootCmd.AddCommand(createCmd)
@@ -124,10 +144,64 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// TODO: Implement actual cluster creation
-	fmt.Printf("\n⚠️  Cluster creation not yet implemented (v0.2.0)\n")
-	fmt.Printf("This will be implemented in the AWS Integration milestone.\n\n")
-	fmt.Printf("For now, this command validates your template and shows what would be created.\n")
+	// Validate required flags
+	if createKeyName == "" {
+		return fmt.Errorf("--key-name is required (will be optional after AWS SDK integration)")
+	}
+	if createSubnetID == "" {
+		return fmt.Errorf("--subnet-id is required (will be optional after AWS SDK integration)")
+	}
+
+	// Create provisioner
+	fmt.Printf("\n🚀 Creating cluster: %s\n\n", clusterName)
+	prov, err := provisioner.NewProvisioner()
+	if err != nil {
+		return fmt.Errorf("failed to create provisioner: %w", err)
+	}
+
+	// Prepare create options
+	opts := &provisioner.CreateOptions{
+		TemplatePath: createTemplate,
+		KeyName:      createKeyName,
+		SubnetID:     createSubnetID,
+		CustomAMI:    createCustomAMI,
+		DryRun:       false,
+	}
+
+	// Override cluster name in template if provided
+	if createName != "" {
+		tmpl.Cluster.Name = createName
+	}
+
+	// Create cluster
+	ctx := context.Background()
+	if createWait {
+		// Set a reasonable timeout for cluster creation (30 minutes)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Minute)
+		defer cancel()
+	}
+
+	fmt.Printf("📝 Generating ParallelCluster configuration...\n")
+	fmt.Printf("🔧 Provisioning cluster infrastructure...\n")
+	fmt.Printf("⏳ This may take 10-15 minutes...\n\n")
+
+	if err := prov.CreateCluster(ctx, tmpl, opts); err != nil {
+		return fmt.Errorf("failed to create cluster: %w", err)
+	}
+
+	fmt.Printf("\n✅ Cluster creation initiated successfully!\n\n")
+	fmt.Printf("Cluster: %s\n", clusterName)
+	fmt.Printf("Region: %s\n", tmpl.Cluster.Region)
+	fmt.Printf("\nNext steps:\n")
+	fmt.Printf("  1. Check status: pctl status %s\n", clusterName)
+	fmt.Printf("  2. List clusters: pctl list\n")
+	fmt.Printf("  3. SSH access: ssh -i ~/.ssh/%s.pem ec2-user@<head-node-ip>\n\n", createKeyName)
+
+	if len(tmpl.Software.SpackPackages) > 0 {
+		fmt.Printf("📦 Software installation will complete in background.\n")
+		fmt.Printf("   Check bootstrap script logs in CloudWatch or /var/log/cfn-init.log\n\n")
+	}
 
 	return nil
 }

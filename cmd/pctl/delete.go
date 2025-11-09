@@ -15,8 +15,13 @@
 package main
 
 import (
+	"bufio"
+	"context"
 	"fmt"
+	"os"
+	"strings"
 
+	"github.com/scttfrdmn/pctl/pkg/provisioner"
 	"github.com/spf13/cobra"
 )
 
@@ -53,28 +58,73 @@ func init() {
 func runDelete(cmd *cobra.Command, args []string) error {
 	clusterName := args[0]
 
+	// Create provisioner to check if cluster exists
+	prov, err := provisioner.NewProvisioner()
+	if err != nil {
+		return fmt.Errorf("failed to create provisioner: %w", err)
+	}
+
+	// Check if cluster exists
+	clusters, err := prov.ListClusters()
+	if err != nil {
+		return fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	found := false
+	for _, cluster := range clusters {
+		if cluster.Name == clusterName {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("cluster '%s' not found. Use 'pctl list' to see managed clusters", clusterName)
+	}
+
+	// Prompt for confirmation if not forced
 	if !deleteForce {
-		fmt.Printf("⚠️  WARNING: This will permanently delete cluster '%s' and all associated resources.\n", clusterName)
-		fmt.Printf("Data in S3 buckets will NOT be deleted.\n\n")
+		fmt.Printf("⚠️  WARNING: This will permanently delete cluster '%s' and all associated resources.\n\n", clusterName)
+		fmt.Printf("This will delete:\n")
+		fmt.Printf("  - All compute nodes\n")
+		fmt.Printf("  - Head node\n")
+		fmt.Printf("  - CloudFormation stacks\n")
+		fmt.Printf("  - Local state files\n\n")
+		fmt.Printf("Note: Data in S3 buckets will NOT be deleted.\n\n")
 		fmt.Printf("This operation cannot be undone.\n\n")
-		fmt.Printf("To proceed, run with --force flag\n")
-		return nil
+		fmt.Printf("Type the cluster name to confirm deletion: ")
+
+		reader := bufio.NewReader(os.Stdin)
+		confirmation, err := reader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read confirmation: %w", err)
+		}
+
+		confirmation = strings.TrimSpace(confirmation)
+		if confirmation != clusterName {
+			fmt.Printf("\n❌ Deletion cancelled. Cluster name did not match.\n")
+			return nil
+		}
 	}
 
 	if verbose {
-		fmt.Printf("Deleting cluster: %s\n\n", clusterName)
+		fmt.Printf("\nDeleting cluster: %s\n", clusterName)
 	}
 
-	// TODO: Implement cluster deletion
-	fmt.Printf("🗑️  Deleting Cluster: %s\n\n", clusterName)
-	fmt.Printf("⚠️  Cluster deletion not yet implemented (v0.2.0)\n")
-	fmt.Printf("This will be implemented in the AWS Integration milestone.\n\n")
-	fmt.Printf("Will delete:\n")
-	fmt.Printf("  - All compute nodes\n")
-	fmt.Printf("  - Head node\n")
-	fmt.Printf("  - Associated networking (if created by pctl)\n")
-	fmt.Printf("  - CloudFormation stacks\n")
-	fmt.Printf("  - Local state files\n")
+	// Delete the cluster
+	fmt.Printf("\n🗑️  Deleting cluster: %s\n\n", clusterName)
+	fmt.Printf("Deleting compute nodes...\n")
+	fmt.Printf("Deleting head node...\n")
+	fmt.Printf("Deleting CloudFormation stack...\n")
+	fmt.Printf("⏳ This may take 5-10 minutes...\n\n")
+
+	ctx := context.Background()
+	if err := prov.DeleteCluster(ctx, clusterName); err != nil {
+		return fmt.Errorf("failed to delete cluster: %w", err)
+	}
+
+	fmt.Printf("✅ Cluster '%s' deleted successfully.\n", clusterName)
+	fmt.Printf("\nNote: S3 bucket data was preserved.\n")
 
 	return nil
 }
