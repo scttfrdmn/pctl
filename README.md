@@ -23,6 +23,26 @@ From template to working cluster with software installed - that's pctl.
 
 ## Key Features
 
+### ⚡ Lightning-Fast Deployment (v0.5.0)
+**97% faster cluster creation** - Deploy production HPC clusters in 2-3 minutes instead of hours:
+- **Custom AMI building** - Pre-bake software into custom AMIs once (30-90 min)
+- **Instant clusters** - Launch clusters with all software already installed
+- Perfect for testing, development, and rapid scaling
+```bash
+# Build AMI once (30-90 minutes, one time)
+pctl ami build -t bioinformatics.yaml --name bio-v1
+
+# Deploy clusters in 2-3 minutes (forever after)
+pctl create -t bioinformatics.yaml --custom-ami ami-xxx
+```
+
+### 🌐 Zero Network Configuration (v0.2.0)
+**Automatic VPC/networking** - No AWS networking knowledge required:
+- Auto-creates VPC with proper subnets and security groups
+- Or use existing VPC with `--subnet-id`
+- Automatic cleanup on cluster deletion
+- Just run `pctl create` - networking handled automatically
+
 ### 🚀 Ready-to-Use Clusters
 **Not just nodes - complete working environments.** Your cluster comes with scientific software installed and configured:
 - Bioinformatics: samtools, bwa, gatk, blast+
@@ -30,7 +50,7 @@ From template to working cluster with software installed - that's pctl.
 - Computational Chemistry: GROMACS, LAMMPS, Quantum ESPRESSO
 - Or bring your own: 6000+ packages via Spack
 
-### 📦 Automatic Software Installation
+### 📦 Automatic Software Installation (v0.3.0)
 **No more days installing dependencies.** Specify packages in your template, pctl installs them with Spack and generates Lmod modules:
 ```yaml
 software:
@@ -40,6 +60,10 @@ software:
     - samtools@1.17
     - python@3.10
 ```
+- **AWS Spack buildcache** - Pre-built binaries install in minutes vs hours
+- **Lmod module system** - Hierarchical organization (Core, Compiler, MPI)
+- **Graceful fallbacks** - Builds from source if binaries unavailable
+
 Users do: `module load samtools` and start working immediately.
 
 ### 👥 User Management
@@ -64,10 +88,17 @@ Users access data like local files: `ls /shared/data/`
 ### 📝 Simple Templates
 **20-50 lines vs 100+ for raw ParallelCluster configs.** Focus on what matters: instances, software, users, data.
 
-### 🔄 Other Features
-- **Template Registry**: Share and discover templates via GitHub
-- **Configuration Capture**: Migrate existing on-prem clusters to cloud
-- **Self-Contained**: Manages its own ParallelCluster installation
+### 🔄 Migration & Discovery (v0.4.0)
+**Seamless on-prem to AWS migration:**
+- **Configuration capture** - SSH to existing clusters, extract configuration
+- **Batch script analysis** - Parse SLURM/PBS/SGE scripts for requirements
+- **Module mapping** - 50+ pre-configured module-to-Spack mappings
+- **Template generation** - Automatically create pctl templates from captured configs
+
+**Template registry:**
+- Share and discover templates via GitHub
+- Search by workload type (bioinformatics, ML, chemistry)
+- Community-contributed templates
 
 ## Quick Start
 
