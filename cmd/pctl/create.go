@@ -48,22 +48,25 @@ This command:
 
 The cluster name can be specified with --name, or will use the name from the template.
 
-Note: Currently requires --key-name and --subnet-id. These will become optional
-after AWS SDK integration (v0.2.0) which will auto-create VPC/networking.`,
-	Example: `  # Create a cluster from template
+If --subnet-id is not provided, pctl will automatically create a VPC with public
+and private subnets, internet gateway, route tables, and security groups.`,
+	Example: `  # Create a cluster with automatic VPC/networking
+  pctl create -t bioinformatics.yaml --key-name my-key
+
+  # Create using existing VPC/subnet
   pctl create -t bioinformatics.yaml --key-name my-key --subnet-id subnet-abc123
 
   # Create with custom name
-  pctl create -t my-cluster.yaml --name production-cluster --key-name my-key --subnet-id subnet-abc123
+  pctl create -t my-cluster.yaml --name production-cluster --key-name my-key
 
   # Create with custom AMI
-  pctl create -t my-cluster.yaml --key-name my-key --subnet-id subnet-abc123 --custom-ami ami-0123456789
+  pctl create -t my-cluster.yaml --key-name my-key --custom-ami ami-0123456789
 
   # Dry run to see what would be created (no AWS credentials needed)
   pctl create -t my-cluster.yaml --dry-run
 
   # Create and wait for completion
-  pctl create -t my-cluster.yaml --key-name my-key --subnet-id subnet-abc123 --wait`,
+  pctl create -t my-cluster.yaml --key-name my-key --wait`,
 	RunE: runCreate,
 }
 
@@ -71,7 +74,7 @@ func init() {
 	createCmd.Flags().StringVarP(&createTemplate, "template", "t", "", "path to template file (required)")
 	createCmd.Flags().StringVarP(&createName, "name", "n", "", "cluster name (overrides template)")
 	createCmd.Flags().StringVarP(&createKeyName, "key-name", "k", "", "EC2 key pair name for SSH access (required)")
-	createCmd.Flags().StringVarP(&createSubnetID, "subnet-id", "s", "", "subnet ID for the cluster (required)")
+	createCmd.Flags().StringVarP(&createSubnetID, "subnet-id", "s", "", "subnet ID (optional, auto-creates VPC if not provided)")
 	createCmd.Flags().StringVar(&createCustomAMI, "custom-ami", "", "custom AMI ID to use")
 	createCmd.Flags().BoolVar(&createWait, "wait", false, "wait for cluster creation to complete")
 	createCmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate and show plan without creating")
@@ -146,10 +149,14 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	// Validate required flags
 	if createKeyName == "" {
-		return fmt.Errorf("--key-name is required (will be optional after AWS SDK integration)")
+		return fmt.Errorf("--key-name is required for SSH access to the cluster")
 	}
-	if createSubnetID == "" {
-		return fmt.Errorf("--subnet-id is required (will be optional after AWS SDK integration)")
+
+	// subnet-id is now optional - will auto-create VPC if not provided
+	if createSubnetID != "" {
+		fmt.Printf("📍 Using existing subnet: %s\n", createSubnetID)
+	} else {
+		fmt.Printf("📍 Will auto-create VPC and networking\n")
 	}
 
 	// Create provisioner

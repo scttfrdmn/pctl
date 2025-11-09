@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AWS SDK integration for automatic VPC/networking** (pkg/network)
+  - Automatic VPC creation with 10.0.0.0/16 CIDR
+  - Public subnet (10.0.1.0/24) for head node with auto-assign public IP
+  - Private subnet (10.0.2.0/24) for compute nodes
+  - Internet gateway and route tables
+  - Security groups with SSH access and internal communication
+  - Automatic cleanup on cluster deletion
+  - All resources tagged with cluster name and "ManagedBy: pctl"
+  - AWS SDK Go v2 dependencies added
+- Enhanced cluster state management
+  - Network resource tracking (VPC, subnets, security groups, etc.)
+  - NetworkManagedByPctl flag to distinguish user-provided vs auto-created
 - ParallelCluster configuration generator (pkg/config)
   - Converts pctl templates to ParallelCluster YAML configs
   - Supports multiple instance types per queue
@@ -43,7 +55,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Preserves S3 bucket data
 
 ### Changed
-- None
+- `pctl create` command now auto-creates VPC/networking if --subnet-id not provided
+  - --subnet-id flag is now optional (was required)
+  - Auto-creates VPC with proper networking if not provided
+  - Displays network creation progress with resource IDs
+  - Cleans up network resources on failure
+  - Updated help text and examples to show automatic networking
 
 ## [0.1.0] - 2025-11-09
 

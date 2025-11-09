@@ -25,6 +25,7 @@ import (
 
 	"github.com/scttfrdmn/pctl/internal/config"
 	pcconfig "github.com/scttfrdmn/pctl/pkg/config"
+	"github.com/scttfrdmn/pctl/pkg/network"
 	"github.com/scttfrdmn/pctl/pkg/state"
 	"github.com/scttfrdmn/pctl/pkg/template"
 )
@@ -60,9 +61,29 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 		return fmt.Errorf("template validation failed: %w", err)
 	}
 
+	// Create network resources if not provided
+	var networkResources *network.NetworkResources
+	subnetID := opts.SubnetID
+	if subnetID == "" {
+		fmt.Printf("🌐 Creating VPC and networking resources...\n")
+		netMgr, err := network.NewManager(ctx, tmpl.Cluster.Region)
+		if err != nil {
+			return fmt.Errorf("failed to create network manager: %w", err)
+		}
+
+		networkResources, err = netMgr.CreateNetwork(ctx, tmpl.Cluster.Name)
+		if err != nil {
+			return fmt.Errorf("failed to create network: %w", err)
+		}
+		subnetID = networkResources.PublicSubnetID
+		fmt.Printf("✅ VPC created: %s\n", networkResources.VpcID)
+		fmt.Printf("✅ Public subnet: %s\n", networkResources.PublicSubnetID)
+		fmt.Printf("✅ Private subnet: %s\n", networkResources.PrivateSubnetID)
+	}
+
 	// Generate ParallelCluster config
 	p.configGen.KeyName = opts.KeyName
-	p.configGen.SubnetID = opts.SubnetID
+	p.configGen.SubnetID = subnetID
 	p.configGen.CustomAMI = opts.CustomAMI
 
 	pcConfig, err := p.configGen.Generate(tmpl)
@@ -88,6 +109,17 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 		CustomAMI:    opts.CustomAMI,
 	}
 
+	// Store network resources if we created them
+	if networkResources != nil {
+		clusterState.VpcID = networkResources.VpcID
+		clusterState.PublicSubnetID = networkResources.PublicSubnetID
+		clusterState.PrivateSubnetID = networkResources.PrivateSubnetID
+		clusterState.SecurityGroupID = networkResources.SecurityGroupID
+		clusterState.InternetGatewayID = networkResources.InternetGatewayID
+		clusterState.RouteTableID = networkResources.RouteTableID
+		clusterState.NetworkManagedByPctl = true
+	}
+
 	if err := p.stateManager.Save(clusterState); err != nil {
 		return fmt.Errorf("failed to save initial state: %w", err)
 	}
@@ -96,6 +128,16 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 	if err := p.runPClusterCreate(ctx, tmpl.Cluster.Name, configPath, tmpl.Cluster.Region); err != nil {
 		clusterState.Status = "CREATE_FAILED"
 		p.stateManager.Save(clusterState)
+
+		// Clean up network resources if we created them
+		if networkResources != nil {
+			fmt.Printf("\n🧹 Cleaning up network resources due to cluster creation failure...\n")
+			netMgr, _ := network.NewManager(ctx, tmpl.Cluster.Region)
+			if netMgr != nil {
+				netMgr.DeleteNetwork(ctx, networkResources)
+			}
+		}
+
 		return fmt.Errorf("failed to create cluster: %w", err)
 	}
 
@@ -119,6 +161,32 @@ func (p *Provisioner) DeleteCluster(ctx context.Context, name string) error {
 	// Delete cluster using pcluster CLI
 	if err := p.runPClusterDelete(ctx, name, clusterState.Region); err != nil {
 		return fmt.Errorf("failed to delete cluster: %w", err)
+	}
+
+	// Delete network resources if managed by pctl
+	if clusterState.NetworkManagedByPctl {
+		fmt.Printf("🧹 Deleting VPC and networking resources...\n")
+		netMgr, err := network.NewManager(ctx, clusterState.Region)
+		if err != nil {
+			fmt.Printf("⚠️  Warning: failed to create network manager: %v\n", err)
+		} else {
+			networkResources := &network.NetworkResources{
+				VpcID:             clusterState.VpcID,
+				PublicSubnetID:    clusterState.PublicSubnetID,
+				PrivateSubnetID:   clusterState.PrivateSubnetID,
+				SecurityGroupID:   clusterState.SecurityGroupID,
+				InternetGatewayID: clusterState.InternetGatewayID,
+				RouteTableID:      clusterState.RouteTableID,
+				Region:            clusterState.Region,
+				ClusterName:       name,
+				ManagedByPctl:     true,
+			}
+			if err := netMgr.DeleteNetwork(ctx, networkResources); err != nil {
+				fmt.Printf("⚠️  Warning: failed to delete network resources: %v\n", err)
+			} else {
+				fmt.Printf("✅ Network resources deleted\n")
+			}
+		}
 	}
 
 	// Remove state

@@ -51,6 +51,14 @@ type ClusterState struct {
 	PCVersion string `json:"pc_version,omitempty"`
 	// CustomAMI is the custom AMI ID if used
 	CustomAMI string `json:"custom_ami,omitempty"`
+	// Network resources (if managed by pctl)
+	VpcID                string `json:"vpc_id,omitempty"`
+	PublicSubnetID       string `json:"public_subnet_id,omitempty"`
+	PrivateSubnetID      string `json:"private_subnet_id,omitempty"`
+	SecurityGroupID      string `json:"security_group_id,omitempty"`
+	InternetGatewayID    string `json:"internet_gateway_id,omitempty"`
+	RouteTableID         string `json:"route_table_id,omitempty"`
+	NetworkManagedByPctl bool   `json:"network_managed_by_pctl,omitempty"`
 }
 
 // Manager manages cluster state.
