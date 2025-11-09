@@ -114,7 +114,7 @@ func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *B
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AMI: %w", err)
 	}
-	fmt.Printf("   ✅ AMI created: %s\n\n")
+	fmt.Printf("   ✅ AMI created: %s\n\n", amiID)
 
 	// Step 6: Wait for AMI to be available
 	fmt.Printf("6️⃣  Waiting for AMI to be available...\n")
