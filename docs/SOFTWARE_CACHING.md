@@ -26,12 +26,19 @@ cluster:
   region: us-east-1
 
 compute:
-  head_node: t3.xlarge
+  head_node: t3.xlarge  # Small instance for running cluster
   custom_ami: ami-0123456789abcdef  # Pre-built with software
 
 software:
   # Software already in AMI
   use_custom_ami: true
+
+  # Build configuration (used during AMI creation)
+  build:
+    instance_type: c5.18xlarge  # Large instance for fast builds
+    spot: true  # Use spot instances to save ~70% on build costs
+    timeout: 12h  # Maximum build time
+
   spack_packages:
     - gcc@11.3.0
     - openmpi@4.1.4
@@ -40,13 +47,26 @@ software:
 
 **pctl workflow:**
 1. First time: `pctl build-ami -t template.yaml`
-   - Launches temporary instance
-   - Installs all software
+   - Launches **build instance** (c5.18xlarge with 72 cores)
+   - Installs all software in parallel (uses all cores)
    - Creates AMI
+   - Terminates build instance
    - Saves AMI ID to template or config
 2. Subsequent clusters: Use pre-built AMI
+   - Head node launches with small instance (t3.xlarge)
    - Nodes boot in 2-3 minutes with software ready
    - No compilation needed
+
+**Build Instance Selection:**
+The build instance is separate from the head node:
+- **Build instance**: c5.18xlarge (72 cores) - fast parallel builds
+- **Head node**: t3.xlarge (4 cores) - sufficient for scheduler
+- **Cost**: Build instance only runs during AMI creation (~2-4 hours)
+
+**Example build times:**
+- c5.18xlarge (72 cores): 2 hours for full bio stack
+- t3.xlarge (4 cores): 8 hours for same stack
+- **Savings: 75% faster, only $7-14 build cost**
 
 **Pros:**
 - Fastest: 2-3 minute boot times
@@ -234,11 +254,25 @@ software:
 
 ### Build Custom AMI
 ```bash
-# Build AMI from template
+# Build AMI from template (uses build instance from template)
 pctl build-ami -t production.yaml --name bio-v1
 
-# Use in template
-pctl create -t production.yaml --ami ami-0123456789
+# Override build instance type
+pctl build-ami -t production.yaml --build-instance c5.24xlarge
+
+# Use spot instances (default) or on-demand
+pctl build-ami -t production.yaml --build-instance c5.18xlarge --spot
+pctl build-ami -t production.yaml --build-instance c5.18xlarge --on-demand
+
+# Watch build progress
+pctl build-ami -t production.yaml --watch
+
+# Save AMI ID to template
+pctl build-ami -t production.yaml --save-to-template
+
+# Use AMI in cluster creation
+pctl create -t production.yaml  # Uses AMI from template
+pctl create -t production.yaml --ami ami-0123456789  # Override
 ```
 
 ### Manage Binary Cache
@@ -289,24 +323,43 @@ pctl logs my-cluster --build
 
 ## Cost Considerations
 
-**Build-from-source:**
+**Build-from-source (head node):**
 - Head node: t3.xlarge ($0.166/hour)
 - 6 hour build: $1.00
 - Per cluster: $1.00
+- Slow, ties up head node
+
+**Build-from-source (dedicated build instance):**
+- Build instance: c5.18xlarge spot ($0.612/hour spot, ~$2.04/hour on-demand)
+- 2 hour build: $1.22 (spot) or $4.08 (on-demand)
+- One-time cost per AMI
+- 75% faster than head node build
 
 **Binary cache:**
 - S3 storage: $0.023/GB/month
 - Typical cache: 50GB = $1.15/month
 - Transfer: $0.09/GB (cross-region)
-- Shared across unlimited clusters
+- Build once, share across unlimited clusters
 
 **Custom AMI:**
+- Initial build: $1.22-$4.08 (one-time, using build instance)
 - Storage: $0.05/GB/month
 - Typical AMI: 50GB = $2.50/month
 - No transfer costs
-- Shared across unlimited clusters
+- Share across unlimited clusters in same region
 
-**Recommendation:** AMI for production (cheapest per cluster)
+**Cost Comparison (10 clusters over 3 months):**
+
+| Method | Initial | Monthly | 3 Month Total | Per Cluster |
+|--------|---------|---------|---------------|-------------|
+| Build on head node | $0 | $10/cluster | $300 | $30 |
+| Build instance + AMI | $1.22 | $2.50 | $9.72 | $0.97 |
+| Binary cache | $0 | $1.15 | $3.45 | $0.35 |
+
+**Recommendation:**
+- **Development**: Build from source on dedicated build instance
+- **Production**: AMI for fastest boot, lowest per-cluster cost
+- **Shared infrastructure**: Binary cache for maximum flexibility
 
 ## Technical Details
 
@@ -339,16 +392,35 @@ spack buildcache install gcc openmpi samtools
 
 ```bash
 # pctl build-ami workflow
-1. Launch temporary EC2 instance (ParallelCluster AMI base)
+1. Launch temporary build instance
+   - Use instance type from template (default: c5.18xlarge)
+   - Prefer spot instances to save ~70% ($0.61/hr vs $2.04/hr)
+   - Based on ParallelCluster AMI
 2. Install Spack
-3. Build all packages from template
+3. Build all packages from template in parallel
+   - Use all CPU cores (72 cores on c5.18xlarge)
+   - Parallel builds reduce time by 4-8x
 4. Generate Lmod modules
 5. Run validation tests
-6. Create AMI
-7. Tag AMI with template hash
-8. Terminate temporary instance
-9. Output AMI ID
+6. Create AMI from build instance
+7. Tag AMI with template hash and metadata
+8. Terminate build instance
+9. Output AMI ID and save to template
+
+Total time: 2-4 hours (vs 8-24 hours on small head node)
+Total cost: $1.22-$4.08 (vs building on every cluster)
 ```
+
+**Build Instance Types:**
+
+| Instance Type | vCPUs | RAM | Cost/Hour (Spot) | Best For |
+|---------------|-------|-----|------------------|----------|
+| c5.4xlarge | 16 | 32 GB | $0.17 | Small stacks (< 10 packages) |
+| c5.9xlarge | 36 | 72 GB | $0.38 | Medium stacks (10-30 packages) |
+| c5.18xlarge | 72 | 144 GB | $0.61 | Large stacks (30+ packages) |
+| c5.24xlarge | 96 | 192 GB | $0.82 | Massive stacks with memory needs |
+
+**Recommendation**: c5.18xlarge spot for most builds (best balance of speed and cost)
 
 ## Future Enhancements
 
