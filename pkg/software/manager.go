@@ -92,21 +92,25 @@ func (m *Manager) GenerateBootstrapScript(tmpl *template.Template, includeUsers,
 		script.WriteString("#" + strings.Repeat("=", 78) + "\n\n")
 
 		// Install Spack
+		script.WriteString("echo \"PCTL_PROGRESS: Installing Spack package manager (10%)\"\n")
 		script.WriteString("# Install Spack\n")
 		script.WriteString(m.spackInstaller.GenerateInstallScript())
 		script.WriteString("\n")
 
 		// Install Lmod
+		script.WriteString("echo \"PCTL_PROGRESS: Installing Lmod module system (15%)\"\n")
 		script.WriteString("# Install Lmod\n")
 		script.WriteString(m.lmodInstaller.GenerateInstallScript())
 		script.WriteString("\n")
 
 		// Install packages
+		script.WriteString("echo \"PCTL_PROGRESS: Starting package installation (20%)\"\n")
 		script.WriteString("# Install Spack packages\n")
 		script.WriteString(m.spackInstaller.GeneratePackageInstallScript(tmpl.Software.SpackPackages))
 		script.WriteString("\n")
 
 		// Integrate Spack with Lmod
+		script.WriteString("echo \"PCTL_PROGRESS: Integrating Spack with Lmod (85%)\"\n")
 		script.WriteString("# Integrate Spack with Lmod\n")
 		script.WriteString(m.lmodInstaller.GenerateSpackIntegrationScript())
 		script.WriteString("\n")

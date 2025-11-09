@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -251,15 +252,12 @@ func (b *Builder) waitForInstanceReady(ctx context.Context, instanceID string) e
 }
 
 func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID string, opts *BuildOptions) error {
-	// TODO: Implement actual monitoring of software installation
-	// For now, use a simple timeout based on expected installation time
-	// In production, this should check CloudWatch logs or SSH to check status
-
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	timeout := time.After(opts.WaitTimeout)
-	elapsed := 0
+	startTime := time.Now()
+	lastProgress := ""
 
 	for {
 		select {
@@ -268,10 +266,66 @@ func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID st
 		case <-timeout:
 			return fmt.Errorf("software installation timed out after %v", opts.WaitTimeout)
 		case <-ticker.C:
-			elapsed += 30
-			fmt.Printf("   ⏳ Installation in progress... (%d minutes elapsed)\n", elapsed/60)
+			// Poll console output for progress markers
+			progress, err := b.getConsoleProgress(ctx, instanceID)
+			if err != nil {
+				// If we can't get console output, just show elapsed time
+				elapsed := time.Since(startTime)
+				fmt.Printf("   ⏳ Installation in progress... (%d minutes elapsed)\n", int(elapsed.Minutes()))
+				continue
+			}
+
+			// If we got a new progress update, display it
+			if progress != "" && progress != lastProgress {
+				fmt.Printf("   %s\n", progress)
+				lastProgress = progress
+
+				// If we see cleanup complete (95%), we're almost done
+				if strings.Contains(progress, "95%") || strings.Contains(progress, "cleanup complete") {
+					// Give it another minute for final steps
+					time.Sleep(1 * time.Minute)
+					return nil
+				}
+			}
 		}
 	}
+}
+
+// getConsoleProgress retrieves and parses progress markers from EC2 console output.
+func (b *Builder) getConsoleProgress(ctx context.Context, instanceID string) (string, error) {
+	output, err := b.ec2Client.GetConsoleOutput(ctx, &ec2.GetConsoleOutputInput{
+		InstanceId: aws.String(instanceID),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if output.Output == nil {
+		return "", nil
+	}
+
+	// Decode base64 console output
+	decodedBytes, err := base64.StdEncoding.DecodeString(*output.Output)
+	if err != nil {
+		return "", err
+	}
+
+	consoleOutput := string(decodedBytes)
+
+	// Find the last PCTL_PROGRESS marker
+	lines := strings.Split(consoleOutput, "\n")
+	var lastProgress string
+	for _, line := range lines {
+		if strings.Contains(line, "PCTL_PROGRESS:") {
+			// Extract the progress message
+			parts := strings.SplitN(line, "PCTL_PROGRESS:", 2)
+			if len(parts) == 2 {
+				lastProgress = strings.TrimSpace(parts[1])
+			}
+		}
+	}
+
+	return lastProgress, nil
 }
 
 func (b *Builder) stopInstance(ctx context.Context, instanceID string) error {

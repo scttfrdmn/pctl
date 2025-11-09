@@ -26,6 +26,7 @@ func GenerateCleanupScript(customScript string) string {
 
 	script.WriteString("#!/bin/bash\n")
 	script.WriteString("set -e\n\n")
+	script.WriteString("echo 'PCTL_PROGRESS: Running AMI cleanup (90%)'\n")
 	script.WriteString("echo '=== Starting AMI Cleanup ==='\n\n")
 
 	// Package manager cleanup
@@ -105,6 +106,7 @@ func GenerateCleanupScript(customScript string) string {
 	script.WriteString("sudo rm -f /tmp/zeros\n")
 	script.WriteString("echo '  - Free space zeroed'\n\n")
 
+	script.WriteString("echo 'PCTL_PROGRESS: AMI cleanup complete (95%)'\n")
 	script.WriteString("echo '=== AMI Cleanup Complete ==='\n")
 	script.WriteString("echo 'AMI will be 30-50% smaller and more secure'\n")
 

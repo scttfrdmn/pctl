@@ -155,11 +155,20 @@ func (s *SpackInstaller) GeneratePackageInstallScript(packages []string) string 
 		}
 	}
 
+	totalPackages := len(compilers) + len(regularPackages)
+	currentPackage := 0
+
+	// Base progress: Instance launch (0-10%), Spack install (10-20%)
+	baseProgress := 20
+
 	// Install compilers first (they're needed for other packages)
 	if len(compilers) > 0 {
 		script.WriteString("# Install compilers first\n")
 		for _, compiler := range compilers {
-			script.WriteString(fmt.Sprintf("echo \"Installing compiler: %s\"\n", compiler))
+			currentPackage++
+			progress := baseProgress + (currentPackage * (80 - baseProgress) / totalPackages)
+			script.WriteString(fmt.Sprintf("echo \"PCTL_PROGRESS: Installing compiler %s (%d/%d packages, %d%%)\"\n",
+				compiler, currentPackage, totalPackages, progress))
 			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=only,package:always %s || \\\n", compiler))
 			script.WriteString(fmt.Sprintf("  spack install --fail-fast %s || \\\n", compiler))
 			script.WriteString(fmt.Sprintf("  echo \"Warning: Failed to install %s\"\n", compiler))
@@ -174,14 +183,17 @@ func (s *SpackInstaller) GeneratePackageInstallScript(packages []string) string 
 		script.WriteString("export SPACK_PARALLEL_JOBS=4\n\n")
 
 		for _, pkg := range regularPackages {
-			script.WriteString(fmt.Sprintf("echo \"Installing: %s\"\n", pkg))
+			currentPackage++
+			progress := baseProgress + (currentPackage * (80 - baseProgress) / totalPackages)
+			script.WriteString(fmt.Sprintf("echo \"PCTL_PROGRESS: Installing %s (%d/%d packages, %d%%)\"\n",
+				pkg, currentPackage, totalPackages, progress))
 			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=only,package:always %s || \\\n", pkg))
 			script.WriteString(fmt.Sprintf("  spack install --fail-fast %s || \\\n", pkg))
 			script.WriteString(fmt.Sprintf("  echo \"Warning: Failed to install %s\"\n", pkg))
 		}
 	}
 
-	script.WriteString("\necho \"Package installation complete!\"\n")
+	script.WriteString("\necho \"PCTL_PROGRESS: Package installation complete (80%)\"\n")
 	script.WriteString("spack find\n")
 
 	return script.String()
