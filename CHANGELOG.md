@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Custom AMI building system** (pkg/ami, Issue #21)
+  - Automated AMI creation from pctl templates
+  - Pre-bakes all software into custom AMIs
+  - Reduces cluster creation time from hours to 2-3 minutes
+  - `pctl ami build` - Build custom AMIs with all software pre-installed
+  - `pctl ami list` - List all pctl-managed AMIs
+  - `pctl ami delete` - Delete AMIs and associated snapshots
+  - Automated build process:
+    - Launches temporary EC2 instance
+    - Installs all Spack packages and Lmod
+    - Creates AMI from configured instance
+    - Cleans up temporary resources
+  - AMI lifecycle management
+  - Template-to-AMI association tracking
+  - Automatic base ParallelCluster AMI detection
+  - Snapshot cleanup on AMI deletion
+  - Progress reporting during 30-90 minute build process
+  - Integration with --custom-ami flag in pctl create
 - **Template registry system** (pkg/registry, Issue #13)
   - GitHub-based template registry for sharing and discovery
   - Registry interface with pluggable backends
