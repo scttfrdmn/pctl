@@ -1,0 +1,266 @@
+# Medical Imaging Cluster Template
+# Use Case: Medical image processing, DICOM analysis, registration, segmentation
+# Domain: Medical Imaging / Radiology
+# Optimized for: CT/MRI processing, image registration, 3D reconstruction
+# Included software: ITK, SimpleITK, 3D Slicer, DICOM tools, FSL, FreeSurfer
+# Instance recommendations: Memory (r5) for large volumes, GPU for deep learning
+# Estimated costs: ~$2-3/hour for r5.4xlarge, ~$1-2/hour for g4dn.xlarge
+
+cluster:
+  name: medical-imaging-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for 3D Slicer and visualization
+  head_node: m5.xlarge
+
+  queues:
+    # Image processing queue for registration, segmentation
+    # ITK-based pipelines, ANTs registration
+    - name: processing
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 25
+
+    # Brain imaging queue for FSL, FreeSurfer
+    # Neuroimaging pipelines, cortical reconstruction
+    - name: neuroimaging
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Deep learning queue for segmentation, detection
+    # U-Net, nnU-Net, tumor detection
+    - name: deep-learning
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 15
+
+    # DICOM processing queue
+    # DICOM conversion, anonymization, PACS integration
+    - name: dicom
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 40
+
+    # 3D reconstruction and rendering
+    # Volume rendering, surface extraction
+    - name: reconstruction
+      instance_types:
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 20
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # ITK - Insight Segmentation and Registration Toolkit
+    - itk@5.3.0
+
+    # VTK - Visualization Toolkit
+    - vtk@9.2.0+python
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # SimpleITK - Simplified ITK interface
+    # - simpleitk (pip)
+
+    # Medical imaging Python packages (install via pip)
+    # - pydicom (pip - DICOM reading/writing)
+    # - dicom2nifti (pip - DICOM to NIfTI)
+    # - nibabel (pip - neuroimaging formats)
+    # - nilearn (pip - neuroimaging ML)
+    # - nipype (pip - neuroimaging pipelines)
+
+    # Image processing
+    - py-scikit-image@0.20.0
+    - py-pillow@9.4.0
+    # - intensity-normalization (pip)
+
+    # Deep learning for medical imaging
+    - py-torch@2.0.0+cuda
+    - py-tensorflow@2.12.0+cuda
+    # - monai (pip - medical imaging deep learning)
+    # - nnunet (pip - no-new-UNet)
+    # - torchio (pip - medical image augmentation)
+
+    # Registration tools
+    # - ants (manual - Advanced Normalization Tools)
+    # - elastix (manual - registration toolkit)
+
+    # FSL - FMRIB Software Library (neuroimaging)
+    # Note: Requires manual installation
+    # - fsl (manual - https://fsl.fmrib.ox.ac.uk)
+
+    # FreeSurfer - Cortical reconstruction
+    # Note: Requires license and manual installation
+    # - freesurfer (manual)
+
+    # 3D Slicer - Medical image visualization
+    # Note: GUI application, install on head node
+    # - slicer (manual)
+
+    # DICOM tools
+    # - dcmtk (DICOM toolkit)
+    # - gdcm (Grassroots DICOM)
+    # - orthanc (DICOM server - optional)
+
+    # Segmentation tools
+    # - itk-snap (manual - segmentation GUI)
+    # - mricron (manual - viewer)
+
+    # Statistical analysis
+    - r@4.2.2
+    # R packages:
+    # - oro.nifti, oro.dicom (neuroimaging)
+    # - ANTsR (registration in R)
+
+    # Visualization beyond VTK
+    - py-plotly@5.14.0
+    # - pyvis (pip - network visualization)
+    # - mayavi (pip - 3D visualization)
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # File formats
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+    # Parallel processing
+    - openmpi@4.1.4+pmi
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+users:
+  - name: medimage1
+    uid: 5001
+    gid: 5001
+  - name: medimage2
+    uid: 5002
+    gid: 5002
+  - name: medimage3
+    uid: 5003
+    gid: 5003
+
+data:
+  s3_mounts:
+    # Raw DICOM data from scanners
+    - bucket: my-dicom-raw
+      mount_point: /shared/dicom-raw
+
+    # Converted NIfTI volumes
+    - bucket: my-nifti-volumes
+      mount_point: /shared/nifti
+
+    # Processed and registered images
+    - bucket: my-processed
+      mount_point: /shared/processed
+
+    # Segmentation masks and labels
+    - bucket: my-segmentations
+      mount_point: /shared/segmentations
+
+    # Analysis results and statistics
+    - bucket: my-analysis
+      mount_point: /shared/analysis
+
+    # Deep learning models
+    - bucket: my-dl-models
+      mount_point: /shared/models
+
+# Medical Imaging Workflows:
+#
+# 1. DICOM Processing:
+#    - Import from PACS
+#    - Anonymization (remove PHI)
+#    - Conversion to NIfTI/other formats
+#    - Quality control
+#
+# 2. Preprocessing:
+#    - Skull stripping
+#    - Intensity normalization
+#    - Bias field correction
+#    - Noise reduction
+#
+# 3. Registration:
+#    - Rigid (6 DOF)
+#    - Affine (12 DOF)
+#    - Deformable/non-linear
+#    - Multi-modal registration
+#    Tools: ANTs, FSL FLIRT/FNIRT, ITK, elastix
+#
+# 4. Segmentation:
+#    - Brain structures (FreeSurfer)
+#    - Tumors, lesions
+#    - Organs (liver, lung, etc.)
+#    - Deep learning: U-Net, nnU-Net
+#
+# 5. Quantification:
+#    - Volume measurements
+#    - Cortical thickness
+#    - White matter connectivity
+#    - Perfusion, diffusion metrics
+#
+# 6. Deep Learning Applications:
+#    - Tumor segmentation
+#    - Disease classification
+#    - Age/diagnosis prediction
+#    - Image quality assessment
+#
+# Common Modalities:
+#    - CT: 512x512 slices, 1mm resolution
+#    - MRI: T1, T2, FLAIR, DWI, fMRI
+#    - PET: Lower resolution, combined with CT/MRI
+#    - Ultrasound: Real-time 2D/3D
+#
+# Data Scales:
+#    - Single CT scan: 50-200 MB
+#    - MRI series: 20-500 MB per scan
+#    - Whole dataset: TB scale
+#    - Deep learning: 1000s of volumes
+#
+# Key Software:
+#    - ITK/SimpleITK: Image processing primitives
+#    - 3D Slicer: Visualization and analysis
+#    - FSL: fMRI and structural brain imaging
+#    - FreeSurfer: Cortical reconstruction
+#    - ANTs: Advanced registration
+#    - MONAI: Deep learning for medical imaging
+#
+# Compliance:
+#    - HIPAA: Protect patient data
+#    - Anonymization required
+#    - Secure storage (encryption)
+#    - Access controls

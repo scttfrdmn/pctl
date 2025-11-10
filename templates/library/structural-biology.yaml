@@ -1,0 +1,259 @@
+# Structural Biology Cluster Template
+# Use Case: Protein structure prediction, cryo-EM, molecular docking, drug discovery
+# Domain: Structural Biology / Biophysics
+# Optimized for: AlphaFold, RELION, cryoSPARC, Rosetta, molecular docking
+# Included software: AlphaFold, RELION, Rosetta, AutoDock, PyMOL, Chimera
+# Instance recommendations: GPU (g4dn, g5) for AlphaFold/cryo-EM, CPU for docking
+# Estimated costs: ~$1-3/hour for g4dn.xlarge, ~$5-10/hour for g5.12xlarge
+
+cluster:
+  name: structural-biology-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for visualization (PyMOL, Chimera)
+  head_node: m5.xlarge
+
+  queues:
+    # AlphaFold queue for structure prediction
+    # GPU-accelerated, memory-intensive
+    - name: alphafold
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB, 4 vCPU, 16GB RAM
+        - g4dn.12xlarge # 4x T4 16GB, 48 vCPU, 192GB RAM
+        - g5.xlarge     # 1x A10G 24GB, 4 vCPU, 16GB RAM
+        - g5.12xlarge   # 4x A10G 24GB, 48 vCPU, 192GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Cryo-EM reconstruction queue
+    # RELION, cryoSPARC - GPU-accelerated, high memory
+    - name: cryoem
+      instance_types:
+        - g4dn.12xlarge  # 4x T4, 48 vCPU, 192GB RAM
+        - g5.12xlarge    # 4x A10G, 48 vCPU, 192GB RAM
+        - p3.8xlarge     # 4x V100, 32 vCPU, 244GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Molecular docking queue
+    # AutoDock, GOLD, Glide - CPU-intensive, massively parallel
+    - name: docking
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Rosetta modeling queue
+    # Protein design, folding, docking
+    - name: rosetta
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+      min_count: 0
+      max_count: 100
+
+    # Structure refinement and analysis
+    # Phenix, CCP4, molecular dynamics
+    - name: refinement
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 30
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+
+    # BioPython for structure manipulation
+    - py-biopython@1.81
+
+    # AlphaFold2 (install via conda or manual)
+    # - alphafold (manual - https://github.com/deepmind/alphafold)
+    # - colabfold (pip - faster AlphaFold)
+    # Requires: CUDA, cuDNN, JAX, Haiku, OpenMM
+
+    # Deep learning frameworks for AlphaFold
+    - py-torch@2.0.0+cuda
+    # - jax (pip + CUDA)
+    # - dm-haiku (pip)
+    # - openmm (conda - molecular mechanics)
+
+    # RELION - Cryo-EM processing
+    # Note: Requires manual compilation
+    # - relion (manual - https://relion.readthedocs.io)
+
+    # cryoSPARC (commercial)
+    # Note: Requires license
+    # - cryosparc (manual)
+
+    # Rosetta (requires license for source)
+    # - rosetta (manual - https://www.rosettacommons.org)
+
+    # AutoDock Vina - Molecular docking
+    # - autodock-vina (conda/manual)
+    # - autodock4 (manual)
+
+    # PyMOL - Molecular visualization
+    # - pymol (conda)
+
+    # Chimera/ChimeraX - Structure visualization
+    # - chimera (manual)
+    # - chimerax (manual)
+
+    # Structure analysis tools
+    # - phenix (manual - X-ray crystallography)
+    # - ccp4 (manual - crystallography suite)
+    # - coot (manual - model building)
+
+    # Molecular dynamics (for refinement)
+    - gromacs@2023.1+mpi
+    - lammps@20230802
+
+    # Docking libraries (install via pip/conda)
+    # - vina (pip)
+    # - oddt (pip - docking toolkit)
+    # - mgltools (pip - AutoDock GUI)
+
+    # Protein-ligand interaction analysis
+    # - plip (pip - interaction profiler)
+    # - prolif (pip - interaction fingerprints)
+    # - rdkit (conda - cheminformatics)
+
+    # Sequence analysis
+    # - muscle (alignment)
+    # - clustalw (alignment)
+    # - hmmer (profile HMMs)
+
+    # Machine learning for structure
+    - py-scikit-learn@1.2.0
+    # - deepchem (pip - deep learning for chemistry)
+    # - biotite (pip - structure analysis)
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # File formats
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+    # MPI for parallel jobs
+    - openmpi@4.1.4+pmi
+
+    # Utilities
+    - git@2.40.0
+    - git-lfs@3.3.0  # AlphaFold models are large
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+users:
+  - name: structbio1
+    uid: 6001
+    gid: 6001
+  - name: structbio2
+    uid: 6002
+    gid: 6002
+  - name: structbio3
+    uid: 6003
+    gid: 6003
+
+data:
+  s3_mounts:
+    # AlphaFold databases (BFD, MGnify, PDB, UniRef)
+    # These are HUGE - 2.2 TB total
+    - bucket: my-alphafold-databases
+      mount_point: /shared/alphafold-db
+
+    # Cryo-EM raw movies and micrographs
+    - bucket: my-cryoem-raw
+      mount_point: /shared/cryoem-raw
+
+    # Reconstructed density maps
+    - bucket: my-cryoem-maps
+      mount_point: /shared/cryoem-maps
+
+    # Protein structures (PDB, mmCIF)
+    - bucket: my-structures
+      mount_point: /shared/structures
+
+    # Ligand libraries for docking
+    - bucket: my-ligand-libraries
+      mount_point: /shared/ligands
+
+    # Docking results and poses
+    - bucket: my-docking-results
+      mount_point: /shared/docking
+
+# Structural Biology Workflows:
+#
+# 1. Structure Prediction:
+#    - AlphaFold2: State-of-the-art protein structure prediction
+#    - RoseTTAFold: Alternative deep learning method
+#    - ColabFold: Faster AlphaFold with MMseqs2
+#    - ESMFold: Fast structure prediction from Meta
+#
+# 2. Cryo-EM Processing:
+#    - RELION: Bayesian approach to cryo-EM
+#    - cryoSPARC: User-friendly, GPU-accelerated
+#    - EMAN2: Comprehensive EM suite
+#    - cisTEM: Simple, streamlined interface
+#    Workflow: Movies → CTF → Picking → 2D classes → 3D refinement
+#
+# 3. Molecular Docking:
+#    - AutoDock Vina: Fast, open-source
+#    - GOLD: Commercial, very accurate
+#    - Glide (Schrödinger): Industry standard
+#    - DOCK: UCSF docking program
+#    Virtual screening: 10^6 - 10^9 compounds
+#
+# 4. Structure Refinement:
+#    - Phenix: X-ray crystallography refinement
+#    - Refmac (CCP4): Maximum likelihood refinement
+#    - BUSTER: Advanced refinement
+#    - Rosetta: Energy minimization
+#
+# 5. Protein Design:
+#    - Rosetta: De novo design, interface design
+#    - ProteinMPNN: Sequence design with deep learning
+#    - AlphaFold for validation
+#
+# Data Scales:
+#    - AlphaFold databases: 2.2 TB
+#    - Cryo-EM movie: 1-10 GB each
+#    - Final map: 100 MB - 1 GB
+#    - Docking library: 10^6 compounds = 1-10 GB
+#    - Single structure: 1-10 MB (PDB/mmCIF)
+#
+# GPU Requirements:
+#    - AlphaFold: 16+ GB VRAM, benefits from multi-GPU
+#    - Cryo-EM: 11+ GB VRAM, scales with GPUs
+#    - Neural network docking: 8+ GB VRAM
+#
+# Common Software:
+#    - AlphaFold2: Structure prediction (DeepMind)
+#    - RELION: Cryo-EM reconstruction (MRC-LMB)
+#    - Rosetta: Protein modeling suite
+#    - PyMOL: Molecular visualization
+#    - Chimera: EM and structure visualization
+#    - AutoDock: Molecular docking

@@ -1,0 +1,113 @@
+# Rendering and Visual Effects Cluster Template
+# Use Case: 3D rendering, animation, VFX, ray tracing render farms
+# Domain: Computer Graphics / Media Production
+# Optimized for: Distributed rendering, batch processing, animation pipelines
+# Included software: Blender, headless rendering engines, image processing
+# Instance recommendations: Compute (c5) for CPU rendering, GPU (g4dn) for GPU rendering
+# Estimated costs: ~$1-3/hour for c5.4xlarge, ~$1-3/hour for g4dn.xlarge
+
+cluster:
+  name: rendering-cluster
+  region: us-east-1
+
+compute:
+  # Head node for job submission and asset management
+  head_node: m5.large
+
+  queues:
+    # CPU rendering queue for Cycles, Arnold, V-Ray
+    # High-core count for path tracing
+    - name: cpu-render
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 100
+
+    # GPU rendering queue for Cycles, Octane, Redshift
+    # GPU-accelerated ray tracing
+    - name: gpu-render
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g4dn.12xlarge # 4x T4 16GB
+        - g5.xlarge     # 1x A10G 24GB
+      min_count: 0
+      max_count: 50
+
+    # Simulation queue for physics, fluids, particles
+    # Compute-intensive simulations
+    - name: simulation
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Compositing and post-processing
+    # Image sequences, color grading
+    - name: compositing
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 20
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Blender - Open-source 3D creation suite
+    # - blender (manual - headless rendering)
+
+    # Python for pipeline scripts
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-pillow@9.4.0
+    # - bpy (pip - Blender Python API)
+
+    # Image processing
+    - imagemagick@7.1.1
+    - ffmpeg@6.0
+    # - openimageio (pip - VFX image I/O)
+
+    # Rendering engines (manual installation)
+    # - cycles (Blender built-in)
+    # - luxcorerender (open-source)
+    # - appleseed (open-source)
+    # - pbrt (open-source physically-based)
+
+    # GPU support
+    - cuda@11.8.0
+    - nvtop@2.0.0
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+users:
+  - name: artist1
+    uid: 4001
+    gid: 4001
+  - name: artist2
+    uid: 4002
+    gid: 4002
+
+data:
+  s3_mounts:
+    # 3D scenes and assets
+    - bucket: my-render-scenes
+      mount_point: /shared/scenes
+
+    # Rendered frames
+    - bucket: my-render-output
+      mount_point: /shared/output
+
+    # Texture and asset libraries
+    - bucket: my-render-assets
+      mount_point: /shared/assets

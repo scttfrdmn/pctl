@@ -1,0 +1,315 @@
+# Graph Analytics Cluster Template
+# Use Case: Social network analysis, knowledge graphs, community detection, network science
+# Domain: Graph Theory / Network Science
+# Optimized for: Large-scale graph processing, PageRank, shortest paths, clustering
+# Included software: NetworkX, igraph, graph-tool, Neo4j, GraphX/Spark, SNAP
+# Instance recommendations: Memory (r5) for large graphs, compute (c5) for algorithms
+# Estimated costs: ~$2-4/hour for r5.4xlarge, ~$1-2/hour for c5.4xlarge
+
+cluster:
+  name: graph-analytics-cluster
+  region: us-east-1
+
+compute:
+  # Head node for interactive analysis and Neo4j server
+  head_node: m5.xlarge
+
+  queues:
+    # Large graph queue for billion-edge graphs
+    # In-memory processing with NetworkX, igraph
+    - name: large-graphs
+      instance_types:
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+        - r5.16xlarge  # 64 vCPU, 512GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Algorithm queue for graph algorithms
+    # PageRank, shortest paths, centrality, community detection
+    - name: algorithms
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Distributed graph processing queue
+    # Apache Spark GraphX, Giraph
+    - name: distributed
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 40
+
+    # Medium graph queue for moderate-size graphs
+    # Interactive analysis, prototyping
+    - name: medium-graphs
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Visualization and rendering queue
+    # Force-directed layouts, graph drawing
+    - name: visualization
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Graph database queue
+    # Neo4j workloads, Cypher queries
+    - name: graph-db
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+
+    # NetworkX - Python graph library
+    # - networkx (pip - most popular Python graphs)
+
+    # igraph - Fast graph library
+    # - igraph (pip - C library with Python bindings)
+    # - python-igraph (pip)
+
+    # graph-tool - Very fast C++ graphs
+    # Note: Requires complex dependencies
+    # - graph-tool (manual - fastest Python graphs)
+
+    # SNAP - Stanford Network Analysis Platform
+    # - snap-stanford (pip - Stanford graphs)
+
+    # Machine learning on graphs
+    - py-scikit-learn@1.2.0
+    - py-torch@2.0.0
+    # - torch-geometric (pip - graph neural networks)
+    # - dgl (pip - deep graph library)
+    # - stellargraph (pip - graph ML)
+    # - karateclub (pip - unsupervised graph learning)
+
+    # Community detection libraries
+    # - python-louvain (pip - Louvain method)
+    # - leidenalg (pip - Leiden algorithm)
+    # - infomap (pip - information theory)
+    # - cdlib (pip - community detection library)
+
+    # Neo4j - Graph database
+    # Note: Requires manual installation
+    # - neo4j (manual - https://neo4j.com)
+    # - py2neo (pip - Neo4j Python driver)
+    # - neo4j-driver (pip - official driver)
+
+    # Apache Spark for distributed graphs
+    # - pyspark (pip - GraphX via Python)
+
+    # Graph visualization
+    # - pygraphviz (pip - Graphviz wrapper)
+    # - plotly (already included)
+    # - pyvis (pip - interactive network viz)
+    # - netgraph (pip - publication-quality graphs)
+    # - nxviz (pip - NetworkX visualization)
+
+    # Gephi (GUI - install on head node)
+    # Note: Java-based visualization tool
+    # - gephi (manual)
+
+    # Graph file formats and I/O
+    # - graph-tool supports: dot, gml, graphml, gt
+    # - networkx supports: adjlist, edgelist, gexf, gml, graphml, pajek
+
+    # Network science tools
+    # - netrd (pip - network reconstruction)
+    # - netsci (pip - network science tools)
+
+    # Biological networks
+    # - bionetgen (pip - biological networks)
+    # - py-networkx already supports basic bio networks
+
+    # R for network analysis
+    - r@4.2.2
+    # R packages:
+    # - igraph (R package)
+    # - sna (social network analysis)
+    # - statnet (statistical network models)
+
+    # Java for Neo4j and Giraph
+    - openjdk@11.0.17
+
+    # Apache Hadoop for Giraph
+    # - hadoop (manual - required for Giraph)
+    # - giraph (manual - distributed graph processing)
+
+    # Visualization libraries
+    - py-plotly@5.14.0
+    - py-seaborn@0.12.0
+    # - bokeh (pip - interactive viz)
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Data formats
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+
+    # Parallel processing
+    - openmpi@4.1.4+pmi
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+users:
+  - name: graphuser1
+    uid: 8001
+    gid: 8001
+  - name: graphuser2
+    uid: 8002
+    gid: 8002
+  - name: graphuser3
+    uid: 8003
+    gid: 8003
+
+data:
+  s3_mounts:
+    # Raw graph data (edge lists, adjacency matrices)
+    - bucket: my-graph-data
+      mount_point: /shared/graph-data
+
+    # Processed graphs and subgraphs
+    - bucket: my-processed-graphs
+      mount_point: /shared/processed
+
+    # Analysis results (centrality, communities)
+    - bucket: my-graph-analysis
+      mount_point: /shared/analysis
+
+    # Graph databases (Neo4j backups)
+    - bucket: my-graph-databases
+      mount_point: /shared/databases
+
+    # Visualization outputs
+    - bucket: my-graph-viz
+      mount_point: /shared/visualizations
+
+    # Machine learning models
+    - bucket: my-graph-ml-models
+      mount_point: /shared/ml-models
+
+# Graph Analytics Workflows:
+#
+# 1. Graph Construction:
+#    - Load from edge list, adjacency matrix, or database
+#    - NetworkX: nx.read_edgelist(), nx.from_pandas_edgelist()
+#    - igraph: ig.Graph.Read_Edgelist()
+#    - graph-tool: gt.load_graph()
+#
+# 2. Basic Statistics:
+#    - Node count, edge count
+#    - Degree distribution
+#    - Clustering coefficient
+#    - Density, diameter
+#
+# 3. Centrality Measures:
+#    - Degree centrality: Most connected nodes
+#    - Betweenness centrality: Bridge nodes
+#    - Closeness centrality: Central nodes
+#    - PageRank: Importance ranking
+#    - Eigenvector centrality: Influential nodes
+#
+# 4. Community Detection:
+#    - Louvain method: Fast, good quality
+#    - Leiden algorithm: Improved Louvain
+#    - Label propagation: Very fast
+#    - Infomap: Information-theoretic
+#    - Spectral clustering: Eigenvector-based
+#
+# 5. Path Analysis:
+#    - Shortest paths: Dijkstra, BFS
+#    - All-pairs shortest paths: Floyd-Warshall
+#    - Network diameter
+#    - Average path length
+#
+# 6. Link Prediction:
+#    - Common neighbors
+#    - Adamic-Adar index
+#    - Preferential attachment
+#    - Graph neural networks
+#
+# 7. Graph Neural Networks:
+#    - Node classification
+#    - Link prediction
+#    - Graph classification
+#    - Node embeddings (Node2Vec, DeepWalk)
+#
+# 8. Visualization:
+#    - Force-directed layouts (Fruchterman-Reingold)
+#    - Hierarchical layouts
+#    - Circular layouts
+#    - Interactive exploration (Gephi, pyvis)
+#
+# Common Graph Types:
+#    - Social networks: Facebook, Twitter, LinkedIn
+#    - Citation networks: Paper citations, co-authorship
+#    - Biological networks: Protein-protein interactions, metabolic pathways
+#    - Web graphs: Hyperlinks, site structure
+#    - Infrastructure: Power grids, transportation, internet
+#    - Knowledge graphs: Wikipedia, Wikidata, DBpedia
+#
+# Graph Scales:
+#    - Small: <10K nodes, <100K edges (seconds, single machine)
+#    - Medium: 10K-1M nodes, 100K-10M edges (minutes, memory-optimized)
+#    - Large: 1M-100M nodes, 10M-1B edges (hours, distributed)
+#    - Massive: >100M nodes, >1B edges (distributed frameworks)
+#
+# Performance Libraries:
+#    - NetworkX: Easy to use, slower for large graphs
+#    - igraph: 10-100x faster than NetworkX
+#    - graph-tool: Fastest, C++ backend, complex setup
+#    - Neo4j: Best for graph databases, Cypher queries
+#    - GraphX/Spark: Distributed, massive graphs
+#
+# Algorithms:
+#    - PageRank: O(E) per iteration
+#    - Shortest paths: O(V log V + E) Dijkstra
+#    - Community detection: O(E log V) Louvain
+#    - Connected components: O(V + E)
+#    - Triangle counting: O(E^1.5)
+#
+# Software Comparison:
+#    - NetworkX: Pure Python, 2M+ users, easiest
+#    - igraph: C library, 10-100x faster, good API
+#    - graph-tool: C++, fastest, complex dependencies
+#    - Neo4j: ACID database, Cypher query language
+#    - Gephi: Best visualization, GUI-based
+#
+# Use Cases:
+#    - Social network analysis: Influence, communities, information spread
+#    - Fraud detection: Anomalous patterns, rings
+#    - Recommendation systems: Collaborative filtering
+#    - Biological networks: Pathway analysis, drug targets
+#    - Knowledge graphs: Entity linking, question answering
+#    - Infrastructure: Resilience, bottlenecks, optimization

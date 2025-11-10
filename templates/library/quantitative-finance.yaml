@@ -1,0 +1,358 @@
+# Quantitative Finance Cluster Template
+# Use Case: Risk modeling, derivatives pricing, portfolio optimization, VaR, Monte Carlo
+# Domain: Quantitative Finance / Risk Management
+# Optimized for: Monte Carlo simulation, backtesting, risk calculations, derivatives pricing
+# Included software: QuantLib, Python financial stack, NumPy, pandas, scipy, statsmodels
+# Instance recommendations: Compute (c5) for Monte Carlo, memory (r5) for large datasets
+# Estimated costs: ~$1-3/hour for c5.4xlarge, ~$2-4/hour for r5.4xlarge
+
+cluster:
+  name: quant-finance-cluster
+  region: us-east-1
+
+compute:
+  # Head node for interactive analysis and Jupyter
+  head_node: m5.xlarge
+
+  queues:
+    # Monte Carlo simulation queue
+    # VaR, derivatives pricing, scenario generation
+    - name: monte-carlo
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 100
+
+    # Risk modeling queue
+    # Value at Risk, CVaR, stress testing
+    - name: risk-modeling
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Backtesting queue
+    # Trading strategy backtesting, historical simulation
+    - name: backtesting
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Portfolio optimization queue
+    # Mean-variance, Black-Litterman, risk parity
+    - name: optimization
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 40
+
+    # Derivatives pricing queue
+    # Options, swaps, exotic derivatives
+    - name: pricing
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 60
+
+    # Machine learning queue for trading
+    # Predictive models, feature engineering, alpha generation
+    - name: ml-trading
+      instance_types:
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+        - g4dn.xlarge  # 1x T4 16GB (optional GPU)
+      min_count: 0
+      max_count: 20
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+    - py-scikit-learn@1.2.0
+
+    # QuantLib - Quantitative finance library
+    # Note: Best installed via conda or pip
+    # - quantlib (pip - derivatives pricing)
+    # - quantlib-python (pip - Python bindings)
+
+    # Financial data libraries (install via pip)
+    # - yfinance (pip - Yahoo Finance data)
+    # - pandas-datareader (pip - financial data sources)
+    # - alpha-vantage (pip - market data API)
+    # - quandl (pip - financial datasets)
+
+    # Time series analysis
+    # - statsmodels (pip - statistical models)
+    # - arch (pip - GARCH models)
+    # - pmdarima (pip - ARIMA)
+    # - prophet (pip - time series forecasting)
+    # - tsfresh (pip - time series features)
+
+    # Portfolio optimization
+    # - cvxopt (pip - convex optimization)
+    # - cvxpy (pip - portfolio optimization)
+    # - pypfopt (pip - portfolio optimization)
+    # - riskfolio-lib (pip - portfolio optimization)
+
+    # Backtesting frameworks
+    # - backtrader (pip - backtesting)
+    # - zipline (pip - Quantopian backtester)
+    # - bt (pip - flexible backtesting)
+    # - vectorbt (pip - fast vectorized backtesting)
+
+    # Risk management
+    # - pyfolio (pip - portfolio analytics)
+    # - empyrical (pip - risk metrics)
+    # - riskparityportfolio (pip - risk parity)
+
+    # Options pricing
+    # - py_vollib (pip - implied volatility)
+    # - mibian (pip - Black-Scholes)
+    # - QuantLib (C++ library via pip)
+
+    # Technical analysis
+    # - ta-lib (pip - technical indicators)
+    # - pandas-ta (pip - technical analysis)
+    # - finta (pip - financial indicators)
+
+    # Machine learning for finance
+    - py-torch@2.0.0
+    - py-tensorflow@2.12.0
+    # - xgboost (pip - gradient boosting)
+    # - lightgbm (pip - gradient boosting)
+    # - catboost (pip - gradient boosting)
+
+    # Deep learning for finance
+    # - keras (pip - neural networks)
+    # - pytorch-forecasting (pip - time series)
+    # - gluonts (pip - probabilistic forecasting)
+
+    # Stochastic processes
+    # - stochastic (pip - stochastic models)
+    # - sdeint (pip - SDE integration)
+
+    # R for quantitative finance
+    - r@4.2.2
+    # R packages:
+    # - quantmod (market data)
+    # - PerformanceAnalytics (portfolio metrics)
+    # - PortfolioAnalytics (optimization)
+    # - TTR (technical trading rules)
+    # - rugarch (GARCH models)
+    # - rmgarch (multivariate GARCH)
+
+    # Visualization
+    - py-plotly@5.14.0
+    - py-seaborn@0.12.0
+    # - mplfinance (pip - financial plots)
+    # - cufflinks (pip - plotly wrapper)
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Data storage
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+    - postgresql@15.2
+    # - sqlalchemy (pip - database ORM)
+    # - psycopg2 (pip - PostgreSQL adapter)
+
+    # Parallel processing
+    - openmpi@4.1.4+pmi
+    # - dask (pip - parallel computing)
+    # - joblib (pip - parallel loops)
+    # - multiprocessing (standard library)
+
+    # GPU support (optional for ML)
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+users:
+  - name: quant1
+    uid: 9001
+    gid: 9001
+  - name: quant2
+    uid: 9002
+    gid: 9002
+  - name: quant3
+    uid: 9003
+    gid: 9003
+
+data:
+  s3_mounts:
+    # Market data (historical prices, tick data)
+    - bucket: my-market-data
+      mount_point: /shared/market-data
+
+    # Portfolio data and positions
+    - bucket: my-portfolio-data
+      mount_point: /shared/portfolios
+
+    # Risk calculation results
+    - bucket: my-risk-results
+      mount_point: /shared/risk
+
+    # Backtesting results
+    - bucket: my-backtests
+      mount_point: /shared/backtests
+
+    # Machine learning models
+    - bucket: my-quant-models
+      mount_point: /shared/models
+
+    # Reference data (curves, surfaces, calendars)
+    - bucket: my-reference-data
+      mount_point: /shared/reference
+
+# Quantitative Finance Workflows:
+#
+# 1. Risk Modeling:
+#    - Value at Risk (VaR): 95%, 99%, 99.9% confidence
+#      - Historical VaR: Sort historical returns
+#      - Parametric VaR: Assume normal distribution
+#      - Monte Carlo VaR: Simulate scenarios (10K-1M paths)
+#    - Conditional VaR (CVaR/Expected Shortfall)
+#    - Stress testing: Extreme scenarios
+#    - Scenario analysis: What-if analysis
+#
+# 2. Derivatives Pricing:
+#    - Black-Scholes: European options
+#    - Binomial/trinomial trees: American options
+#    - Monte Carlo: Path-dependent, exotic options
+#    - Finite difference methods: PDEs
+#    - Interest rate models: Vasicek, CIR, Hull-White
+#    - Volatility modeling: GARCH, stochastic vol
+#
+# 3. Portfolio Optimization:
+#    - Mean-variance (Markowitz): Maximize return, minimize risk
+#    - Black-Litterman: Bayesian prior + views
+#    - Risk parity: Equal risk contribution
+#    - Minimum variance: Minimize portfolio volatility
+#    - Maximum Sharpe ratio: Best risk-adjusted return
+#    - Constraints: Long-only, sector limits, turnover
+#
+# 4. Backtesting:
+#    - Historical simulation: Test strategy on past data
+#    - Walk-forward analysis: Rolling windows
+#    - Performance metrics:
+#      - Sharpe ratio: Risk-adjusted return
+#      - Sortino ratio: Downside risk
+#      - Maximum drawdown: Worst peak-to-trough
+#      - Calmar ratio: Return/drawdown
+#    - Transaction costs, slippage, market impact
+#
+# 5. Monte Carlo Simulation:
+#    - Generate random price paths (GBM, jump diffusion)
+#    - Thousands to millions of scenarios
+#    - Variance reduction: Antithetic variates, control variates
+#    - Quasi-Monte Carlo: Low-discrepancy sequences
+#    - Parallelization: Embarrassingly parallel
+#
+# 6. Credit Risk:
+#    - Probability of Default (PD)
+#    - Loss Given Default (LGD)
+#    - Exposure at Default (EAD)
+#    - Credit VaR
+#    - Credit migration matrices
+#
+# 7. Machine Learning in Finance:
+#    - Price prediction: LSTM, GRU, transformers
+#    - Alpha generation: ML-based signals
+#    - Feature engineering: Technical indicators, fundamentals
+#    - Regime detection: Hidden Markov models
+#    - Anomaly detection: Fraud, market manipulation
+#    - Natural language: News sentiment, earnings calls
+#
+# 8. High-Frequency Trading (HFT):
+#    - Order book dynamics
+#    - Market microstructure
+#    - Latency optimization
+#    - Co-location (not applicable here)
+#
+# Common Financial Instruments:
+#    - Equities: Stocks, ETFs, indices
+#    - Fixed Income: Bonds, treasuries, credit
+#    - Derivatives: Options, futures, swaps, forwards
+#    - FX: Currency pairs, cross rates
+#    - Commodities: Gold, oil, agricultural
+#    - Crypto: Bitcoin, Ethereum (if applicable)
+#
+# Data Requirements:
+#    - Historical prices: Daily, intraday, tick data
+#    - Market data: Bid/ask, volume, open interest
+#    - Corporate actions: Splits, dividends, mergers
+#    - Fundamentals: Earnings, balance sheets
+#    - Economic data: GDP, inflation, rates
+#    - Alternative data: Satellite, credit cards, social media
+#
+# Performance Considerations:
+#    - Monte Carlo: 10K-1M simulations per pricing
+#    - VaR: 1K-10K scenarios for 1-day, 10-day horizons
+#    - Backtesting: Years of daily data, millions of trades
+#    - Portfolio optimization: 100-1000 assets
+#    - Machine learning: Large datasets, hyperparameter tuning
+#
+# Software Ecosystem:
+#    - QuantLib: Industry-standard pricing library (C++/Python)
+#    - pandas: Time series, financial data manipulation
+#    - NumPy/SciPy: Numerical computing
+#    - statsmodels: Statistical models, time series
+#    - scikit-learn: Machine learning
+#    - Backtrader/Zipline: Backtesting frameworks
+#    - PyPortfolioOpt: Portfolio optimization
+#    - TA-Lib: Technical indicators
+#
+# Regulatory Compliance:
+#    - Basel III/IV: Bank capital requirements
+#    - Dodd-Frank: US financial regulation
+#    - MiFID II: EU markets directive
+#    - Risk reporting: Daily VaR, stress tests
+#    - Model validation: Independent review
+#
+# Use Cases by Institution:
+#    - Investment Banks: Derivatives pricing, trading
+#    - Asset Managers: Portfolio optimization, risk management
+#    - Hedge Funds: Algorithmic trading, alpha research
+#    - Pension Funds: Long-term asset allocation
+#    - Insurance: ALM (asset-liability matching)
+#    - Fintech: Robo-advisors, retail trading
+#
+# Typical Compute Scales:
+#    - Single instrument pricing: Seconds (Monte Carlo)
+#    - Portfolio VaR (1000 positions): Minutes to hours
+#    - Full bank risk (10K+ positions): Hours to overnight
+#    - Strategy backtest (10 years): Minutes to hours
+#    - ML model training (years of data): Hours to days
+#
+# Key Algorithms:
+#    - Black-Scholes: O(1) - analytical formula
+#    - Monte Carlo: O(N) - N simulations
+#    - Portfolio optimization: O(n³) - n assets
+#    - Binomial tree: O(N²) - N time steps
+#    - GARCH estimation: O(T) - T time points
