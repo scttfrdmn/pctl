@@ -1,4 +1,4 @@
-.PHONY: all build clean test coverage lint fmt vet check install uninstall help deps
+.PHONY: all build clean test coverage lint fmt vet check install uninstall help deps security pre-commit integration-test
 
 # Variables
 BINARY_NAME=pctl
@@ -129,3 +129,32 @@ help:
 	@echo ""
 	@echo "Available targets:"
 	@sed -n 's/^##//p' $(MAKEFILE_LIST) | column -t -s ':' | sed -e 's/^/ /'
+
+## security: Run security scanner (gosec) - informational only
+security:
+	@echo "Running security scan..."
+	@GOSEC=$$(command -v gosec 2>/dev/null || echo "$$(go env GOPATH)/bin/gosec"); \
+	if [ ! -x "$$GOSEC" ]; then \
+		echo "gosec not installed. Installing..."; \
+		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
+		GOSEC="$$(go env GOPATH)/bin/gosec"; \
+	fi; \
+	$$GOSEC -quiet ./... || echo "⚠️  Security scan found issues (non-blocking)"
+
+## pre-commit: Run all pre-flight checks before committing
+pre-commit: fmt-check vet test
+	@echo "✓ All pre-commit checks passed!"
+
+## integration-test: Run integration tests with real AWS (requires AWS credentials)
+integration-test:
+	@echo "Running integration tests..."
+	@echo "Note: This requires valid AWS credentials and may incur AWS charges"
+	@echo ""
+	@if [ -z "$$AWS_PROFILE" ] && [ -z "$$AWS_ACCESS_KEY_ID" ]; then \
+		echo "Error: AWS credentials not found"; \
+		echo "Set AWS_PROFILE or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY"; \
+		exit 1; \
+	fi
+	@echo "Using AWS profile: $${AWS_PROFILE:-default}"
+	@echo "Running integration tests..."
+	$(GOTEST) -v -tags=integration -timeout 30m ./test/integration/...
