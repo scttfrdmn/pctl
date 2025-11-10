@@ -1,0 +1,265 @@
+# High-Energy Physics Cluster Template
+# Use Case: Particle physics simulation, detector modeling, event reconstruction
+# Domain: Particle Physics / HEP
+# Optimized for: Monte Carlo simulation, data analysis, event generation
+# Included software: ROOT, Geant4, PYTHIA, MadGraph, FastJet, Rivet
+# Instance recommendations: Compute (c5) for simulation, memory (r5) for reconstruction
+# Estimated costs: ~$2-4/hour for c5.9xlarge, ~$3-5/hour for r5.8xlarge
+
+cluster:
+  name: hep-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for ROOT analysis and visualization
+  head_node: m5.xlarge
+
+  queues:
+    # Monte Carlo simulation queue
+    # Event generation, detector simulation (Geant4)
+    - name: simulation
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.12xlarge  # 48 vCPU, 96GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Event reconstruction queue
+    # Track fitting, calorimeter clustering, particle ID
+    - name: reconstruction
+      instance_types:
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Data analysis queue
+    # ROOT analysis, statistical fits, plotting
+    - name: analysis
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 40
+
+    # Fast simulation queue
+    # Parameterized detector response, rapid prototyping
+    - name: fastsim
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 100
+
+    # Machine learning queue for analysis
+    # Neural networks for jet tagging, event classification
+    - name: ml
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+    - llvm@16.0.0+clang
+
+    # ROOT - CERN data analysis framework
+    # The primary tool for HEP data analysis
+    - root@6.28.00+python+tmva+mlp+roofit
+
+    # Geant4 - Detector simulation toolkit
+    - geant4@11.1.0+threads+opengl+qt
+
+    # CLHEP - Class Library for HEP
+    - clhep@2.4.6.2
+
+    # HepMC - Monte Carlo event record
+    - hepmc@2.06.11
+    - hepmc3@3.2.5
+
+    # LHAPDF - Parton distribution functions
+    - lhapdf@6.5.3
+
+    # FastJet - Jet clustering algorithm
+    - fastjet@3.4.0
+
+    # Python ecosystem for analysis
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # Python HEP packages (install via pip)
+    # - uproot (pip - ROOT I/O in Python)
+    # - awkward (pip - jagged arrays for HEP)
+    # - vector (pip - 4-momentum vectors)
+    # - particle (pip - particle data)
+    # - hepunits (pip - units)
+    # - pylhe (pip - LHE file reading)
+    # - pyhepmc (pip - HepMC reading)
+
+    # Analysis frameworks (pip)
+    # - coffea (pip - columnar analysis)
+    # - hist (pip - histogramming)
+    # - mplhep (pip - HEP plotting style)
+
+    # Event generators (install separately)
+    # - pythia8 (event generator)
+    # - herwig (event generator)
+    # - sherpa (event generator)
+    # - madgraph5 (manual - matrix elements)
+    # - whizard (event generator)
+
+    # Rivet - Analysis tool for MC generators
+    # - rivet (manual build recommended)
+
+    # Machine learning for HEP
+    - py-torch@2.0.0+cuda
+    - py-tensorflow@2.12.0+cuda
+    # - pytorch-geometric (pip - graph NNs)
+    # - weaver (pip - particle tagging)
+
+    # Jupyter for interactive analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Statistics and fitting
+    # - iminuit (pip - minimization)
+    # - pyhf (pip - statistical models)
+    # - zfit (pip - model fitting)
+
+    # Visualization beyond ROOT
+    - py-plotly@5.14.0
+    - py-seaborn@0.12.0
+
+    # Data formats
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+    # - pyarrow (pip - Apache Arrow)
+
+    # Grid/distributed computing tools
+    # - xrootd (for data access)
+    # - dirac (grid middleware)
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+    # Utilities
+    - git@2.40.0
+    - git-lfs@3.3.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # Compression (HEP data is huge)
+    - zlib@1.2.13
+    - xz@5.4.1
+    - zstd@1.5.4
+    - lz4@1.9.4
+
+users:
+  - name: physicist1
+    uid: 7001
+    gid: 7001
+  - name: physicist2
+    uid: 7002
+    gid: 7002
+  - name: physicist3
+    uid: 7003
+    gid: 7003
+
+data:
+  s3_mounts:
+    # Monte Carlo event samples
+    - bucket: my-hep-mc-events
+      mount_point: /shared/mc
+
+    # Reconstructed data (RAW -> AOD -> NTUPLE)
+    - bucket: my-hep-reco
+      mount_point: /shared/reco
+
+    # Analysis outputs (histograms, ntuples)
+    - bucket: my-hep-analysis
+      mount_point: /shared/analysis
+
+    # Detector geometry and conditions
+    - bucket: my-hep-geometry
+      mount_point: /shared/geometry
+
+    # Generator-level events and parton showers
+    - bucket: my-hep-generators
+      mount_point: /shared/generators
+
+    # Machine learning models for tagging
+    - bucket: my-hep-ml-models
+      mount_point: /shared/ml-models
+
+# High-Energy Physics Workflow:
+#
+# 1. Event Generation:
+#    - PYTHIA8, Herwig, Sherpa: Parton showers and hadronization
+#    - MadGraph: Matrix element calculation
+#    - LHE format: Generator-level events
+#
+# 2. Detector Simulation:
+#    - Geant4: Full detector simulation (hours per event)
+#    - Fast simulation: Parameterized response (seconds per event)
+#    - Digitization: Convert energy deposits to detector signals
+#
+# 3. Reconstruction:
+#    - Track reconstruction: Fit particle trajectories
+#    - Calorimeter clustering: Energy measurement
+#    - Particle identification: Combine detector info
+#    - Vertex finding: Primary and secondary vertices
+#
+# 4. Analysis:
+#    - ROOT: Histograms, trees, fitting
+#    - Selection cuts: Event filtering
+#    - Statistical analysis: Limits, significances
+#    - Systematic uncertainties: Error estimation
+#
+# 5. Machine Learning:
+#    - Jet tagging: b-jets, top jets, boosted objects
+#    - Event classification: Signal vs background
+#    - Particle ID: Electrons, muons, photons
+#    - Anomaly detection: New physics searches
+#
+# Common HEP Software:
+#    - ROOT: Data analysis framework (CERN standard)
+#    - Geant4: Detector simulation toolkit
+#    - PYTHIA: Event generator and parton shower
+#    - FastJet: Jet clustering
+#    - LHAPDF: Parton distribution functions
+#    - Rivet: Validation of MC generators
+#    - HepMC: Event record format
+#
+# LHC Experiments:
+#    - ATLAS: General-purpose detector
+#    - CMS: Compact Muon Solenoid
+#    - LHCb: B-physics and CP violation
+#    - ALICE: Heavy-ion collisions
+#
+# Data Scales:
+#    - LHC produces ~100 PB/year
+#    - Event sizes: 1-2 MB (RAW), 100 KB (AOD), 10 KB (NTUPLE)
+#    - Monte Carlo: 10-100 billion events per year
+#    - Analysis datasets: TB to PB scale
+#
+# Computing Models:
+#    - Grid computing (WLCG): Distributed data and jobs
+#    - HTCondor: Job scheduling
+#    - CVMFS: Software distribution
+#    - XRootD: Data access protocol
