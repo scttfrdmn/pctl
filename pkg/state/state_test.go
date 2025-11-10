@@ -209,3 +209,183 @@ func TestListWithNonJSONFiles(t *testing.T) {
 		t.Errorf("Expected 1 cluster, got %d", len(clusters))
 	}
 }
+
+func TestNewManager(t *testing.T) {
+	manager, err := NewManager()
+	if err != nil {
+		t.Fatalf("NewManager() error = %v", err)
+	}
+
+	if manager == nil {
+		t.Fatal("NewManager() returned nil manager")
+	}
+
+	if manager.stateDir == "" {
+		t.Error("NewManager() manager has empty stateDir")
+	}
+
+	// Verify state directory was created
+	if _, err := os.Stat(manager.stateDir); os.IsNotExist(err) {
+		t.Errorf("State directory was not created: %s", manager.stateDir)
+	}
+}
+
+func TestLoadInvalidJSON(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := &Manager{
+		stateDir: tempDir,
+	}
+
+	// Create a file with invalid JSON
+	invalidJSONPath := filepath.Join(tempDir, "invalid.json")
+	if err := os.WriteFile(invalidJSONPath, []byte("{ invalid json }"), 0644); err != nil {
+		t.Fatalf("Failed to create invalid JSON file: %v", err)
+	}
+
+	_, err := manager.Load("invalid")
+	if err == nil {
+		t.Error("Expected error loading invalid JSON, got nil")
+	}
+}
+
+func TestDeleteNonExistentCluster(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := &Manager{
+		stateDir: tempDir,
+	}
+
+	// Deleting non-existent cluster should not error
+	if err := manager.Delete("nonexistent"); err != nil {
+		t.Errorf("Delete() of nonexistent cluster returned error: %v", err)
+	}
+}
+
+func TestListWithInvalidJSONFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := &Manager{
+		stateDir: tempDir,
+	}
+
+	// Create a JSON file with invalid content
+	invalidJSONPath := filepath.Join(tempDir, "invalid.json")
+	if err := os.WriteFile(invalidJSONPath, []byte("{ invalid }"), 0644); err != nil {
+		t.Fatalf("Failed to create invalid JSON file: %v", err)
+	}
+
+	// Create a valid state file
+	state := &ClusterState{
+		Name:      "valid-cluster",
+		Region:    "us-east-1",
+		Status:    "CREATE_COMPLETE",
+		CreatedAt: time.Now(),
+	}
+	if err := manager.Save(state); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	// List should skip invalid files and return only valid cluster
+	clusters, err := manager.List()
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+
+	if len(clusters) != 1 {
+		t.Errorf("Expected 1 valid cluster, got %d", len(clusters))
+	}
+
+	if len(clusters) > 0 && clusters[0].Name != "valid-cluster" {
+		t.Errorf("Expected cluster name 'valid-cluster', got %s", clusters[0].Name)
+	}
+}
+
+func TestListWithSubdirectories(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := &Manager{
+		stateDir: tempDir,
+	}
+
+	// Create a subdirectory (should be skipped)
+	subdir := filepath.Join(tempDir, "subdir")
+	if err := os.Mkdir(subdir, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+
+	// Create a valid state file
+	state := &ClusterState{
+		Name:      "test-cluster",
+		Region:    "us-east-1",
+		Status:    "CREATE_COMPLETE",
+		CreatedAt: time.Now(),
+	}
+	if err := manager.Save(state); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	// List should skip directories and return only files
+	clusters, err := manager.List()
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+
+	if len(clusters) != 1 {
+		t.Errorf("Expected 1 cluster, got %d", len(clusters))
+	}
+}
+
+func TestSaveUpdatesTimestamp(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := &Manager{
+		stateDir: tempDir,
+	}
+
+	state := &ClusterState{
+		Name:      "test-cluster",
+		Region:    "us-east-1",
+		Status:    "CREATE_IN_PROGRESS",
+		CreatedAt: time.Now(),
+	}
+
+	// Save first time
+	if err := manager.Save(state); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	firstUpdate := state.UpdatedAt
+
+	// Wait a bit and save again
+	time.Sleep(10 * time.Millisecond)
+
+	state.Status = "CREATE_COMPLETE"
+	if err := manager.Save(state); err != nil {
+		t.Fatalf("Save() second time error = %v", err)
+	}
+
+	// UpdatedAt should be different
+	if state.UpdatedAt.Equal(firstUpdate) || state.UpdatedAt.Before(firstUpdate) {
+		t.Error("UpdatedAt was not updated on second save")
+	}
+
+	// Load and verify the updated timestamp was persisted
+	loaded, err := manager.Load("test-cluster")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if loaded.Status != "CREATE_COMPLETE" {
+		t.Errorf("Status = %s, want CREATE_COMPLETE", loaded.Status)
+	}
+}
+
+func TestStatePath(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := &Manager{
+		stateDir: tempDir,
+	}
+
+	expected := filepath.Join(tempDir, "my-cluster.json")
+	actual := manager.statePath("my-cluster")
+
+	if actual != expected {
+		t.Errorf("statePath() = %s, want %s", actual, expected)
+	}
+}

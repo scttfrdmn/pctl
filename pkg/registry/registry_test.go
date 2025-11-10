@@ -15,7 +15,13 @@
 package registry
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -596,4 +602,393 @@ func TestNewGitHubRegistry(t *testing.T) {
 	if reg.client == nil {
 		t.Error("client is nil")
 	}
+}
+
+func TestGitHubRegistryList(t *testing.T) {
+	// Create test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/templates/index.json") {
+			t.Errorf("Unexpected path: %s", r.URL.Path)
+			http.NotFound(w, r)
+			return
+		}
+
+		templates := []*TemplateMetadata{
+			{
+				Name:        "bioinformatics",
+				Title:       "Bioinformatics Cluster",
+				Description: "Template for genomics workloads",
+				Tags:        []string{"bio", "genomics"},
+			},
+			{
+				Name:        "ml",
+				Title:       "Machine Learning",
+				Description: "Template for ML workloads",
+				Tags:        []string{"ml", "ai"},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(templates)
+	}))
+	defer server.Close()
+
+	// Create registry pointing to test server
+	reg := NewGitHubRegistry("test", "repo")
+	// Override client to use test server URL
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	templates, err := reg.List()
+	if err != nil {
+		t.Fatalf("List() failed: %v", err)
+	}
+
+	if len(templates) != 2 {
+		t.Errorf("Expected 2 templates, got %d", len(templates))
+	}
+
+	if templates[0].Name != "bioinformatics" {
+		t.Errorf("Expected first template 'bioinformatics', got %s", templates[0].Name)
+	}
+}
+
+func TestGitHubRegistryListNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	_, err := reg.List()
+	if err == nil {
+		t.Error("Expected error for 404, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "registry index not found") {
+		t.Errorf("Expected 'registry index not found' error, got: %v", err)
+	}
+}
+
+func TestGitHubRegistrySearch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		templates := []*TemplateMetadata{
+			{
+				Name:        "bioinformatics",
+				Title:       "Bioinformatics Cluster",
+				Description: "Genomics workloads",
+				Tags:        []string{"bio", "genomics"},
+			},
+			{
+				Name:        "ml",
+				Title:       "Machine Learning",
+				Description: "AI workloads",
+				Tags:        []string{"ml", "ai"},
+			},
+			{
+				Name:        "chemistry",
+				Title:       "Chemistry Cluster",
+				Description: "Computational chemistry",
+				Tags:        []string{"chem", "molecular"},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(templates)
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	// Search by name
+	results, err := reg.Search("bio")
+	if err != nil {
+		t.Fatalf("Search() failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result for 'bio', got %d", len(results))
+	}
+
+	if len(results) > 0 && results[0].Name != "bioinformatics" {
+		t.Errorf("Expected 'bioinformatics', got %s", results[0].Name)
+	}
+
+	// Search by tag
+	results, err = reg.Search("molecular")
+	if err != nil {
+		t.Fatalf("Search() failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result for 'molecular', got %d", len(results))
+	}
+
+	// Search by description
+	results, err = reg.Search("AI")
+	if err != nil {
+		t.Fatalf("Search() failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result for 'AI', got %d", len(results))
+	}
+
+	// Search with no results
+	results, err = reg.Search("quantum")
+	if err != nil {
+		t.Fatalf("Search() failed: %v", err)
+	}
+
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results for 'quantum', got %d", len(results))
+	}
+}
+
+func TestGitHubRegistryGetMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		templates := []*TemplateMetadata{
+			{
+				Name:  "template1",
+				Title: "Template 1",
+				Path:  "template1.yaml",
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(templates)
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	// Test found
+	metadata, err := reg.GetMetadata("template1")
+	if err != nil {
+		t.Fatalf("GetMetadata() failed: %v", err)
+	}
+
+	if metadata.Name != "template1" {
+		t.Errorf("Expected name 'template1', got %s", metadata.Name)
+	}
+
+	if metadata.Path != "template1.yaml" {
+		t.Errorf("Expected path 'template1.yaml', got %s", metadata.Path)
+	}
+
+	// Test not found
+	_, err = reg.GetMetadata("nonexistent")
+	if err == nil {
+		t.Error("Expected error for nonexistent template, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("Expected 'not found' error, got: %v", err)
+	}
+}
+
+func TestGitHubRegistryGet(t *testing.T) {
+	templateContent := "cluster:\n  name: test\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/index.json") {
+			templates := []*TemplateMetadata{
+				{
+					Name: "template1",
+					Path: "template1.yaml",
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(templates)
+		} else if strings.HasSuffix(r.URL.Path, "/template1.yaml") {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(templateContent))
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	content, err := reg.Get("template1")
+	if err != nil {
+		t.Fatalf("Get() failed: %v", err)
+	}
+
+	if content != templateContent {
+		t.Errorf("Expected content %q, got %q", templateContent, content)
+	}
+}
+
+func TestGitHubRegistryGetNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/index.json") {
+			templates := []*TemplateMetadata{}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(templates)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	_, err := reg.Get("nonexistent")
+	if err == nil {
+		t.Error("Expected error for nonexistent template, got nil")
+	}
+}
+
+func TestGitHubRegistryPull(t *testing.T) {
+	templateContent := "cluster:\n  name: test\n"
+	tmpDir := t.TempDir()
+	destination := filepath.Join(tmpDir, "subdir", "template.yaml")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/index.json") {
+			templates := []*TemplateMetadata{
+				{
+					Name: "template1",
+					Path: "template1.yaml",
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(templates)
+		} else if strings.HasSuffix(r.URL.Path, "/template1.yaml") {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(templateContent))
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	err := reg.Pull("template1", destination)
+	if err != nil {
+		t.Fatalf("Pull() failed: %v", err)
+	}
+
+	// Verify file was created
+	content, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatalf("Failed to read pulled file: %v", err)
+	}
+
+	if string(content) != templateContent {
+		t.Errorf("Expected content %q, got %q", templateContent, string(content))
+	}
+}
+
+func TestGitHubRegistryPullNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	destination := filepath.Join(tmpDir, "template.yaml")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/index.json") {
+			templates := []*TemplateMetadata{}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(templates)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	reg := NewGitHubRegistry("test", "repo")
+	reg.client = &http.Client{
+		Transport: &testTransport{
+			baseURL: server.URL,
+			owner:   "test",
+			repo:    "repo",
+			branch:  "main",
+		},
+	}
+
+	err := reg.Pull("nonexistent", destination)
+	if err == nil {
+		t.Error("Expected error for nonexistent template, got nil")
+	}
+}
+
+// testTransport is a custom HTTP transport for testing that rewrites GitHub URLs to test server URLs
+type testTransport struct {
+	baseURL string
+	owner   string
+	repo    string
+	branch  string
+}
+
+func (t *testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Rewrite GitHub raw URL to test server URL
+	expectedPrefix := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/", t.owner, t.repo, t.branch)
+	if strings.HasPrefix(req.URL.String(), expectedPrefix) {
+		suffix := strings.TrimPrefix(req.URL.String(), expectedPrefix)
+		newURL := t.baseURL + "/" + suffix
+		newReq, err := http.NewRequest(req.Method, newURL, req.Body)
+		if err != nil {
+			return nil, err
+		}
+		return http.DefaultTransport.RoundTrip(newReq)
+	}
+
+	return http.DefaultTransport.RoundTrip(req)
 }
