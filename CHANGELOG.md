@@ -16,6 +16,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - None
 
+## [0.6.0] - 2025-11-10
+
+### Added
+- **Async AMI builds with progress monitoring** (Issue #26)
+  - **Phase 1: Real-time progress monitoring** (pkg/ami, pkg/software)
+    - PCTL_PROGRESS markers throughout software installation scripts
+    - EC2 console output polling every 30 seconds during builds
+    - Progress percentage tracking (0-100%) across all build phases
+    - Detailed progress messages for each installation step
+  - **Phase 2: State persistence** (pkg/ami/state.go)
+    - JSON-based build state management in ~/.pctl/ami-builds/
+    - UUID-based build identifiers for unique tracking
+    - BuildState with full metadata (progress, status, timestamps, packages)
+    - StateManager for loading, saving, listing, and cleaning up states
+    - Build status tracking: launching → installing → creating → complete/failed
+  - **Phase 3: Detached builds and status commands** (cmd/pctl/ami.go)
+    - `pctl ami build --detach` - Start build and exit immediately
+    - `pctl ami status <build-id>` - Check build status with full details
+    - `pctl ami status <build-id> --watch` - Continuous progress monitoring
+    - `pctl ami list-builds` - Table view of all AMI builds
+    - Builds continue running in AWS after CLI exits
+    - Reconnect from any machine to check progress
+    - Perfect for CI/CD pipelines and long-running builds
+  - **Phase 4: Visual progress bars and time estimates**
+    - Interactive progress bars with 40-character width
+    - Real-time progress visualization: [=========>    ] 45%
+    - Estimated time remaining calculations: "~32m remaining"
+    - Consistent UX in both build and watch modes
+    - Professional appearance with emoji and theming
+    - Linear time projection based on elapsed time and progress
+- **Persona-based documentation** (docs/PERSONAS.md)
+  - 5 detailed user personas with workflows and priorities
+  - Bioinformatics researcher, ML engineer, DevOps, lab manager, migration specialist
+  - Feature prioritization matrix showing impact by persona
+  - Complete walkthroughs with example commands
+  - Development guidelines for feature evaluation
+  - Persona-driven roadmap planning
+- **AMI cleanup and optimization** (Issue #25, pkg/ami/cleanup.go)
+  - Comprehensive cleanup script for AMI size reduction (30-50%)
+  - Package manager cache cleanup (APT/YUM)
+  - Temporary file removal (/tmp, /var/tmp)
+  - Log file clearing (security and size)
+  - SSH host key removal (regenerated on first boot)
+  - Bash history clearing (security)
+  - Cloud-init artifact cleanup
+  - Spack cache cleanup
+  - Free space zeroing for optimal compression
+  - Custom cleanup script support
+
+### Changed
+- Enhanced README with async build documentation and AMI management section
+- Updated bootstrap script generation to include progress markers
+- Improved software installation logging with percentage-based progress
+- AMI building now includes cleanup phase by default (can skip with --skip-cleanup)
+
+### Technical Improvements
+- Added github.com/google/uuid dependency for unique build IDs
+- Added github.com/schollz/progressbar/v3 for visual progress feedback
+- Enhanced error handling in AMI builder with better state tracking
+- Improved console output parsing for progress extraction
+
+### Benefits
+- Users can start 30-90 minute builds and disconnect
+- Real-time progress visibility without waiting at terminal
+- Multiple concurrent builds can be tracked
+- CI/CD integration with programmatic status checking
+- Professional UX with visual progress and time estimates
+- 30-50% smaller AMIs through automated cleanup
+
 ## [0.5.0] - 2025-11-09
 
 ### Added
