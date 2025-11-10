@@ -9,116 +9,112 @@ A Go-based CLI tool that simplifies AWS ParallelCluster deployment using intuiti
 
 ## Overview
 
-**pctl delivers ready-to-use HPC clusters, not just empty infrastructure.**
+**Deploy production-ready HPC clusters in minutes, not days.**
 
-AWS ParallelCluster provisions compute nodes, but researchers still face the gap between infrastructure and productivity:
-- **Days of manual work** installing compilers, MPI, scientific software
-- **Inconsistent environments** across users and nodes
-- **Complex data access** setup for S3, EFS, FSx
-- **No repeatability** - hard to recreate working environments
+pctl bridges the gap between AWS ParallelCluster's infrastructure provisioning and what researchers actually need: clusters with software installed, users configured, and data accessible.
 
-**pctl solves this:** One simple YAML template provisions a complete, working cluster with your scientific software pre-installed, users configured, and data accessible. Submit jobs immediately, not after days of setup.
+### The Problem
+- Days of manual software installation (compilers, MPI, scientific packages)
+- Inconsistent environments across nodes and users
+- Complex S3/EFS data access setup
+- No easy way to recreate working environments
 
-From template to working cluster with software installed - that's pctl.
+### The Solution
+One YAML template → Complete, working HPC cluster
+
+- **Software pre-installed** via Spack + Lmod modules
+- **97% faster deployment** with custom AMIs (2-3 min vs 30-90 min)
+- **Zero networking knowledge** required (automatic VPC setup)
+- **Production-ready** from day one
 
 ## Key Features
 
-### ⚡ Lightning-Fast Deployment (v0.5.0+)
-**97% faster cluster creation** - Deploy production HPC clusters in 2-3 minutes instead of hours:
-- **Custom AMI building** - Pre-bake software into custom AMIs once (30-90 min)
-- **Detached builds** (v0.5.1) - Build AMIs in background, disconnect and check later
-- **Real-time progress** (v0.5.1) - Monitor builds with live progress updates
-- **Instant clusters** - Launch clusters with all software already installed
-- Perfect for testing, development, CI/CD, and rapid scaling
+### ⚡ Lightning-Fast Deployment
+**97% faster** - Deploy clusters in 2-3 minutes instead of 30-90 minutes
+
+Pre-build custom AMIs with all software installed, then deploy unlimited clusters instantly:
 ```bash
-# Build AMI once (30-90 minutes, one time) - runs in background
+# Build AMI once (30-90 min, runs in background)
 pctl ami build -t bioinformatics.yaml --name bio-v1 --detach
 
-# Check build progress anytime, from anywhere
+# Monitor progress anytime
 pctl ami status <build-id> --watch
 
-# List all builds
-pctl ami list-builds
-
-# Deploy clusters in 2-3 minutes (forever after)
+# Deploy clusters instantly (2-3 minutes)
 pctl create -t bioinformatics.yaml --custom-ami ami-xxx
 ```
 
-### 🌐 Zero Network Configuration (v0.2.0)
-**Automatic VPC/networking** - No AWS networking knowledge required:
-- Auto-creates VPC with proper subnets and security groups
-- Or use existing VPC with `--subnet-id`
-- Automatic cleanup on cluster deletion
-- Just run `pctl create` - networking handled automatically
+### 🌐 Zero AWS Networking Knowledge Required
+Automatic VPC creation with proper subnets and security groups. Or use existing VPC with `--subnet-id`. Just run `pctl create` - networking handled automatically.
 
-### 🚀 Ready-to-Use Clusters
-**Not just nodes - complete working environments.** Your cluster comes with scientific software installed and configured:
-- Bioinformatics: samtools, bwa, gatk, blast+
-- Machine Learning: PyTorch, TensorFlow, CUDA
-- Computational Chemistry: GROMACS, LAMMPS, Quantum ESPRESSO
-- Or bring your own: 6000+ packages via Spack
-
-### 📦 Automatic Software Installation (v0.3.0)
-**No more days installing dependencies.** Specify packages in your template, pctl installs them with Spack and generates Lmod modules:
+### 📦 Automatic Software Installation
+Specify packages in YAML, get working modules on your cluster:
 ```yaml
 software:
   spack_packages:
     - gcc@11.3.0
     - openmpi@4.1.4
     - samtools@1.17
-    - python@3.10
 ```
-- **AWS Spack buildcache** - Pre-built binaries install in minutes vs hours
-- **Lmod module system** - Hierarchical organization (Core, Compiler, MPI)
-- **Graceful fallbacks** - Builds from source if binaries unavailable
+- Pre-built binaries via AWS Spack buildcache (minutes vs hours)
+- Lmod modules automatically generated
+- 6000+ packages available
 
-Users do: `module load samtools` and start working immediately.
+Users run `module load samtools` and start working immediately.
 
-### 👥 User Management
-**Consistent UID/GID across all nodes.** Define users once, they work everywhere:
+### 🚀 Pre-Configured Software Stacks
+36+ ready-to-use templates for common workloads:
+- **Bioinformatics**: samtools, bwa, gatk, blast+
+- **Machine Learning**: PyTorch, TensorFlow, CUDA
+- **Chemistry**: GROMACS, LAMMPS, Quantum ESPRESSO
+- **And more**: astronomy, climate modeling, CFD, rendering
+
+### 👥 Consistent User Management
+Define users once, consistent UID/GID across all nodes:
 ```yaml
 users:
   - name: researcher1
     uid: 5001
-    gid: 5001
 ```
 
-### 💾 Data Access
-**S3 buckets mounted as filesystem paths.** No manual s3fs setup:
+### 💾 Simple Data Access
+S3 buckets mounted as filesystem paths:
 ```yaml
 data:
   s3_mounts:
     - bucket: my-research-data
       mount_point: /shared/data
 ```
-Users access data like local files: `ls /shared/data/`
 
-### 📝 Simple Templates
-**20-50 lines vs 100+ for raw ParallelCluster configs.** Focus on what matters: instances, software, users, data.
+### 🔄 On-Prem to AWS Migration
+Capture existing cluster configurations and generate pctl templates automatically:
+- SSH to existing clusters, extract config
+- Parse SLURM/PBS/SGE batch scripts
+- 50+ pre-configured module-to-Spack mappings
+- Auto-generate migration templates
 
-### 🔄 Migration & Discovery (v0.4.0)
-**Seamless on-prem to AWS migration:**
-- **Configuration capture** - SSH to existing clusters, extract configuration
-- **Batch script analysis** - Parse SLURM/PBS/SGE scripts for requirements
-- **Module mapping** - 50+ pre-configured module-to-Spack mappings
-- **Template generation** - Automatically create pctl templates from captured configs
-
-**Template registry:**
-- Share and discover templates via GitHub
-- Search by workload type (bioinformatics, ML, chemistry)
-- Community-contributed templates
+### 📝 Simple, Intuitive Templates
+20-50 lines vs 100+ for raw ParallelCluster configs. Focus on what matters: instances, software, users, data.
 
 ## Quick Start
 
 ### Installation
 
+**macOS (Homebrew)**
 ```bash
-# Download the latest release
-curl -LO https://github.com/scttfrdmn/pctl/releases/latest/download/pctl
-chmod +x pctl
-sudo mv pctl /usr/local/bin/
+brew install scttfrdmn/tap/pctl
+```
 
-# Or build from source
+**Linux/macOS (Direct Download)**
+```bash
+# Download the latest release for your platform
+curl -LO https://github.com/scttfrdmn/pctl/releases/latest/download/pctl_linux_x86_64.tar.gz
+tar xzf pctl_linux_x86_64.tar.gz
+sudo mv pctl /usr/local/bin/
+```
+
+**From Source**
+```bash
 git clone https://github.com/scttfrdmn/pctl.git
 cd pctl
 make build
@@ -128,7 +124,7 @@ sudo make install
 ### Initial Setup
 
 ```bash
-# Install ParallelCluster
+# Install ParallelCluster (required dependency)
 pctl pcluster install
 
 # Configure AWS credentials (if not already done)
@@ -147,7 +143,7 @@ pctl registry search bioinformatics
 # Create a cluster from a template
 pctl create -t templates/library/bioinformatics.yaml --name my-cluster
 
-# Check status
+# Check cluster status
 pctl status my-cluster
 
 # List all clusters
@@ -189,32 +185,23 @@ data:
 
 ## AMI Management
 
-pctl provides powerful AMI building and management capabilities for pre-installing software:
+Build custom AMIs once, deploy clusters instantly forever:
 
 ```bash
-# Build a custom AMI (detached mode - runs in background)
+# Build custom AMI (runs in background)
 pctl ami build -t template.yaml --name my-ami --detach
 
-# Check build status
-pctl ami status <build-id>
-
-# Watch build progress in real-time
+# Monitor progress
 pctl ami status <build-id> --watch
 
-# List all AMI builds
+# List all builds
 pctl ami list-builds
 
-# Use custom AMI when creating clusters
+# Deploy with custom AMI
 pctl create -t template.yaml --custom-ami ami-xxxxx
 ```
 
-### Why Build Custom AMIs?
-
-**30-90 minute builds → 2-3 minute clusters forever:**
-- Build AMI once with all software pre-installed
-- Launch unlimited clusters in 2-3 minutes
-- Perfect for CI/CD, testing, and rapid experimentation
-- Detached mode: start build and come back later
+**Why?** Build once (30-90 min) → deploy unlimited clusters in 2-3 min. Perfect for CI/CD, testing, and production workloads.
 
 ## Documentation
 
