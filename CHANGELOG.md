@@ -16,6 +16,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - None
 
+## [0.9.0] - 2025-11-10
+
+### Added
+- **Comprehensive Template Library - 36 Production Templates** (Issue #27)
+  - **Bioinformatics & Life Sciences (8 templates)**
+    - bioinformatics.yaml - General genomics tools (BWA, GATK, SAMtools)
+    - rna-seq.yaml - RNA sequencing pipelines (STAR, salmon, kallisto)
+    - single-cell.yaml - Single-cell analysis (Seurat, Scanpy, CellRanger)
+    - metagenomics.yaml - Microbiome analysis (QIIME2, Kraken2, MetaPhlAn)
+    - structural-biology.yaml - AlphaFold2, RELION, cryoSPARC, Rosetta, molecular docking
+    - medical-imaging.yaml - ITK, FSL, FreeSurfer, DICOM processing, 3D Slicer
+    - systems-biology.yaml - Pathway analysis, network modeling
+  - **AI/ML & Data Science (7 templates)**
+    - machine-learning.yaml - General ML workflows (scikit-learn, XGBoost)
+    - llm-training.yaml - Large language model training (multi-GPU, DeepSpeed)
+    - computer-vision.yaml - Image processing, CNNs, object detection
+    - reinforcement-learning.yaml - RL algorithms, gym environments
+    - data-science.yaml - General analytics (Jupyter, pandas, Dask)
+    - nlp.yaml - Traditional NLP (SpaCy, NLTK, Gensim, transformers inference)
+    - ml-inference.yaml - Model serving and batch inference
+  - **Physics & Chemistry (6 templates)**
+    - computational-chemistry.yaml - General chemistry simulations
+    - quantum-chemistry.yaml - DFT calculations (Gaussian, ORCA, NWChem)
+    - molecular-dynamics.yaml - GROMACS, AMBER, NAMD (GPU-accelerated)
+    - materials-science.yaml - VASP, Quantum ESPRESSO, LAMMPS
+    - high-energy-physics.yaml - ROOT, Geant4, PYTHIA, particle physics
+  - **Engineering & Simulation (6 templates)**
+    - cfd-openfoam.yaml - CFD with OpenFOAM and ParaView
+    - fem-analysis.yaml - Finite element analysis
+    - numerical-simulation.yaml - General scientific computing
+    - rendering.yaml - Blender, ray tracing, VFX render farms
+    - climate-modeling.yaml - Weather/climate simulations (WRF, CESM)
+  - **Earth & Space Sciences (4 templates)**
+    - astronomy.yaml - Radio astronomy, telescope data processing
+    - geoscience.yaml - Seismology (ObsPy, SPECFEM3D)
+    - hydrology.yaml - Watershed modeling (SWAT, MODFLOW, HEC-RAS)
+    - geospatial.yaml - GIS analysis (GDAL, QGIS, PostGIS)
+  - **Data Analytics & Finance (4 templates)**
+    - big-data-spark.yaml - Apache Spark for large-scale analytics
+    - time-series.yaml - Forecasting and anomaly detection
+    - quantitative-finance.yaml - QuantLib, VaR, Monte Carlo, portfolio optimization
+    - graph-analytics.yaml - NetworkX, Neo4j, PageRank, community detection
+  - **Infrastructure & Development (3 templates)**
+    - development.yaml - General software development environment
+    - jupyter-hub.yaml - Multi-user JupyterHub deployment
+    - benchmarking.yaml - Performance testing and optimization
+    - spot-compute.yaml - Cost-optimized Spot instance workloads
+- **Template Strategy Documentation** (docs/TEMPLATE_STRATEGY.md)
+  - Comprehensive template organization by domain
+  - 4-phase implementation plan
+  - Template structure standards
+  - Success metrics and coverage goals
+
+### Template Features
+Each template includes:
+- **Domain-specific compute queues** with optimized instance types
+- **Comprehensive software stacks** (Spack + pip/conda recommendations)
+- **Detailed workflow documentation** including:
+  - Common use cases and workflows
+  - Algorithm descriptions and complexity analysis
+  - Data scales and performance considerations
+  - Key software tool descriptions
+- **Cost estimates** for typical workloads
+- **S3 data integration** with pre-configured mount points
+- **Multi-user support** with UIDs/GIDs
+
+### Benefits
+- **Production-ready templates** for 36 major HPC/scientific domains
+- **Copy-paste deployment** - templates work out-of-the-box
+- **Best practice instance selection** - optimized for each workload type
+- **Comprehensive documentation** - understand workflows before deploying
+- **Community testing ready** - templates available for validation
+- **Cost transparency** - estimated hourly costs included
+
+### Testing Phase
+This release marks the beginning of the v1.0.0 testing phase:
+- Community validation of template configurations
+- Real-world software stack testing
+- Instance type optimization verification
+- Cost estimate validation
+- Documentation accuracy review
+- Bug reports and feedback collection
+
 ## [0.6.0] - 2025-11-10
 
 ### Added
@@ -284,7 +367,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - None
 
-[Unreleased]: https://github.com/scttfrdmn/pctl/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/scttfrdmn/pctl/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/scttfrdmn/pctl/compare/v0.6.0...v0.9.0
+[0.6.0]: https://github.com/scttfrdmn/pctl/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/scttfrdmn/pctl/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/scttfrdmn/pctl/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/scttfrdmn/pctl/compare/v0.2.0...v0.3.0
