@@ -125,6 +125,32 @@ func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *B
 	}
 	fmt.Printf("   ✅ Instance is ready\n\n")
 
+	// If detached mode, return here with the build ID
+	if opts.Detach {
+		buildState.Status = BuildStatusInstalling
+		b.stateManager.SaveState(buildState)
+
+		fmt.Printf("🚀 Build started in detached mode\n\n")
+		fmt.Printf("Build ID:     %s\n", buildState.BuildID)
+		fmt.Printf("Instance ID:  %s\n", instanceID)
+		fmt.Printf("Status:       %s\n\n", buildState.Status)
+		fmt.Printf("The build will continue in AWS. Check progress with:\n")
+		fmt.Printf("  pctl ami status %s\n\n", buildState.BuildID)
+		fmt.Printf("Or watch progress continuously:\n")
+		fmt.Printf("  pctl ami status %s --watch\n\n", buildState.BuildID)
+
+		// Return partial metadata (AMI not created yet)
+		return &AMIMetadata{
+			Name:          opts.Name,
+			Description:   opts.Description,
+			Region:        b.region,
+			CreatedAt:     time.Now(),
+			TemplateName:  tmpl.Cluster.Name,
+			SpackPackages: tmpl.Software.SpackPackages,
+			Tags:          opts.Tags,
+		}, nil
+	}
+
 	// Step 3: Wait for software installation to complete
 	buildState.Status = BuildStatusInstalling
 	b.stateManager.SaveState(buildState)
@@ -212,6 +238,8 @@ type BuildOptions struct {
 	SkipCleanup bool
 	// CustomCleanupScript runs in addition to default cleanup
 	CustomCleanupScript string
+	// Detach starts the build and returns immediately (build continues in AWS)
+	Detach bool
 }
 
 // DefaultBuildOptions returns default build options.

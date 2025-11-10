@@ -34,6 +34,8 @@ var (
 	amiKeyName      string
 	amiTimeout      int
 	amiSkipCleanup  bool
+	amiDetach       bool
+	amiWatch        bool
 )
 
 // amiCmd represents the ami command group
@@ -86,11 +88,42 @@ Example:
 	RunE: runDeleteAMI,
 }
 
+// statusBuildCmd checks the status of an AMI build
+var statusBuildCmd = &cobra.Command{
+	Use:   "status [build-id]",
+	Short: "Check the status of an AMI build",
+	Long: `Check the status of an AMI build by its build ID.
+
+This command shows:
+- Build progress and current status
+- Elapsed time
+- AMI ID (if complete)
+- Error message (if failed)
+
+Example:
+  pctl ami status 550e8400-e29b-41d4-a716-446655440000`,
+	Args: cobra.ExactArgs(1),
+	RunE: runStatusBuild,
+}
+
+// listBuildsCmd lists all AMI builds
+var listBuildsCmd = &cobra.Command{
+	Use:   "list-builds",
+	Short: "List all AMI builds",
+	Long: `List all AMI builds (in-progress, completed, and failed).
+
+Example:
+  pctl ami list-builds`,
+	RunE: runListBuilds,
+}
+
 func init() {
 	rootCmd.AddCommand(amiCmd)
 	amiCmd.AddCommand(buildAMICmd)
 	amiCmd.AddCommand(listAMIsCmd)
 	amiCmd.AddCommand(deleteAMICmd)
+	amiCmd.AddCommand(statusBuildCmd)
+	amiCmd.AddCommand(listBuildsCmd)
 
 	// Build AMI flags
 	buildAMICmd.Flags().StringVarP(&amiTemplateFile, "template", "t", "", "template file (required)")
@@ -100,10 +133,14 @@ func init() {
 	buildAMICmd.Flags().StringVar(&amiKeyName, "key-name", "", "EC2 key pair name for SSH access (optional)")
 	buildAMICmd.Flags().IntVar(&amiTimeout, "timeout", 90, "timeout in minutes for software installation")
 	buildAMICmd.Flags().BoolVar(&amiSkipCleanup, "no-cleanup", false, "skip automatic cleanup before AMI creation (not recommended)")
+	buildAMICmd.Flags().BoolVar(&amiDetach, "detach", false, "start build and exit immediately (build continues in AWS)")
 
 	buildAMICmd.MarkFlagRequired("template")
 	buildAMICmd.MarkFlagRequired("name")
 	buildAMICmd.MarkFlagRequired("subnet-id")
+
+	// Status command flags
+	statusBuildCmd.Flags().BoolVarP(&amiWatch, "watch", "w", false, "continuously watch build progress until complete")
 }
 
 func runBuildAMI(cmd *cobra.Command, args []string) error {
@@ -144,6 +181,7 @@ func runBuildAMI(cmd *cobra.Command, args []string) error {
 	opts.KeyName = amiKeyName
 	opts.WaitTimeout = time.Duration(amiTimeout) * time.Minute
 	opts.SkipCleanup = amiSkipCleanup
+	opts.Detach = amiDetach
 
 	// Show cleanup status
 	if amiSkipCleanup {
@@ -152,10 +190,20 @@ func runBuildAMI(cmd *cobra.Command, args []string) error {
 		fmt.Printf("✅ Cleanup enabled - AMI will be optimized for size and security\n\n")
 	}
 
+	// Show detach status
+	if amiDetach {
+		fmt.Printf("🚀 Detach mode enabled - build will start and CLI will exit\n\n")
+	}
+
 	// Build AMI
 	metadata, err := builder.BuildAMI(ctx, tmpl, opts)
 	if err != nil {
 		return fmt.Errorf("AMI build failed: %w", err)
+	}
+
+	// If detached, the build details were already printed by BuildAMI
+	if amiDetach {
+		return nil
 	}
 
 	fmt.Printf("✅ AMI build successful!\n\n")
@@ -262,4 +310,201 @@ func runDeleteAMI(cmd *cobra.Command, args []string) error {
 	fmt.Printf("✅ AMI deleted successfully\n")
 
 	return nil
+}
+
+func runStatusBuild(cmd *cobra.Command, args []string) error {
+	buildID := args[0]
+
+	stateManager, err := ami.NewStateManager()
+	if err != nil {
+		return fmt.Errorf("failed to create state manager: %w", err)
+	}
+
+	state, err := stateManager.LoadState(buildID)
+	if err != nil {
+		return fmt.Errorf("failed to load build state: %w", err)
+	}
+
+	// Display build status
+	fmt.Printf("Build Status\n")
+	fmt.Printf("============\n\n")
+	fmt.Printf("Build ID:     %s\n", state.BuildID)
+	fmt.Printf("Status:       %s\n", formatStatus(state.Status))
+	fmt.Printf("Progress:     %d%%\n", state.Progress)
+	if state.ProgressMessage != "" {
+		fmt.Printf("Message:      %s\n", state.ProgressMessage)
+	}
+	fmt.Printf("AMI Name:     %s\n", state.AMIName)
+	fmt.Printf("Template:     %s\n", state.TemplateName)
+	fmt.Printf("Region:       %s\n", state.Region)
+	fmt.Printf("Packages:     %d\n", state.PackageCount)
+	fmt.Printf("Started:      %s\n", state.StartTime.Format(time.RFC3339))
+
+	// Calculate elapsed time
+	var elapsed time.Duration
+	if state.EndTime != nil {
+		elapsed = state.EndTime.Sub(state.StartTime)
+		fmt.Printf("Completed:    %s\n", state.EndTime.Format(time.RFC3339))
+		fmt.Printf("Duration:     %s\n", formatDuration(elapsed))
+	} else {
+		elapsed = time.Since(state.StartTime)
+		fmt.Printf("Elapsed:      %s\n", formatDuration(elapsed))
+	}
+
+	// Show AMI ID if complete
+	if state.Status == ami.BuildStatusComplete && state.AMIID != "" {
+		fmt.Printf("\n✅ AMI ID:   %s\n", state.AMIID)
+		fmt.Printf("\nYou can now use this AMI with:\n")
+		fmt.Printf("  pctl create -t template.yaml --key-name <key> --custom-ami %s\n", state.AMIID)
+	}
+
+	// Show error if failed
+	if state.Status == ami.BuildStatusFailed && state.ErrorMessage != "" {
+		fmt.Printf("\n❌ Error:    %s\n", state.ErrorMessage)
+	}
+
+	// Watch mode
+	if amiWatch && state.Status != ami.BuildStatusComplete && state.Status != ami.BuildStatusFailed {
+		fmt.Printf("\n⏳ Watching build progress (press Ctrl+C to exit)...\n\n")
+		return watchBuild(stateManager, buildID)
+	}
+
+	return nil
+}
+
+func runListBuilds(cmd *cobra.Command, args []string) error {
+	stateManager, err := ami.NewStateManager()
+	if err != nil {
+		return fmt.Errorf("failed to create state manager: %w", err)
+	}
+
+	states, err := stateManager.ListStates()
+	if err != nil {
+		return fmt.Errorf("failed to list builds: %w", err)
+	}
+
+	if len(states) == 0 {
+		fmt.Println("No builds found.")
+		fmt.Println("\nStart a build with:")
+		fmt.Println("  pctl ami build -t template.yaml --name my-ami --subnet-id subnet-xxx --key-name my-key")
+		return nil
+	}
+
+	// Print builds in a table
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "BUILD ID\tSTATUS\tPROGRESS\tAMI NAME\tSTARTED\tDURATION\n")
+	fmt.Fprintf(w, "────────\t──────\t────────\t────────\t───────\t────────\n")
+
+	for _, state := range states {
+		var duration string
+		if state.EndTime != nil {
+			duration = formatDuration(state.EndTime.Sub(state.StartTime))
+		} else {
+			duration = formatDuration(time.Since(state.StartTime))
+		}
+
+		// Truncate build ID for display
+		shortID := state.BuildID
+		if len(shortID) > 8 {
+			shortID = shortID[:8]
+		}
+
+		fmt.Fprintf(w, "%s\t%s\t%d%%\t%s\t%s\t%s\n",
+			shortID,
+			formatStatus(state.Status),
+			state.Progress,
+			state.AMIName,
+			formatRelativeTime(state.StartTime),
+			duration)
+	}
+
+	w.Flush()
+
+	fmt.Printf("\nTotal: %d build(s)\n\n", len(states))
+	fmt.Printf("Use 'pctl ami status <build-id>' to check build details.\n")
+
+	return nil
+}
+
+func formatStatus(status ami.BuildStatus) string {
+	switch status {
+	case ami.BuildStatusLaunching:
+		return "🚀 launching"
+	case ami.BuildStatusInstalling:
+		return "📦 installing"
+	case ami.BuildStatusCreating:
+		return "🏗️  creating"
+	case ami.BuildStatusComplete:
+		return "✅ complete"
+	case ami.BuildStatusFailed:
+		return "❌ failed"
+	default:
+		return string(status)
+	}
+}
+
+func formatDuration(d time.Duration) string {
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	if hours > 0 {
+		return fmt.Sprintf("%dh%dm", hours, minutes)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%dm%ds", minutes, seconds)
+	}
+	return fmt.Sprintf("%ds", seconds)
+}
+
+func formatRelativeTime(t time.Time) string {
+	duration := time.Since(t)
+	hours := int(duration.Hours())
+	minutes := int(duration.Minutes())
+	days := hours / 24
+
+	if days > 0 {
+		return fmt.Sprintf("%dd ago", days)
+	} else if hours > 0 {
+		return fmt.Sprintf("%dh ago", hours)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%dm ago", minutes)
+	}
+	return "just now"
+}
+
+func watchBuild(stateManager *ami.StateManager, buildID string) error {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	lastProgress := -1
+
+	for {
+		select {
+		case <-ticker.C:
+			state, err := stateManager.LoadState(buildID)
+			if err != nil {
+				return fmt.Errorf("failed to load build state: %w", err)
+			}
+
+			// Show progress if changed
+			if state.Progress != lastProgress {
+				if state.ProgressMessage != "" {
+					fmt.Printf("[%s] %s\n", formatDuration(time.Since(state.StartTime)), state.ProgressMessage)
+				}
+				lastProgress = state.Progress
+			}
+
+			// Check if complete
+			if state.Status == ami.BuildStatusComplete {
+				fmt.Printf("\n✅ Build complete! AMI ID: %s\n", state.AMIID)
+				return nil
+			}
+
+			// Check if failed
+			if state.Status == ami.BuildStatusFailed {
+				fmt.Printf("\n❌ Build failed: %s\n", state.ErrorMessage)
+				return fmt.Errorf("build failed")
+			}
+		}
+	}
 }
