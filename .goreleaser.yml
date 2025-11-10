@@ -1,0 +1,131 @@
+project_name: pctl
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm64
+    main: ./cmd/pctl
+    binary: pctl
+    ldflags:
+      - -s -w
+      - -X github.com/scttfrdmn/pctl/internal/version.Version={{.Version}}
+      - -X github.com/scttfrdmn/pctl/internal/version.BuildTime={{.Date}}
+      - -X github.com/scttfrdmn/pctl/internal/version.GitCommit={{.Commit}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- tolower .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+      - templates/**/*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Enhancements'
+      regexp: '^.*?enhance(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+
+brews:
+  - repository:
+      owner: scttfrdmn
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    folder: Formula
+    homepage: https://github.com/scttfrdmn/pctl
+    description: "AWS ParallelCluster Template CLI - Deploy HPC clusters on AWS with pre-configured software stacks"
+    license: "MIT"
+    test: |
+      system "#{bin}/pctl version"
+    install: |
+      bin.install "pctl"
+      prefix.install_metafiles
+      (prefix/"templates").install Dir["templates/**/*"]
+    caveats: |
+      Templates are installed to:
+        #{prefix}/templates/library
+
+      To use pctl:
+        pctl create -t /path/to/template.yaml
+
+release:
+  github:
+    owner: scttfrdmn
+    name: pctl
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Release {{.Tag}} ({{ .Date }})
+
+    Welcome to this new release!
+  footer: |
+    ## Installation
+
+    ### macOS (Homebrew)
+    ```bash
+    brew install scttfrdmn/tap/pctl
+    ```
+
+    ### Linux/macOS (Direct Download)
+    ```bash
+    curl -sL https://github.com/scttfrdmn/pctl/releases/download/{{.Tag}}/pctl_{{tolower .Os}}_{{if eq .Arch "amd64"}}x86_64{{else}}{{.Arch}}{{end}}.tar.gz | tar xz
+    sudo mv pctl /usr/local/bin/
+    ```
+
+    ### Windows (Direct Download)
+    Download the appropriate ZIP file from the [releases page](https://github.com/scttfrdmn/pctl/releases/download/{{.Tag}}).
+
+    ## Full Changelog
+    https://github.com/scttfrdmn/pctl/compare/{{.PreviousTag}}...{{.Tag}}
