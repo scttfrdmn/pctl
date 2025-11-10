@@ -37,8 +37,15 @@ jobs:
     - name: Vet
       run: go vet ./...
 
-    - name: Unit tests
-      run: go test -v -timeout 30s ./...
+    - name: Unit tests with coverage
+      run: go test -v -timeout 30s -coverprofile=coverage.out -covermode=atomic ./...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.out
+        flags: unittests
+        name: codecov-pctl
 
     - name: Build
       run: go build -o bin/pctl ./cmd/pctl

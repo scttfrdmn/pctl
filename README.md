@@ -1,7 +1,8 @@
-# pctl - ParallelCluster Templates
+# pctl - Templated AWS ParallelCluster Deployment
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/scttfrdmn/pctl)](https://goreportcard.com/report/github.com/scttfrdmn/pctl)
 [![CI](https://github.com/scttfrdmn/pctl/actions/workflows/ci.yml/badge.svg)](https://github.com/scttfrdmn/pctl/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/scttfrdmn/pctl/branch/main/graph/badge.svg)](https://codecov.io/gh/scttfrdmn/pctl)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/scttfrdmn/pctl)](https://github.com/scttfrdmn/pctl)
 
