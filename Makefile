@@ -1,4 +1,4 @@
-.PHONY: all build clean test coverage lint fmt vet check install uninstall help deps security pre-commit integration-test
+.PHONY: all build clean test coverage lint fmt vet check install uninstall help deps security pre-commit integration-test hooks
 
 # Variables
 BINARY_NAME=pctl
@@ -158,3 +158,8 @@ integration-test:
 	@echo "Using AWS profile: $${AWS_PROFILE:-default}"
 	@echo "Running integration tests..."
 	$(GOTEST) -v -tags=integration -timeout 30m ./test/integration/...
+
+## hooks: Install git hooks that mirror CI checks
+hooks:
+	@echo "Installing git hooks..."
+	@./hooks/setup.sh

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Pre-push hook that mirrors CI/CD checks
+set -e
+
+echo "Running pre-push checks..."
+
+# Format check
+echo "→ Checking code formatting..."
+if [ -n "$(gofmt -l .)" ]; then
+  echo "✗ Code is not formatted. Run 'gofmt -w .' to fix:"
+  gofmt -l .
+  exit 1
+fi
+echo "✓ Code is properly formatted"
+
+# Vet
+echo "→ Running go vet..."
+if ! go vet ./...; then
+  echo "✗ go vet failed"
+  exit 1
+fi
+echo "✓ go vet passed"
+
+# Tests
+echo "→ Running tests..."
+if ! go test -timeout 30s ./...; then
+  echo "✗ Tests failed"
+  exit 1
+fi
+echo "✓ Tests passed"
+
+echo "✓ All pre-push checks passed!"
