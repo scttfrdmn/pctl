@@ -1,0 +1,147 @@
+# ML Inference Cluster Template
+# Use Case: Model serving and batch inference at scale
+# Domain: Machine Learning / AI
+# Optimized for: High-throughput model inference with GPUs and CPUs
+# Included software: TorchServe, Triton, ONNX Runtime, TensorRT
+# Instance recommendations: Mixed GPU/CPU based on workload
+# Estimated costs: ~$0.50-1/hour for g4dn.xlarge, ~$0.20/hour for c5.xlarge
+
+cluster:
+  name: ml-inference-cluster
+  region: us-east-1
+
+compute:
+  # Head node for model management and monitoring
+  head_node: m5.large
+
+  queues:
+    # GPU queue for compute-intensive inference
+    # Deep learning models, computer vision, NLP
+    - name: gpu-inference
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB - cost-effective
+        - g4dn.2xlarge  # 1x T4 16GB - more CPU/RAM
+        - g5.xlarge     # 1x A10G 24GB - newer, faster
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 30
+
+    # CPU queue for lightweight models
+    # Traditional ML, small NNs, feature extraction
+    - name: cpu-inference
+      instance_types:
+        - c5.xlarge    # 4 vCPU, 8GB RAM
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Batch processing queue
+    # Large batch inference jobs
+    - name: batch
+      instance_types:
+        - g4dn.12xlarge  # 4x T4, 48 vCPU, 192GB RAM
+        - p3.8xlarge     # 4x V100, 32 vCPU, 244GB RAM
+      min_count: 0
+      max_count: 10
+
+    # Preprocessing queue
+    # Data preparation, feature engineering
+    - name: preprocessing
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 20
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+
+    # Deep learning frameworks
+    - py-torch@2.0.0+cuda
+    - py-tensorflow@2.12.0+cuda
+
+    # Model serving frameworks (install via pip for latest)
+    # - torchserve (pip - PyTorch serving)
+    # - nvidia-triton-server (docker/pip - multi-framework)
+    # - tensorflow-serving (docker - TensorFlow serving)
+
+    # Model optimization
+    # - onnx (pip - model exchange format)
+    # - onnxruntime-gpu (pip - optimized inference)
+    # - tensorrt (nvidia - GPU optimization)
+    # - openvino (pip - Intel optimization)
+
+    # API frameworks
+    # - fastapi (pip - REST API)
+    # - uvicorn (pip - ASGI server)
+    # - gunicorn (pip - WSGI server)
+    # - redis (for result caching)
+
+    # Monitoring and logging
+    # - prometheus-client (pip)
+    # - grafana (docker)
+
+    # Data processing
+    - py-pillow@9.4.0     # Image processing
+    - py-scikit-image@0.20.0
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nccl@2.15.5
+
+    # Utilities
+    - git@2.40.0
+    - tmux@3.3a
+    - htop@3.2.1
+    - parallel@20230422
+
+    # GPU monitoring
+    - nvtop@2.0.0
+
+    # File formats
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+
+users:
+  - name: mlops1
+    uid: 21001
+    gid: 21001
+  - name: mlops2
+    uid: 21002
+    gid: 21002
+  - name: mlops3
+    uid: 21003
+    gid: 21003
+
+data:
+  s3_mounts:
+    # Trained models and checkpoints
+    - bucket: my-inference-models
+      mount_point: /shared/models
+
+    # Input data for inference
+    - bucket: my-inference-input
+      mount_point: /shared/input
+
+    # Inference results
+    - bucket: my-inference-output
+      mount_point: /shared/output
+
+    # Model configuration and metadata
+    - bucket: my-inference-config
+      mount_point: /shared/config
+
+    # Logs and metrics
+    - bucket: my-inference-logs
+      mount_point: /shared/logs

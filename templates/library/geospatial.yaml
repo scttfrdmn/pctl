@@ -1,0 +1,161 @@
+# Geospatial Analysis Cluster Template
+# Use Case: GIS analysis, satellite imagery processing, spatial data science
+# Domain: Data Science / Analytics
+# Optimized for: Large-scale geospatial data processing and analysis
+# Included software: GDAL, GeoPandas, Rasterio, QGIS, GRASS GIS
+# Instance recommendations: Memory-optimized (r5) for large raster datasets
+# Estimated costs: ~$2-3/hour for r5.8xlarge usage
+
+cluster:
+  name: geospatial-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for QGIS and interactive work
+  head_node: m5.xlarge
+
+  queues:
+    # Memory-optimized queue for large raster processing
+    # Satellite imagery and DEMs can be very large
+    - name: raster-processing
+      instance_types:
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Compute-optimized queue for parallel tile processing
+    # Processing many smaller tiles in parallel
+    - name: tile-processing
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 25
+
+    # General purpose for vector processing and analysis
+    - name: vector-analysis
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 20
+
+    # GPU queue for deep learning on imagery
+    # Object detection, classification, segmentation
+    - name: imagery-ml
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Core geospatial libraries
+    - gdal@3.6.2+python
+    - proj@9.1.1
+    - geos@3.11.1
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+
+    # Geospatial Python packages
+    # - geopandas (pip - spatial dataframes)
+    # - rasterio (pip - raster I/O)
+    # - fiona (pip - vector I/O)
+    # - shapely (pip - geometry operations)
+    # - pyproj (pip - projections)
+
+    # Remote sensing and imagery
+    # - rioxarray (pip - raster + xarray)
+    # - sentinel-hub (pip - satellite data access)
+    # - earthengine-api (pip - Google Earth Engine)
+
+    # Machine learning for geospatial
+    - py-scikit-learn@1.2.0
+    - py-torch@2.0.0+cuda
+    # - torchgeo (pip - geospatial ML)
+    # - segmentation-models-pytorch (pip)
+
+    # Visualization
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+    - py-plotly@5.14.0
+    # - folium (pip - interactive maps)
+    # - contextily (pip - basemaps)
+
+    # GIS applications
+    - qgis@3.30.0
+    - grass@8.2.1
+    # - saga-gis (if available)
+
+    # Database support
+    - postgresql@15.2
+    - postgis@3.3.2
+    - py-psycopg2@2.9.5
+
+    # Jupyter for interactive analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # File formats
+    - hdf5@1.14.0
+    - netcdf-c@4.9.0
+    - py-h5py@3.8.0
+    - py-netcdf4@1.6.3
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+users:
+  - name: gisuser1
+    uid: 20001
+    gid: 20001
+  - name: gisuser2
+    uid: 20002
+    gid: 20002
+  - name: gisuser3
+    uid: 20003
+    gid: 20003
+
+data:
+  s3_mounts:
+    # Raw satellite imagery and DEMs
+    - bucket: my-gis-imagery
+      mount_point: /shared/imagery
+
+    # Vector datasets (shapefiles, geopackage)
+    - bucket: my-gis-vectors
+      mount_point: /shared/vectors
+
+    # Processed/derived datasets
+    - bucket: my-gis-processed
+      mount_point: /shared/processed
+
+    # Analysis outputs and maps
+    - bucket: my-gis-outputs
+      mount_point: /shared/outputs
+
+    # Reference data and basemaps
+    - bucket: my-gis-reference
+      mount_point: /shared/reference

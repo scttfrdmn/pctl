@@ -1,0 +1,179 @@
+# Spot Compute Cluster Template
+# Use Case: Cost-optimized batch processing with EC2 Spot instances
+# Domain: Cost Optimization
+# Optimized for: Fault-tolerant batch jobs, parameter sweeps, embarrassingly parallel workloads
+# Included software: Basic scientific computing stack, checkpoint/restart tools
+# Instance recommendations: Spot instances with diverse types for availability
+# Estimated costs: ~60-90% cheaper than on-demand (varies by availability)
+
+cluster:
+  name: spot-compute-cluster
+  region: us-east-1
+
+compute:
+  # On-demand head node for reliability
+  head_node: t3.medium
+
+  queues:
+    # Spot compute queue with diverse instance types
+    # Diversification improves availability and reduces interruptions
+    - name: spot-compute
+      capacity_type: SPOT  # Use EC2 Spot instances
+      allocation_strategy: lowest-price  # Choose cheapest available
+      instance_types:
+        # Diversify across families for better availability
+        - c5.xlarge     # 4 vCPU, 8GB RAM
+        - c5.2xlarge    # 8 vCPU, 16GB RAM
+        - c5.4xlarge    # 16 vCPU, 32GB RAM
+        - c5a.xlarge    # AMD alternative
+        - c5a.2xlarge
+        - c5a.4xlarge
+        - c5n.xlarge    # Network-optimized
+        - c5n.2xlarge
+        - m5.xlarge     # General purpose
+        - m5.2xlarge
+        - m5a.xlarge    # AMD alternative
+        - m5a.2xlarge
+      min_count: 0
+      max_count: 100  # Scale widely for spot availability
+
+    # High-capacity spot queue for massive parallelism
+    # Many small jobs that can tolerate interruptions
+    - name: spot-parallel
+      capacity_type: SPOT
+      allocation_strategy: capacity-optimized  # Least likely to be interrupted
+      instance_types:
+        - c5.large      # 2 vCPU, 4GB RAM - smallest for max parallelism
+        - c5a.large
+        - m5.large
+        - m5a.large
+        - t3.large      # Burstable for short tasks
+        - t3a.large
+      min_count: 0
+      max_count: 200  # Very high count for embarrassingly parallel work
+
+    # On-demand fallback queue for critical jobs
+    # Use when spot capacity is unavailable
+    - name: ondemand-fallback
+      capacity_type: ONDEMAND
+      instance_types:
+        - c5.xlarge
+        - c5.2xlarge
+        - m5.xlarge
+      min_count: 0
+      max_count: 10   # Limited capacity, higher cost
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+
+    # Parallel processing
+    - parallel@20230422
+    # - dask (pip - parallel computing)
+    # - ray (pip - distributed computing)
+
+    # Checkpoint/restart libraries
+    # Critical for spot instances that may be interrupted
+    # - dmtcp (pip - checkpoint/restart)
+    # - mpi-checkpoint (if using MPI)
+
+    # Job arrays and parameter sweeps
+    # - sacred (pip - experiment tracking)
+    # - optuna (pip - hyperparameter optimization)
+
+    # Scientific computing basics
+    - py-scikit-learn@1.2.0
+    - py-h5py@3.8.0
+    - hdf5@1.14.0
+
+    # AWS integration for spot handling
+    # - boto3 (pip - AWS SDK)
+    # - aws-cli (pip)
+
+    # Monitoring and logging
+    # - cloudwatch-logs (pip)
+
+    # Utilities
+    - git@2.40.0
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+    - jq@1.6  # For parsing AWS metadata
+
+    # Data compression (save S3 storage costs)
+    - pigz@2.7        # Parallel gzip
+    - zstd@1.5.4      # Fast compression
+    - lz4@1.9.4       # Ultra-fast compression
+
+users:
+  - name: batch1
+    uid: 11001
+    gid: 11001
+  - name: batch2
+    uid: 11002
+    gid: 11002
+  - name: batch3
+    uid: 11003
+    gid: 11003
+
+data:
+  s3_mounts:
+    # Input data - read-heavy
+    - bucket: my-spot-inputs
+      mount_point: /shared/inputs
+
+    # Work in progress - frequent writes
+    # Use S3 Intelligent-Tiering or One Zone-IA
+    - bucket: my-spot-work
+      mount_point: /shared/work
+
+    # Completed outputs
+    - bucket: my-spot-outputs
+      mount_point: /shared/outputs
+
+    # Checkpoints for restart after interruption
+    # Critical for spot workloads
+    - bucket: my-spot-checkpoints
+      mount_point: /shared/checkpoints
+
+    # Logs and monitoring data
+    - bucket: my-spot-logs
+      mount_point: /shared/logs
+
+# Spot Instance Best Practices:
+#
+# 1. Checkpointing: Save progress frequently to S3 so jobs can resume after interruptions
+#
+# 2. Instance Diversity: Use multiple instance types (as above) to maximize availability
+#
+# 3. Allocation Strategy:
+#    - lowest-price: Cheapest, but higher interruption risk
+#    - capacity-optimized: More stable, slightly higher cost
+#    - price-capacity-optimized: Balance of both (recommended for most workloads)
+#
+# 4. Job Granularity: Break work into small tasks (<2 hours each) that complete quickly
+#
+# 5. Idempotency: Ensure jobs can safely restart/retry without corrupting data
+#
+# 6. Monitoring: Watch CloudWatch for Spot interruption warnings (2-minute notice)
+#
+# 7. Fallback: Always have an on-demand queue for critical work
+#
+# 8. Time Windows: Run during off-peak hours when spot prices are lower
+#    (weekends, nights in US: typically lower prices)
+#
+# 9. Cost Tracking: Use AWS Cost Explorer to monitor actual vs expected savings
+#
+# 10. Storage Optimization: Compress outputs before S3 upload to reduce costs
+#
+# Expected Savings: 60-90% compared to on-demand for fault-tolerant workloads

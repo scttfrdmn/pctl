@@ -1,0 +1,175 @@
+# Numerical Simulation Cluster Template
+# Use Case: General engineering and scientific simulations
+# Domain: Engineering / Scientific Computing
+# Optimized for: General numerical methods, ODEs, PDEs, optimization
+# Included software: MATLAB/Octave, SciPy, Julia, Optimization libraries
+# Instance recommendations: Balanced compute/memory (m5, c5) depending on problem size
+# Estimated costs: ~$1.50/hour for c5.4xlarge, ~$1/hour for m5.2xlarge
+
+cluster:
+  name: numerical-sim-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for interactive computing
+  head_node: m5.xlarge
+
+  queues:
+    # Compute-intensive queue for large simulations
+    # ODEs, PDEs, optimization, Monte Carlo
+    - name: compute
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 25
+
+    # Balanced queue for typical problems
+    # General numerical computing
+    - name: balanced
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Memory-intensive queue for large matrices
+    # Linear algebra, sparse systems
+    - name: highmem
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 10
+
+    # GPU queue for specialized algorithms
+    # GPU-accelerated solvers
+    - name: gpu
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 5
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries (critical for performance)
+    - openblas@0.3.21
+    - netlib-lapack@3.11.0
+    - scalapack@2.2.0
+    - fftw@3.3.10+mpi
+    - gsl@2.7.1        # GNU Scientific Library
+
+    # PETSc and SLEPc for large-scale computing
+    - petsc@3.19.0+mpi
+    - slepc@3.19.0
+
+    # Octave (open-source MATLAB alternative)
+    - octave@8.1.0
+
+    # Julia for high-performance computing
+    - julia@1.9.0
+    # Julia packages (install within Julia):
+    # - DifferentialEquations.jl
+    # - Optimization.jl
+    # - LinearSolve.jl
+    # - Plots.jl
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # Additional Python packages (install via pip)
+    # - numba (pip - JIT compilation)
+    # - jax (pip - GPU-accelerated NumPy)
+    # - fenics (pip - FEM for PDEs)
+    # - pyomo (pip - optimization modeling)
+    # - cvxpy (pip - convex optimization)
+    # - sympy (pip - symbolic math)
+
+    # ODE/PDE solvers
+    # - sundials (advanced ODE/DAE solvers)
+
+    # Visualization
+    - py-plotly@5.14.0
+    - gnuplot@5.4.6
+    - paraview@5.11.1+python3
+
+    # Jupyter for interactive work
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+    - py-ipython@8.12.0
+
+    # R for statistical computing
+    - r@4.2.2
+    # R packages:
+    # - deSolve (ODE solver)
+    # - optimx (optimization)
+    # - pracma (practical math)
+
+    # File formats
+    - hdf5@1.14.0+mpi
+    - py-h5py@3.8.0
+    - netcdf-c@4.9.0
+
+    # Profiling and debugging
+    - valgrind@3.20.0
+    - gdb@13.1
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+users:
+  - name: simuser1
+    uid: 14001
+    gid: 14001
+  - name: simuser2
+    uid: 14002
+    gid: 14002
+  - name: simuser3
+    uid: 14003
+    gid: 14003
+
+data:
+  s3_mounts:
+    # Input parameters and initial conditions
+    - bucket: my-sim-inputs
+      mount_point: /shared/inputs
+
+    # Simulation outputs and time series
+    - bucket: my-sim-outputs
+      mount_point: /shared/outputs
+
+    # Checkpoint and restart files
+    - bucket: my-sim-checkpoints
+      mount_point: /shared/checkpoints
+
+    # Post-processing and visualization
+    - bucket: my-sim-postprocess
+      mount_point: /shared/postprocess
+
+    # Libraries and scripts
+    - bucket: my-sim-scripts
+      mount_point: /shared/scripts

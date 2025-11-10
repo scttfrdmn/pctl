@@ -1,0 +1,195 @@
+# Software Development Cluster Template
+# Use Case: Distributed builds, CI/CD, testing, containerization
+# Domain: Software Engineering
+# Optimized for: Parallel compilation, testing, container builds, development
+# Included software: GCC, LLVM, CMake, Docker, Kubernetes tools, CI runners
+# Instance recommendations: Compute-optimized (c5) for builds, balanced (m5) for dev
+# Estimated costs: ~$1-2/hour for c5.4xlarge, ~$0.50/hour for t3.large
+
+cluster:
+  name: development-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for development and code editing
+  head_node: m5.xlarge
+
+  queues:
+    # Compute queue for parallel compilation
+    # Large C++ projects, kernel builds, etc.
+    - name: build
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Testing queue for unit/integration tests
+    # Parallel test execution
+    - name: test
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 25
+
+    # Container build queue for Docker/OCI images
+    # Building and pushing containers
+    - name: containers
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Development queue for interactive work
+    # Code editing, debugging, small builds
+    - name: dev
+      instance_types:
+        - t3.large     # 2 vCPU, 8GB RAM - cost-effective
+        - t3.xlarge    # 4 vCPU, 16GB RAM
+        - m5.xlarge    # 4 vCPU, 16GB RAM
+      min_count: 0
+      max_count: 30
+
+software:
+  spack_packages:
+    # Compilers and toolchains
+    - gcc@11.3.0
+    - gcc@12.2.0
+    - gcc@13.1.0
+    - llvm@16.0.0+clang
+    - go@1.20.3
+    - rust@1.69.0
+
+    # Build systems
+    - cmake@3.26.0
+    - ninja@1.11.1
+    - bazel@6.1.1
+    - meson@1.1.0
+    - autoconf@2.71
+    - automake@1.16.5
+    - libtool@2.4.7
+
+    # Version control
+    - git@2.40.0
+    - git-lfs@3.3.0
+    - mercurial@6.4.1
+    - subversion@1.14.2
+
+    # Python for build tools and testing
+    - python@3.10.8
+    - python@3.11.2
+    - py-pip@23.0
+    - py-pytest@7.2.2
+    - py-tox@4.4.8
+    # - pre-commit (pip - git hooks)
+    # - black (pip - code formatting)
+    # - ruff (pip - fast linter)
+
+    # Container tools
+    # Note: Docker requires manual installation
+    # - docker (manual)
+    # - podman (manual/dnf)
+    # - buildah (manual/dnf)
+    # - skopeo (manual/dnf)
+
+    # CI/CD runners
+    # - gitlab-runner (manual)
+    # - github-actions-runner (manual)
+    # - jenkins agent (manual)
+
+    # Static analysis and linters
+    - cppcheck@2.10
+    - clang-format@16.0.0
+    - valgrind@3.20.0
+    # - shellcheck (manual)
+    # - hadolint (manual - Dockerfile linter)
+
+    # Debugging and profiling
+    - gdb@13.1
+    - lldb@16.0.0
+    - perf@6.2
+    - strace@6.2
+
+    # Testing frameworks (C++)
+    - googletest@1.13.0
+    - catch2@3.3.2
+    - boost@1.82.0+test
+
+    # Node.js ecosystem
+    - node-js@18.16.0
+    # - npm, yarn (included with node-js)
+
+    # Java ecosystem
+    - openjdk@17.0.6
+    - maven@3.9.1
+    - gradle@8.0.2
+
+    # Database tools for testing
+    - postgresql@15.2
+    - redis@7.0.10
+    - sqlite@3.41.0
+
+    # Documentation generation
+    - doxygen@1.9.6
+    - sphinx@6.1.3
+
+    # Kubernetes tools
+    - kubectl@1.27.1
+    - helm@3.11.3
+    # - kind (manual - Kubernetes in Docker)
+    # - minikube (manual)
+
+    # Cloud CLIs
+    # - aws-cli (pip)
+    # - gcloud (manual)
+    # - azure-cli (pip)
+
+    # Utilities
+    - tmux@3.3a
+    - vim@9.0
+    - emacs@28.2
+    - htop@3.2.1
+    - jq@1.6
+    - parallel@20230422
+    - ccache@4.8  # Compiler cache for faster rebuilds
+
+users:
+  - name: developer1
+    uid: 12001
+    gid: 12001
+  - name: developer2
+    uid: 12002
+    gid: 12002
+  - name: developer3
+    uid: 12003
+    gid: 12003
+  - name: cicd
+    uid: 12100
+    gid: 12100
+
+data:
+  s3_mounts:
+    # Source code repositories
+    - bucket: my-dev-source
+      mount_point: /shared/source
+
+    # Build artifacts and binaries
+    - bucket: my-dev-artifacts
+      mount_point: /shared/artifacts
+
+    # Test results and coverage reports
+    - bucket: my-dev-test-results
+      mount_point: /shared/test-results
+
+    # Container registry cache
+    - bucket: my-dev-containers
+      mount_point: /shared/containers
+
+    # Shared build cache (ccache, sccache)
+    - bucket: my-dev-build-cache
+      mount_point: /shared/build-cache

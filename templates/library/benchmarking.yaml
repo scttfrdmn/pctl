@@ -1,0 +1,215 @@
+# Benchmarking and Performance Testing Cluster Template
+# Use Case: HPC benchmarks, performance testing, system characterization
+# Domain: Performance Engineering
+# Optimized for: Running standard HPC benchmarks and performance tests
+# Included software: HPL, HPCG, STREAM, IOR, mdtest, OSU benchmarks
+# Instance recommendations: Varies by benchmark target (CPU, memory, network, storage)
+# Estimated costs: ~$2-5/hour depending on instance mix
+
+cluster:
+  name: benchmarking-cluster
+  region: us-east-1
+
+compute:
+  # Standard head node for orchestration
+  head_node: m5.xlarge
+
+  queues:
+    # CPU benchmark queue for LINPACK, HPCG
+    # Tests floating point performance
+    - name: cpu-bench
+      instance_types:
+        - c5.12xlarge   # 48 vCPU, 96GB RAM
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+        - c5.24xlarge   # 96 vCPU, 192GB RAM
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM + 100 Gbps
+      min_count: 0
+      max_count: 20
+
+    # Memory benchmark queue for STREAM
+    # Tests memory bandwidth
+    - name: memory-bench
+      instance_types:
+        - r5.12xlarge   # 48 vCPU, 384GB RAM
+        - r5.16xlarge   # 64 vCPU, 512GB RAM
+        - r5.24xlarge   # 96 vCPU, 768GB RAM
+        - x1e.8xlarge   # 32 vCPU, 976GB RAM - high bandwidth
+      min_count: 0
+      max_count: 10
+
+    # Network benchmark queue for MPI tests
+    # Tests latency and bandwidth
+    - name: network-bench
+      instance_types:
+        - c5n.9xlarge   # 36 vCPU, 96GB RAM, 50 Gbps
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM, 100 Gbps
+        - p4d.24xlarge  # 96 vCPU, 1152GB RAM, 400 Gbps EFA
+      min_count: 2      # Need at least 2 nodes for network tests
+      max_count: 32
+
+    # Storage benchmark queue for IOR, mdtest
+    # Tests I/O performance
+    - name: storage-bench
+      instance_types:
+        - m5.4xlarge    # 16 vCPU, 64GB RAM
+        - m5.8xlarge    # 32 vCPU, 128GB RAM
+        - i3en.6xlarge  # 24 vCPU, 192GB RAM, 2x 7.5TB NVMe
+      min_count: 0
+      max_count: 16
+
+    # GPU benchmark queue for GPU-focused tests
+    # Tests GPU compute and communication
+    - name: gpu-bench
+      instance_types:
+        - g4dn.12xlarge  # 4x T4, 48 vCPU, 192GB RAM
+        - p3.8xlarge     # 4x V100, 32 vCPU, 244GB RAM
+        - p4d.24xlarge   # 8x A100, 96 vCPU, 1152GB RAM
+      min_count: 0
+      max_count: 8
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+    - intel-oneapi-compilers@2023.0.0  # For optimized benchmarks
+    - intel-oneapi-mpi@2021.8.0
+
+    # Math libraries (tuned for performance)
+    - openblas@0.3.21
+    - intel-oneapi-mkl@2023.0.0
+    - scalapack@2.2.0
+    - fftw@3.3.10+mpi
+
+    # HPL - High Performance LINPACK
+    # Standard CPU benchmark for TOP500
+    - hpl@2.3
+
+    # HPCG - High Performance Conjugate Gradient
+    # More realistic than HPL for modern workloads
+    - hpcg@3.1
+
+    # STREAM - Memory bandwidth benchmark
+    # Tests sustained memory bandwidth
+    # Note: Simple to compile manually if needed
+
+    # OSU Micro-Benchmarks
+    # MPI latency, bandwidth, collective performance
+    - osu-micro-benchmarks@6.1
+
+    # IOR and mdtest - Parallel I/O benchmarks
+    - ior@3.3.0+mpiio+hdf5
+    # - mdtest (often bundled with IOR)
+
+    # LAMMPS for molecular dynamics benchmarking
+    - lammps@20230802+molecule
+
+    # GROMACS for MD benchmarking
+    - gromacs@2023.1+mpi
+
+    # Deep learning benchmarks
+    # - mlperf-training (manual)
+    # - mlperf-inference (manual)
+
+    # Python for result analysis
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+
+    # Monitoring and profiling
+    - hwloc@2.9.0      # Hardware topology
+    - papi@7.0.0       # Performance counters
+    - likwid@5.2.2     # Performance monitoring
+    - perf@6.2         # Linux perf tools
+
+    # Stress testing
+    - stress-ng@0.15.03
+
+    # GPU benchmarks
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nccl@2.15.5
+    - nvtop@2.0.0
+    # - cuda-samples (manual - includes deviceQuery, bandwidthTest)
+    # - nccl-tests (manual - NCCL performance)
+
+    # Network tools
+    - iperf3@3.12      # TCP/UDP bandwidth
+    - netperf@2.7.0    # Network performance
+
+    # Storage tools
+    - fio@3.33         # Flexible I/O tester
+    - bonnie++@2.00a
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - numactl@2.0.14   # NUMA control
+
+users:
+  - name: benchmark1
+    uid: 10001
+    gid: 10001
+  - name: benchmark2
+    uid: 10002
+    gid: 10002
+
+data:
+  s3_mounts:
+    # Benchmark configurations and input files
+    - bucket: my-bench-configs
+      mount_point: /shared/configs
+
+    # Benchmark results and logs
+    - bucket: my-bench-results
+      mount_point: /shared/results
+
+    # Performance data and metrics
+    - bucket: my-bench-metrics
+      mount_point: /shared/metrics
+
+# Standard Benchmark Suites:
+#
+# 1. CPU Performance:
+#    - HPL (LINPACK): Floating point performance, TOP500 standard
+#    - HPCG: Conjugate gradient, more realistic than HPL
+#    - SPEC CPU: Industry standard (requires license)
+#
+# 2. Memory Performance:
+#    - STREAM: Sustainable memory bandwidth
+#    - lmbench: Memory latency
+#
+# 3. Network Performance:
+#    - OSU Micro-Benchmarks: MPI point-to-point and collective
+#    - iperf3: TCP/UDP throughput
+#    - NetPIPE: Bandwidth and latency curves
+#
+# 4. Storage Performance:
+#    - IOR: Parallel I/O throughput
+#    - mdtest: Metadata operations
+#    - fio: Flexible I/O patterns
+#
+# 5. Application Benchmarks:
+#    - LAMMPS: Molecular dynamics
+#    - GROMACS: Molecular dynamics
+#    - NAMD: Molecular dynamics
+#    - WRF: Weather modeling
+#    - Quantum ESPRESSO: Materials science
+#
+# 6. GPU Benchmarks:
+#    - HPL-GPU: GPU-accelerated LINPACK
+#    - NCCL-tests: GPU collective communication
+#    - MLPerf: ML training and inference
+#    - CUDA samples: deviceQuery, bandwidthTest
+#
+# Running Benchmarks:
+#    - Always run multiple iterations for statistical significance
+#    - Disable turbo boost for consistent results (if needed)
+#    - Pin processes to cores (numactl, taskset)
+#    - Monitor temperature and throttling
+#    - Document exact configuration (CPU freq, kernel version, etc.)
+#    - Compare against published results for validation

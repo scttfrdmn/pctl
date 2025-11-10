@@ -1,0 +1,159 @@
+# Climate Modeling Cluster Template
+# Use Case: Weather forecasting, climate modeling, atmospheric simulation
+# Domain: Climate Science / Atmospheric Physics
+# Optimized for: Large-scale atmospheric models and ensemble forecasting
+# Included software: WRF, CESM, MPAS, NCL, CDO, netCDF tools
+# Instance recommendations: High-bandwidth networking (c5n) for coupled models
+# Estimated costs: ~$3-5/hour for c5n.18xlarge, ~$2/hour for c5.9xlarge
+
+cluster:
+  name: climate-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for job submission and visualization
+  head_node: m5.xlarge
+
+  queues:
+    # High-bandwidth queue for large coupled models
+    # CESM and WRF need fast interconnect for MPI communication
+    - name: coupled-models
+      instance_types:
+        - c5n.9xlarge   # 36 vCPU, 96GB RAM, 50 Gbps network
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM, 100 Gbps network
+      min_count: 0
+      max_count: 20
+
+    # Compute queue for WRF regional modeling
+    # Regional models scale well across nodes
+    - name: regional
+      instance_types:
+        - c5.9xlarge    # 36 vCPU, 72GB RAM
+        - c5.12xlarge   # 48 vCPU, 96GB RAM
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Ensemble queue for many small runs
+    # Parameter sweeps and ensemble forecasting
+    - name: ensemble
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Post-processing queue for data analysis
+    # NetCDF processing, regridding, diagnostics
+    - name: postprocess
+      instance_types:
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM - for large datasets
+      min_count: 0
+      max_count: 15
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries
+    - openblas@0.3.21
+    - fftw@3.3.10+mpi
+    - netlib-lapack@3.11.0
+
+    # WRF Weather Research and Forecasting Model
+    - wrf@4.4.2+dm+sm
+
+    # CESM Community Earth System Model
+    # Note: CESM typically requires manual installation
+    # Dependencies available via Spack
+
+    # NetCDF and climate data formats
+    - netcdf-c@4.9.0+mpi
+    - netcdf-fortran@4.6.0
+    - netcdf-cxx4@4.3.1
+    - hdf5@1.14.0+mpi+hl
+    - pnetcdf@1.12.3
+
+    # Climate data operators
+    - cdo@2.2.0        # Climate Data Operators
+    - nco@5.1.4        # netCDF Operators
+
+    # NCAR Command Language for visualization
+    - ncl@6.6.2
+
+    # Python ecosystem for analysis
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+
+    # Climate analysis packages (install via pip)
+    # - xarray (pip - multi-dimensional arrays)
+    # - cartopy (pip - geospatial plotting)
+    # - metpy (pip - meteorological calculations)
+    # - salem (pip - WRF/climate data processing)
+    # - wrf-python (pip - WRF output processing)
+    # - esmpy (pip - regridding)
+
+    # Visualization
+    - ncview@2.1.8     # Quick NetCDF viewer
+    - vapor@3.8.0      # 3D atmospheric visualization
+    # - ncl (already listed)
+
+    # Jupyter for interactive analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # GRIB support for meteorological data
+    - eccodes@2.29.0   # ECMWF GRIB API
+    - wgrib2@3.1.1     # GRIB2 tools
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # GIS tools for preprocessing
+    - gdal@3.6.2+python
+    - proj@9.1.1
+
+users:
+  - name: climate1
+    uid: 16001
+    gid: 16001
+  - name: climate2
+    uid: 16002
+    gid: 16002
+  - name: climate3
+    uid: 16003
+    gid: 16003
+
+data:
+  s3_mounts:
+    # Initial conditions and boundary conditions
+    - bucket: my-climate-ic-bc
+      mount_point: /shared/ic_bc
+
+    # Reanalysis datasets (ERA5, NCEP, etc.)
+    - bucket: my-climate-reanalysis
+      mount_point: /shared/reanalysis
+
+    # Model outputs (large NetCDF files)
+    - bucket: my-climate-outputs
+      mount_point: /shared/outputs
+
+    # Post-processed data and diagnostics
+    - bucket: my-climate-processed
+      mount_point: /shared/processed
+
+    # Observation data for validation
+    - bucket: my-climate-observations
+      mount_point: /shared/observations

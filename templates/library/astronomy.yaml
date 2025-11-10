@@ -1,0 +1,195 @@
+# Astronomy and Astrophysics Cluster Template
+# Use Case: Astronomical data analysis, radio astronomy, sky surveys
+# Domain: Astronomy / Astrophysics
+# Optimized for: Large-scale data processing, image stacking, radio interferometry
+# Included software: CASA, Astropy, IRAF, DS9, Source Extractor
+# Instance recommendations: Memory-optimized (r5) for data cubes, compute (c5) for pipelines
+# Estimated costs: ~$2-3/hour for r5.4xlarge, ~$1.50/hour for c5.4xlarge
+
+cluster:
+  name: astronomy-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for DS9 and interactive work
+  head_node: m5.xlarge
+
+  queues:
+    # Radio astronomy queue for CASA and interferometry
+    # CASA requires significant memory for visibility data
+    - name: radio
+      instance_types:
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Imaging pipeline queue for optical/IR surveys
+    # Image processing, stacking, photometry
+    - name: imaging
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.12xlarge  # 48 vCPU, 96GB RAM
+      min_count: 0
+      max_count: 25
+
+    # Spectroscopic analysis queue
+    # Spectral reduction and redshift fitting
+    - name: spectroscopy
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Simulations queue for N-body and hydro
+    # Cosmological simulations, galaxy formation
+    - name: simulations
+      instance_types:
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+        - c5.24xlarge   # 96 vCPU, 192GB RAM
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM + 100 Gbps
+      min_count: 0
+      max_count: 10
+
+    # Machine learning for classification
+    # Galaxy morphology, transient detection
+    - name: ml
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 8
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # CASA - Common Astronomy Software Applications
+    # Primary tool for radio interferometry
+    # Note: May require manual installation or conda
+    # - casa (conda/manual)
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+
+    # Astronomy Python packages
+    - py-astropy@5.2.0
+    # Additional astronomy packages (install via pip):
+    # - astroquery (pip - query astronomical databases)
+    # - photutils (pip - photometry)
+    # - specutils (pip - spectroscopy)
+    # - reproject (pip - image reprojection)
+    # - astroplan (pip - observation planning)
+    # - ccdproc (pip - CCD data reduction)
+    # - sunpy (pip - solar physics)
+
+    # Image processing
+    - py-scikit-image@0.20.0
+    - py-pillow@9.4.0
+    # - sep (pip - Source Extractor Python)
+    # - photutils (pip)
+
+    # FITS file handling
+    - cfitsio@4.2.0
+    - wcslib@7.12
+    - py-pyfits@3.5
+
+    # DS9 image viewer
+    - ds9@8.4
+
+    # Source Extractor for source detection
+    - sextractor@2.25.0
+
+    # Astrometry.net for plate solving
+    - astrometry-net@0.93
+
+    # Visualization
+    - py-plotly@5.14.0
+    # - aplpy (pip - astronomical plots)
+
+    # HDF5 for large datasets
+    - hdf5@1.14.0+mpi
+    - py-h5py@3.8.0
+
+    # IRAF (legacy, if needed)
+    # Note: IRAF is deprecated, consider AstroConda
+    # - iraf (manual installation if needed)
+
+    # Machine learning
+    - py-scikit-learn@1.2.0
+    - py-torch@2.0.0+cuda
+    - py-tensorflow@2.12.0+cuda
+
+    # Jupyter for interactive analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Database for catalogs
+    - postgresql@15.2
+    - py-psycopg2@2.9.5
+    # - q3c (PostgreSQL extension for spherical coordinates)
+
+    # File formats
+    - hdf5@1.14.0
+    - netcdf-c@4.9.0
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # GPU support for ML
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+users:
+  - name: astro1
+    uid: 15001
+    gid: 15001
+  - name: astro2
+    uid: 15002
+    gid: 15002
+  - name: astro3
+    uid: 15003
+    gid: 15003
+
+data:
+  s3_mounts:
+    # Raw observational data (FITS, UVFITS)
+    - bucket: my-astro-raw-data
+      mount_point: /shared/raw
+
+    # Calibrated data products
+    - bucket: my-astro-calibrated
+      mount_point: /shared/calibrated
+
+    # Source catalogs and photometry
+    - bucket: my-astro-catalogs
+      mount_point: /shared/catalogs
+
+    # Reduced spectra and cubes
+    - bucket: my-astro-spectra
+      mount_point: /shared/spectra
+
+    # Simulation outputs
+    - bucket: my-astro-simulations
+      mount_point: /shared/simulations
+
+    # Reference data (standards, templates)
+    - bucket: my-astro-reference
+      mount_point: /shared/reference
