@@ -52,8 +52,9 @@ type AMIMetadata struct {
 
 // Builder builds custom AMIs with pre-installed software.
 type Builder struct {
-	ec2Client *ec2.Client
-	region    string
+	ec2Client    *ec2.Client
+	region       string
+	stateManager *StateManager
 }
 
 // NewBuilder creates a new AMI builder.
@@ -63,22 +64,51 @@ func NewBuilder(ctx context.Context, region string) (*Builder, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
+	stateManager, err := NewStateManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create state manager: %w", err)
+	}
+
 	return &Builder{
-		ec2Client: ec2.NewFromConfig(cfg),
-		region:    region,
+		ec2Client:    ec2.NewFromConfig(cfg),
+		region:       region,
+		stateManager: stateManager,
 	}, nil
 }
 
 // BuildAMI creates a custom AMI from a template.
 func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *BuildOptions) (*AMIMetadata, error) {
-	fmt.Printf("🚀 Starting AMI build process...\n\n")
+	// Create build state
+	buildState := b.stateManager.NewBuildState(
+		tmpl.Cluster.Name,
+		opts.Name,
+		b.region,
+		len(tmpl.Software.SpackPackages),
+	)
+
+	if err := b.stateManager.SaveState(buildState); err != nil {
+		return nil, fmt.Errorf("failed to save initial build state: %w", err)
+	}
+
+	fmt.Printf("🚀 Starting AMI build process...\n")
+	fmt.Printf("   Build ID: %s\n\n", buildState.BuildID)
+
+	// Ensure cleanup on failure
+	defer func() {
+		if buildState.Status != BuildStatusComplete {
+			b.stateManager.MarkFailed(buildState.BuildID, "Build did not complete successfully")
+		}
+	}()
 
 	// Step 1: Launch temporary instance
 	fmt.Printf("1️⃣  Launching temporary build instance...\n")
 	instanceID, err := b.launchBuildInstance(ctx, tmpl, opts)
 	if err != nil {
+		b.stateManager.MarkFailed(buildState.BuildID, fmt.Sprintf("Failed to launch instance: %v", err))
 		return nil, fmt.Errorf("failed to launch build instance: %w", err)
 	}
+	buildState.InstanceID = instanceID
+	b.stateManager.SaveState(buildState)
 	fmt.Printf("   ✅ Instance launched: %s\n\n", instanceID)
 
 	// Ensure cleanup
@@ -90,14 +120,18 @@ func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *B
 	// Step 2: Wait for instance to be ready
 	fmt.Printf("2️⃣  Waiting for instance to be ready...\n")
 	if err := b.waitForInstanceReady(ctx, instanceID); err != nil {
+		b.stateManager.MarkFailed(buildState.BuildID, fmt.Sprintf("Instance failed to become ready: %v", err))
 		return nil, fmt.Errorf("instance failed to become ready: %w", err)
 	}
 	fmt.Printf("   ✅ Instance is ready\n\n")
 
 	// Step 3: Wait for software installation to complete
+	buildState.Status = BuildStatusInstalling
+	b.stateManager.SaveState(buildState)
 	fmt.Printf("3️⃣  Installing software (this may take 30-90 minutes)...\n")
 	fmt.Printf("   📦 Installing %d Spack packages\n", len(tmpl.Software.SpackPackages))
-	if err := b.waitForSoftwareInstallation(ctx, instanceID, opts); err != nil {
+	if err := b.waitForSoftwareInstallation(ctx, instanceID, buildState.BuildID, opts); err != nil {
+		b.stateManager.MarkFailed(buildState.BuildID, fmt.Sprintf("Software installation failed: %v", err))
 		return nil, fmt.Errorf("software installation failed: %w", err)
 	}
 	fmt.Printf("   ✅ Software installation complete\n\n")
@@ -105,14 +139,18 @@ func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *B
 	// Step 4: Stop the instance
 	fmt.Printf("4️⃣  Stopping instance for AMI creation...\n")
 	if err := b.stopInstance(ctx, instanceID); err != nil {
+		b.stateManager.MarkFailed(buildState.BuildID, fmt.Sprintf("Failed to stop instance: %v", err))
 		return nil, fmt.Errorf("failed to stop instance: %w", err)
 	}
 	fmt.Printf("   ✅ Instance stopped\n\n")
 
 	// Step 5: Create AMI
+	buildState.Status = BuildStatusCreating
+	b.stateManager.SaveState(buildState)
 	fmt.Printf("5️⃣  Creating AMI...\n")
 	amiID, err := b.createAMI(ctx, instanceID, tmpl, opts)
 	if err != nil {
+		b.stateManager.MarkFailed(buildState.BuildID, fmt.Sprintf("Failed to create AMI: %v", err))
 		return nil, fmt.Errorf("failed to create AMI: %w", err)
 	}
 	fmt.Printf("   ✅ AMI created: %s\n\n", amiID)
@@ -120,9 +158,16 @@ func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *B
 	// Step 6: Wait for AMI to be available
 	fmt.Printf("6️⃣  Waiting for AMI to be available...\n")
 	if err := b.waitForAMIAvailable(ctx, amiID); err != nil {
+		b.stateManager.MarkFailed(buildState.BuildID, fmt.Sprintf("AMI failed to become available: %v", err))
 		return nil, fmt.Errorf("AMI failed to become available: %w", err)
 	}
 	fmt.Printf("   ✅ AMI is available\n\n")
+
+	// Mark build as complete
+	if err := b.stateManager.MarkComplete(buildState.BuildID, amiID); err != nil {
+		// Log error but don't fail the build
+		fmt.Printf("⚠️  Warning: Failed to update build state: %v\n", err)
+	}
 
 	metadata := &AMIMetadata{
 		AMIID:         amiID,
@@ -136,6 +181,7 @@ func (b *Builder) BuildAMI(ctx context.Context, tmpl *template.Template, opts *B
 	}
 
 	fmt.Printf("🎉 AMI build complete!\n")
+	fmt.Printf("   Build ID: %s\n", buildState.BuildID)
 	fmt.Printf("   AMI ID: %s\n", amiID)
 	fmt.Printf("   Region: %s\n", b.region)
 	fmt.Printf("\nYou can now use this AMI with:\n")
@@ -251,13 +297,14 @@ func (b *Builder) waitForInstanceReady(ctx context.Context, instanceID string) e
 	}, 5*time.Minute)
 }
 
-func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID string, opts *BuildOptions) error {
+func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID, buildID string, opts *BuildOptions) error {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	timeout := time.After(opts.WaitTimeout)
 	startTime := time.Now()
 	lastProgress := ""
+	lastProgressInt := 0
 
 	for {
 		select {
@@ -280,6 +327,13 @@ func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID st
 				fmt.Printf("   %s\n", progress)
 				lastProgress = progress
 
+				// Extract progress percentage and update state
+				progressInt := extractProgressPercentage(progress)
+				if progressInt > lastProgressInt {
+					b.stateManager.UpdateProgress(buildID, progressInt, progress)
+					lastProgressInt = progressInt
+				}
+
 				// If we see cleanup complete (95%), we're almost done
 				if strings.Contains(progress, "95%") || strings.Contains(progress, "cleanup complete") {
 					// Give it another minute for final steps
@@ -289,6 +343,24 @@ func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID st
 			}
 		}
 	}
+}
+
+// extractProgressPercentage extracts the percentage from a progress message.
+func extractProgressPercentage(message string) int {
+	// Look for patterns like "(42%)" or "42%"
+	if idx := strings.Index(message, "%"); idx > 0 {
+		// Find the start of the number
+		start := idx - 1
+		for start >= 0 && message[start] >= '0' && message[start] <= '9' {
+			start--
+		}
+		start++
+		numStr := message[start:idx]
+		var percent int
+		fmt.Sscanf(numStr, "%d", &percent)
+		return percent
+	}
+	return 0
 }
 
 // getConsoleProgress retrieves and parses progress markers from EC2 console output.
