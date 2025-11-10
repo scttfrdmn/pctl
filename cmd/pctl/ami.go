@@ -21,6 +21,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/schollz/progressbar/v3"
 	"github.com/scttfrdmn/pctl/pkg/ami"
 	"github.com/scttfrdmn/pctl/pkg/template"
 	"github.com/spf13/cobra"
@@ -478,6 +479,23 @@ func watchBuild(stateManager *ami.StateManager, buildID string) error {
 
 	lastProgress := -1
 
+	// Create progress bar
+	bar := progressbar.NewOptions(100,
+		progressbar.OptionSetDescription("📦 Building AMI"),
+		progressbar.OptionSetWidth(40),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Println()
+		}),
+	)
+
 	for {
 		select {
 		case <-ticker.C:
@@ -486,16 +504,31 @@ func watchBuild(stateManager *ami.StateManager, buildID string) error {
 				return fmt.Errorf("failed to load build state: %w", err)
 			}
 
-			// Show progress if changed
+			// Update progress bar if changed
 			if state.Progress != lastProgress {
-				if state.ProgressMessage != "" {
-					fmt.Printf("[%s] %s\n", formatDuration(time.Since(state.StartTime)), state.ProgressMessage)
+				delta := state.Progress - lastProgress
+				if delta > 0 {
+					bar.Add(delta)
 				}
+
+				// Calculate time estimate
+				elapsed := time.Since(state.StartTime)
+				if state.Progress > 0 && state.Progress < 100 {
+					totalEstimate := time.Duration(float64(elapsed) / float64(state.Progress) * 100)
+					remaining := totalEstimate - elapsed
+
+					// Update bar description with estimate
+					if remaining > 0 {
+						bar.Describe(fmt.Sprintf("📦 Building AMI (~%dm remaining)", int(remaining.Minutes())))
+					}
+				}
+
 				lastProgress = state.Progress
 			}
 
 			// Check if complete
 			if state.Status == ami.BuildStatusComplete {
+				bar.Add(100 - lastProgress) // Ensure bar is complete
 				fmt.Printf("\n✅ Build complete! AMI ID: %s\n", state.AMIID)
 				return nil
 			}

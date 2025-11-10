@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/schollz/progressbar/v3"
 	"github.com/scttfrdmn/pctl/pkg/software"
 	"github.com/scttfrdmn/pctl/pkg/template"
 )
@@ -334,6 +335,24 @@ func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID, b
 	lastProgress := ""
 	lastProgressInt := 0
 
+	// Create progress bar
+	bar := progressbar.NewOptions(100,
+		progressbar.OptionSetDescription("📦 Installing software"),
+		progressbar.OptionSetWidth(40),
+		progressbar.OptionShowCount(),
+		progressbar.OptionShowIts(),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Println()
+		}),
+	)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -346,24 +365,40 @@ func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID, b
 			if err != nil {
 				// If we can't get console output, just show elapsed time
 				elapsed := time.Since(startTime)
-				fmt.Printf("   ⏳ Installation in progress... (%d minutes elapsed)\n", int(elapsed.Minutes()))
+				bar.Describe(fmt.Sprintf("📦 Installation in progress (%dm elapsed)", int(elapsed.Minutes())))
 				continue
 			}
 
 			// If we got a new progress update, display it
 			if progress != "" && progress != lastProgress {
-				fmt.Printf("   %s\n", progress)
 				lastProgress = progress
 
 				// Extract progress percentage and update state
 				progressInt := extractProgressPercentage(progress)
 				if progressInt > lastProgressInt {
+					// Update progress bar
+					delta := progressInt - lastProgressInt
+					bar.Add(delta)
+
+					// Calculate time estimate
+					elapsed := time.Since(startTime)
+					if progressInt > 0 {
+						totalEstimate := time.Duration(float64(elapsed) / float64(progressInt) * 100)
+						remaining := totalEstimate - elapsed
+
+						// Update bar description with estimate
+						if remaining > 0 {
+							bar.Describe(fmt.Sprintf("📦 Installing (~%dm remaining)", int(remaining.Minutes())))
+						}
+					}
+
 					b.stateManager.UpdateProgress(buildID, progressInt, progress)
 					lastProgressInt = progressInt
 				}
 
 				// If we see cleanup complete (95%), we're almost done
 				if strings.Contains(progress, "95%") || strings.Contains(progress, "cleanup complete") {
+					bar.Add(100 - lastProgressInt) // Complete the bar
 					// Give it another minute for final steps
 					time.Sleep(1 * time.Minute)
 					return nil
