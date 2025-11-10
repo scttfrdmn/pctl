@@ -1,0 +1,239 @@
+# Hydrology and Water Resources Cluster Template
+# Use Case: Hydrological modeling, watershed analysis, flood forecasting
+# Domain: Environmental Science / Water Resources
+# Optimized for: Distributed hydrological models, groundwater flow, water quality
+# Included software: SWAT, MODFLOW, HEC-RAS, MIKE SHE, ParFlow
+# Instance recommendations: Compute (c5) for watershed models, memory (r5) for large domains
+# Estimated costs: ~$2-3/hour for c5.9xlarge, ~$1.50/hour for m5.4xlarge
+
+cluster:
+  name: hydrology-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for GIS preprocessing and visualization
+  head_node: m5.xlarge
+
+  queues:
+    # Watershed modeling queue for SWAT, HMS
+    # Distributed models with many sub-basins
+    - name: watershed
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.12xlarge  # 48 vCPU, 96GB RAM
+      min_count: 0
+      max_count: 25
+
+    # Groundwater modeling queue for MODFLOW, ParFlow
+    # 3D groundwater flow and transport
+    - name: groundwater
+      instance_types:
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Hydraulic modeling queue for HEC-RAS, TUFLOW
+    # River hydraulics, flood mapping, dam breach
+    - name: hydraulics
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Ensemble forecasting queue for uncertainty analysis
+    # Monte Carlo, parameter sensitivity, ensemble runs
+    - name: ensemble
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 50
+
+    # Data processing queue for time series and GIS
+    # Climate data processing, DEM preprocessing
+    - name: preprocessing
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 15
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries
+    - openblas@0.3.21
+    - scalapack@2.2.0
+    - petsc@3.19.0+mpi
+
+    # ParFlow - Integrated hydrologic model
+    # Couples surface and subsurface flow
+    # Note: May require manual compilation
+    # - parflow (manual build recommended)
+
+    # MODFLOW - Groundwater flow model
+    # USGS standard for groundwater
+    # Note: Available as binary from USGS
+    # - modflow6 (manual download)
+    # - modflow-2005 (manual)
+    # - mt3d (solute transport)
+    # - modpath (particle tracking)
+
+    # Python ecosystem for hydrology
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+
+    # Hydrological Python packages (install via pip)
+    # - pyswat (pip - SWAT+ interface)
+    # - flopy (pip - MODFLOW Python interface)
+    # - pysheds (pip - watershed delineation)
+    # - spotpy (pip - calibration and uncertainty)
+    # - hydrostats (pip - hydrological statistics)
+    # - esmpy (pip - regridding climate data)
+
+    # Data analysis and statistics
+    - py-scikit-learn@1.2.0
+    - py-statsmodels@0.13.5
+    # - hydroeval (pip - model evaluation metrics)
+    # - hydrotools (pip - NOAA NWS tools)
+
+    # GIS tools for preprocessing
+    - gdal@3.6.2+python
+    - proj@9.1.1
+    - geos@3.11.1
+    # - pyshp (pip - shapefile handling)
+    # - whitebox (pip - watershed tools)
+
+    # Climate data processing
+    - netcdf-c@4.9.0
+    - hdf5@1.14.0
+    - py-netcdf4@1.6.3
+    - py-h5py@3.8.0
+    # - xarray (pip - climate data arrays)
+    # - cftime (pip - calendar handling)
+
+    # Time series analysis
+    # - pandas (already listed)
+    # - darts (pip - forecasting)
+
+    # Visualization
+    - py-seaborn@0.12.0
+    - py-plotly@5.14.0
+    # - folium (pip - interactive maps)
+    # - holoviews (pip - data visualization)
+
+    # R for statistical hydrology
+    - r@4.2.2
+    # R packages (install via R):
+    # - hydrostats, hydroTSM (time series)
+    # - topmodel (topographic index)
+    # - EcoHydRology (ecohydrology)
+
+    # Jupyter for interactive work
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Database support
+    - postgresql@15.2
+    - postgis@3.3.2
+    - py-sqlalchemy@2.0.7
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # SWAT+ Model
+    # Soil and Water Assessment Tool
+    # Note: Requires manual download from TAMU
+    # - swat+ (manual - https://swat.tamu.edu)
+
+    # HEC-RAS
+    # River Analysis System from US Army Corps
+    # Note: Windows-only, consider Wine or remote desktop
+    # - hec-ras (manual)
+
+users:
+  - name: hydro1
+    uid: 9001
+    gid: 9001
+  - name: hydro2
+    uid: 9002
+    gid: 9002
+  - name: hydro3
+    uid: 9003
+    gid: 9003
+
+data:
+  s3_mounts:
+    # Climate forcing data (precipitation, temperature)
+    - bucket: my-hydro-climate
+      mount_point: /shared/climate
+
+    # Digital elevation models and terrain data
+    - bucket: my-hydro-terrain
+      mount_point: /shared/terrain
+
+    # Soil and land use datasets
+    - bucket: my-hydro-landuse
+      mount_point: /shared/landuse
+
+    # Model setups and configurations
+    - bucket: my-hydro-models
+      mount_point: /shared/models
+
+    # Simulation outputs (discharge, depth, saturation)
+    - bucket: my-hydro-outputs
+      mount_point: /shared/outputs
+
+    # Observed data for calibration/validation
+    - bucket: my-hydro-observations
+      mount_point: /shared/observations
+
+# Common Hydrological Models:
+#
+# 1. Watershed Models:
+#    - SWAT/SWAT+: Agricultural watersheds, long-term water balance
+#    - PRMS: Precipitation-Runoff Modeling System
+#    - VIC: Variable Infiltration Capacity model
+#    - HSPF: Hydrological Simulation Program - Fortran
+#
+# 2. Groundwater Models:
+#    - MODFLOW: 3D groundwater flow (USGS standard)
+#    - ParFlow: Integrated surface-subsurface
+#    - FEFLOW: Finite element subsurface flow
+#    - MODPATH: Particle tracking
+#    - MT3D: Solute transport
+#
+# 3. Hydraulic Models:
+#    - HEC-RAS: River hydraulics and flood mapping
+#    - TUFLOW: 2D flood modeling
+#    - MIKE FLOOD: 1D/2D urban drainage
+#    - Delft3D: River and coastal hydraulics
+#
+# 4. Integrated Models:
+#    - MIKE SHE: Fully integrated hydrological
+#    - ParFlow-CLM: Coupled land-atmosphere
+#    - WRF-Hydro: Weather + hydrology coupling
+#
+# Data Sources:
+#    - USGS StreamStats: Watershed characteristics
+#    - NOAA National Water Model: Real-time forecasts
+#    - NASA GPM: Satellite precipitation
+#    - NLDAS/GLDAS: Gridded forcing data
+#    - SSURGO: Soil survey data
+#    - NLCD: Land cover data

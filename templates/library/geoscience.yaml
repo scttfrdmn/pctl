@@ -1,0 +1,270 @@
+# Geoscience and Geophysics Cluster Template
+# Use Case: Seismology, geology, subsurface modeling, geophysical inversion
+# Domain: Earth Science / Geophysics
+# Optimized for: Seismic processing, full-waveform inversion, basin modeling
+# Included software: ObsPy, Madagascar, SPECFEM3D, SimPEG, OpendTect
+# Instance recommendations: Compute (c5) for seismic, memory (r5) for large volumes
+# Estimated costs: ~$2-4/hour for c5.9xlarge, ~$3-5/hour for r5.8xlarge
+
+cluster:
+  name: geoscience-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for visualization and interpretation
+  head_node: m5.xlarge
+
+  queues:
+    # Seismic processing queue for reflection/refraction
+    # Pre-stack migration, velocity analysis, imaging
+    - name: seismic-processing
+      instance_types:
+        - c5.9xlarge    # 36 vCPU, 72GB RAM
+        - c5.12xlarge   # 48 vCPU, 96GB RAM
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 25
+
+    # Full-waveform inversion queue (compute-intensive)
+    # 3D wave propagation and gradient computation
+    - name: fwi
+      instance_types:
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+        - c5.24xlarge   # 96 vCPU, 192GB RAM
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM + 100 Gbps
+      min_count: 0
+      max_count: 20
+
+    # Large-volume data queue for 3D/4D surveys
+    # Large seismic volumes requiring memory
+    - name: large-volume
+      instance_types:
+        - r5.8xlarge    # 32 vCPU, 256GB RAM
+        - r5.12xlarge   # 48 vCPU, 384GB RAM
+        - r5.16xlarge   # 64 vCPU, 512GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Geophysical inversion queue
+    # Gravity, magnetics, MT, electrical resistivity
+    - name: inversion
+      instance_types:
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+        - m5.12xlarge  # 48 vCPU, 192GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Earthquake analysis queue
+    # Event detection, location, moment tensor
+    - name: earthquake
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+      min_count: 0
+      max_count: 30
+
+    # GPU queue for deep learning applications
+    # Seismic facies, first-break picking, denoising
+    - name: ml
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.2xlarge    # 1x A10G 24GB
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries (critical for inversions)
+    - openblas@0.3.21
+    - scalapack@2.2.0
+    - fftw@3.3.10+mpi
+    - petsc@3.19.0+mpi
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # ObsPy - Seismology framework
+    # Waveform processing, event detection
+    # - obspy (pip - seismic data processing)
+
+    # Seismology Python packages (install via pip)
+    # - pyrocko (pip - seismology toolkit)
+    # - pyflex (pip - waveform misfit)
+    # - pyadjoint (pip - adjoint sources)
+    # - instaseis (pip - Green's functions)
+    # - lasif (pip - large-scale inversion)
+
+    # SPECFEM3D - Spectral element wave propagation
+    # Note: Requires manual compilation
+    # - specfem3d (manual - GitHub)
+    # - specfem2d (manual)
+
+    # Madagascar - Seismic processing suite
+    # Open-source alternative to commercial packages
+    # Note: Requires manual installation
+    # - madagascar (manual - ahay.org)
+
+    # SimPEG - Geophysical inversions
+    # Gravity, magnetics, DC/IP, EM
+    # - simpeg (pip - geophysical inversions)
+    # - discretize (pip - mesh generation)
+    # - empymod (pip - EM modeling)
+
+    # Geophysical processing
+    # - pygimli (pip - geophysical inversion/modeling)
+    # - pyGIMLi (pip - inversion and modeling library)
+    # - fatiando (pip - geophysics toolkit)
+    # - gempy (pip - 3D geological modeling)
+
+    # Seismic attributes and interpretation
+    # - segyio (pip - SEG-Y I/O)
+    # - segysak (pip - seismic data in xarray)
+    # - bruges (pip - seismic attributes)
+
+    # Visualization
+    - py-plotly@5.14.0
+    - py-seaborn@0.12.0
+    # - pyvista (pip - 3D visualization)
+    # - mayavi (pip - 3D scientific data)
+
+    # Machine learning for geophysics
+    - py-torch@2.0.0+cuda
+    - py-tensorflow@2.12.0+cuda
+    # - tensorflow-probability (pip)
+
+    # Signal processing
+    # - pywt (pip - wavelets)
+    # - scipy.signal (already in scipy)
+
+    # Geospatial tools
+    - gdal@3.6.2+python
+    - proj@9.1.1
+
+    # File formats
+    - hdf5@1.14.0+mpi
+    - netcdf-c@4.9.0
+    - py-h5py@3.8.0
+    - py-netcdf4@1.6.3
+
+    # Jupyter for interactive analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Database for catalogs
+    - postgresql@15.2
+    - postgis@3.3.2
+
+    # Parallel processing
+    - py-dask@2023.3.0
+    # - dask-jobqueue (pip - HPC integration)
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nvtop@2.0.0
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # Seismic Unix (SU)
+    # Classic seismic processing package
+    # Note: Available via source
+    # - seismic-unix (manual - CWP)
+
+users:
+  - name: geosci1
+    uid: 8001
+    gid: 8001
+  - name: geosci2
+    uid: 8002
+    gid: 8002
+  - name: geosci3
+    uid: 8003
+    gid: 8003
+
+data:
+  s3_mounts:
+    # Raw seismic data (SEG-Y, miniSEED)
+    - bucket: my-geo-raw-data
+      mount_point: /shared/raw
+
+    # Processed seismic sections and volumes
+    - bucket: my-geo-processed
+      mount_point: /shared/processed
+
+    # Velocity models and earth models
+    - bucket: my-geo-models
+      mount_point: /shared/models
+
+    # Inversion results and interpretations
+    - bucket: my-geo-inversions
+      mount_point: /shared/inversions
+
+    # Earthquake catalogs and waveforms
+    - bucket: my-geo-earthquakes
+      mount_point: /shared/earthquakes
+
+    # Well logs and geological data
+    - bucket: my-geo-wells
+      mount_point: /shared/wells
+
+# Geoscience Domains:
+#
+# 1. Seismology:
+#    - Earthquake seismology: Event detection, location, magnitude
+#    - Seismic tomography: Velocity structure imaging
+#    - Ambient noise: Cross-correlation, Green's functions
+#    - Waveform inversion: FWI, adjoint methods
+#
+# 2. Exploration Geophysics:
+#    - Reflection seismology: Imaging sedimentary basins
+#    - Refraction seismology: Near-surface velocity
+#    - Pre-stack migration: Depth imaging
+#    - AVO/AVA analysis: Amplitude variation with offset
+#
+# 3. Potential Field Methods:
+#    - Gravity: Density variations, basin structure
+#    - Magnetics: Crustal structure, mineral exploration
+#    - Inversion: Recovering subsurface properties
+#
+# 4. Electromagnetic Methods:
+#    - Magnetotellurics (MT): Deep electrical structure
+#    - CSEM: Controlled-source EM for hydrocarbon
+#    - GPR: Ground-penetrating radar for shallow
+#
+# 5. Computational Methods:
+#    - Finite difference: Simple but memory-intensive
+#    - Finite element: Complex geometries
+#    - Spectral element: High accuracy, parallelizes well
+#    - Pseudo-spectral: Fourier-based methods
+#
+# Common Software:
+#    - ObsPy: Python seismology framework
+#    - Madagascar: Open-source seismic processing
+#    - SPECFEM3D: Spectral element wave propagation
+#    - SimPEG: Geophysical inversions (open-source)
+#    - OpendTect: Open seismic interpretation
+#    - SeismicUnix: Classic processing package
+#
+# Data Sources:
+#    - IRIS: Seismic waveform data
+#    - USGS: Earthquake catalogs
+#    - UNAVCO: GPS and InSAR data
+#    - NOAA NCEI: Geophysical grids
+#    - Geological surveys: Regional data
