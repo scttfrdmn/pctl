@@ -22,10 +22,10 @@ func TestModuleDatabase_Lookup(t *testing.T) {
 	db := NewModuleDatabase()
 
 	tests := []struct {
-		name           string
-		moduleName     string
-		expectFound    bool
-		expectedSpack  string
+		name          string
+		moduleName    string
+		expectFound   bool
+		expectedSpack string
 	}{
 		{"gcc exact", "gcc", true, "gcc@11.3.0"},
 		{"gcc with version", "gcc/11.2.0", true, "gcc@11.3.0"},

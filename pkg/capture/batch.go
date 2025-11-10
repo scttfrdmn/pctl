@@ -64,8 +64,8 @@ func NewBatchAnalyzer() *BatchAnalyzer {
 // AnalyzeScript analyzes a batch script and extracts requirements.
 func (ba *BatchAnalyzer) AnalyzeScript(content string) *BatchScriptAnalysis {
 	analysis := &BatchScriptAnalysis{
-		ModulesLoaded: []string{},
-		Commands: []string{},
+		ModulesLoaded:        []string{},
+		Commands:             []string{},
 		ResourceRequirements: &ResourceRequirements{},
 	}
 

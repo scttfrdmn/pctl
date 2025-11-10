@@ -51,51 +51,51 @@ func NewModuleDatabase() *ModuleDatabase {
 func (db *ModuleDatabase) loadDefaultMappings() {
 	defaults := map[string]*ModuleMapping{
 		// Compilers
-		"gcc": {OnPremName: "gcc", SpackPackage: "gcc@11.3.0", Confidence: 1.0},
+		"gcc":   {OnPremName: "gcc", SpackPackage: "gcc@11.3.0", Confidence: 1.0},
 		"intel": {OnPremName: "intel", SpackPackage: "intel-oneapi-compilers@2023.1.0", Confidence: 0.9},
-		"llvm": {OnPremName: "llvm", SpackPackage: "llvm@15.0.0", Confidence: 1.0},
+		"llvm":  {OnPremName: "llvm", SpackPackage: "llvm@15.0.0", Confidence: 1.0},
 
 		// MPI
-		"openmpi": {OnPremName: "openmpi", SpackPackage: "openmpi@4.1.4", Confidence: 1.0},
-		"mpich": {OnPremName: "mpich", SpackPackage: "mpich@4.0", Confidence: 1.0},
+		"openmpi":  {OnPremName: "openmpi", SpackPackage: "openmpi@4.1.4", Confidence: 1.0},
+		"mpich":    {OnPremName: "mpich", SpackPackage: "mpich@4.0", Confidence: 1.0},
 		"mvapich2": {OnPremName: "mvapich2", SpackPackage: "mvapich2@2.3.7", Confidence: 1.0},
 		"intelmpi": {OnPremName: "intelmpi", SpackPackage: "intel-oneapi-mpi@2021.9.0", Confidence: 0.9},
 
 		// Languages
 		"python": {OnPremName: "python", SpackPackage: "python@3.10", Confidence: 1.0},
-		"r": {OnPremName: "r", SpackPackage: "r@4.2.0", Confidence: 1.0},
-		"julia": {OnPremName: "julia", SpackPackage: "julia@1.9.0", Confidence: 1.0},
-		"perl": {OnPremName: "perl", SpackPackage: "perl@5.36.0", Confidence: 1.0},
+		"r":      {OnPremName: "r", SpackPackage: "r@4.2.0", Confidence: 1.0},
+		"julia":  {OnPremName: "julia", SpackPackage: "julia@1.9.0", Confidence: 1.0},
+		"perl":   {OnPremName: "perl", SpackPackage: "perl@5.36.0", Confidence: 1.0},
 
 		// Bioinformatics
 		"samtools": {OnPremName: "samtools", SpackPackage: "samtools@1.17", Confidence: 1.0},
-		"bwa": {OnPremName: "bwa", SpackPackage: "bwa@0.7.17", Confidence: 1.0},
-		"gatk": {OnPremName: "gatk", SpackPackage: "gatk@4.3.0", Confidence: 1.0},
-		"blast": {OnPremName: "blast", SpackPackage: "blast-plus@2.14.0", Confidence: 1.0},
-		"bowtie2": {OnPremName: "bowtie2", SpackPackage: "bowtie2@2.4.5", Confidence: 1.0},
+		"bwa":      {OnPremName: "bwa", SpackPackage: "bwa@0.7.17", Confidence: 1.0},
+		"gatk":     {OnPremName: "gatk", SpackPackage: "gatk@4.3.0", Confidence: 1.0},
+		"blast":    {OnPremName: "blast", SpackPackage: "blast-plus@2.14.0", Confidence: 1.0},
+		"bowtie2":  {OnPremName: "bowtie2", SpackPackage: "bowtie2@2.4.5", Confidence: 1.0},
 		"bedtools": {OnPremName: "bedtools", SpackPackage: "bedtools2@2.30.0", Confidence: 1.0},
 
 		// Computational Chemistry
-		"gromacs": {OnPremName: "gromacs", SpackPackage: "gromacs@2023.1", Confidence: 1.0},
-		"lammps": {OnPremName: "lammps", SpackPackage: "lammps@20230802", Confidence: 1.0},
+		"gromacs":          {OnPremName: "gromacs", SpackPackage: "gromacs@2023.1", Confidence: 1.0},
+		"lammps":           {OnPremName: "lammps", SpackPackage: "lammps@20230802", Confidence: 1.0},
 		"quantum-espresso": {OnPremName: "quantum-espresso", SpackPackage: "quantum-espresso@7.2", Confidence: 1.0},
-		"namd": {OnPremName: "namd", SpackPackage: "namd@2.14", Confidence: 1.0},
+		"namd":             {OnPremName: "namd", SpackPackage: "namd@2.14", Confidence: 1.0},
 
 		// Machine Learning
-		"pytorch": {OnPremName: "pytorch", SpackPackage: "py-torch@2.0.0", Confidence: 1.0},
+		"pytorch":    {OnPremName: "pytorch", SpackPackage: "py-torch@2.0.0", Confidence: 1.0},
 		"tensorflow": {OnPremName: "tensorflow", SpackPackage: "py-tensorflow@2.12.0", Confidence: 1.0},
-		"cuda": {OnPremName: "cuda", SpackPackage: "cuda@11.8.0", Confidence: 1.0},
-		"cudnn": {OnPremName: "cudnn", SpackPackage: "cudnn@8.9.0", Confidence: 1.0},
+		"cuda":       {OnPremName: "cuda", SpackPackage: "cuda@11.8.0", Confidence: 1.0},
+		"cudnn":      {OnPremName: "cudnn", SpackPackage: "cudnn@8.9.0", Confidence: 1.0},
 
 		// Math Libraries
-		"fftw": {OnPremName: "fftw", SpackPackage: "fftw@3.3.10", Confidence: 1.0},
-		"blas": {OnPremName: "blas", SpackPackage: "openblas@0.3.23", Confidence: 0.9},
+		"fftw":   {OnPremName: "fftw", SpackPackage: "fftw@3.3.10", Confidence: 1.0},
+		"blas":   {OnPremName: "blas", SpackPackage: "openblas@0.3.23", Confidence: 0.9},
 		"lapack": {OnPremName: "lapack", SpackPackage: "openblas@0.3.23", Confidence: 0.9},
-		"hdf5": {OnPremName: "hdf5", SpackPackage: "hdf5@1.14.0", Confidence: 1.0},
+		"hdf5":   {OnPremName: "hdf5", SpackPackage: "hdf5@1.14.0", Confidence: 1.0},
 		"netcdf": {OnPremName: "netcdf", SpackPackage: "netcdf-c@4.9.2", Confidence: 1.0},
 
 		// Build Tools
-		"cmake": {OnPremName: "cmake", SpackPackage: "cmake@3.26.0", Confidence: 1.0},
+		"cmake":    {OnPremName: "cmake", SpackPackage: "cmake@3.26.0", Confidence: 1.0},
 		"autoconf": {OnPremName: "autoconf", SpackPackage: "autoconf@2.71", Confidence: 1.0},
 		"automake": {OnPremName: "automake", SpackPackage: "automake@1.16.5", Confidence: 1.0},
 	}
@@ -155,10 +155,10 @@ func normalizeModuleName(name string) string {
 	// Remove version patterns
 	// Pattern: /version or -version or _version
 	versionPatterns := []*regexp.Regexp{
-		regexp.MustCompile(`/\d+\.\d+.*$`),        // /1.2.3
-		regexp.MustCompile(`-\d+\.\d+.*$`),        // -1.2.3
-		regexp.MustCompile(`_\d+\.\d+.*$`),        // _1.2.3
-		regexp.MustCompile(`\d+\.\d+\.\d+.*$`),    // 1.2.3 at end
+		regexp.MustCompile(`/\d+\.\d+.*$`),     // /1.2.3
+		regexp.MustCompile(`-\d+\.\d+.*$`),     // -1.2.3
+		regexp.MustCompile(`_\d+\.\d+.*$`),     // _1.2.3
+		regexp.MustCompile(`\d+\.\d+\.\d+.*$`), // 1.2.3 at end
 	}
 
 	for _, pattern := range versionPatterns {

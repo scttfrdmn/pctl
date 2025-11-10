@@ -66,12 +66,6 @@ func (m *Manager) ListAMIs(ctx context.Context) ([]*AMIMetadata, error) {
 			Tags:        make(map[string]string),
 		}
 
-		// Parse creation date
-		if img.CreationDate != nil {
-			// AWS returns creation date in RFC3339 format
-			// We'll store it as a string for now
-		}
-
 		// Extract tags
 		for _, tag := range img.Tags {
 			if tag.Key != nil && tag.Value != nil {

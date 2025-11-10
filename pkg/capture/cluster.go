@@ -232,10 +232,10 @@ func (cc *ClusterCapturer) detectInstalledSoftware(output string) map[string]str
 // GenerateCaptureCommands returns a map of commands to run on the remote cluster.
 func GenerateCaptureCommands() map[string]string {
 	return map[string]string{
-		"module_avail":    "module avail 2>&1",
-		"module_list":     "module list 2>&1",
-		"scheduler_info":  "which squeue sbatch qstat qsub 2>&1 || squeue --version 2>&1 || qstat --version 2>&1",
-		"user_list":       "getent passwd",
-		"which_commands":  "for cmd in gcc gfortran python python3 R julia perl cmake; do echo \"$cmd: $(which $cmd 2>/dev/null)\"; done",
+		"module_avail":   "module avail 2>&1",
+		"module_list":    "module list 2>&1",
+		"scheduler_info": "which squeue sbatch qstat qsub 2>&1 || squeue --version 2>&1 || qstat --version 2>&1",
+		"user_list":      "getent passwd",
+		"which_commands": "for cmd in gcc gfortran python python3 R julia perl cmake; do echo \"$cmd: $(which $cmd 2>/dev/null)\"; done",
 	}
 }

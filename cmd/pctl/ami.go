@@ -496,6 +496,7 @@ func watchBuild(stateManager *ami.StateManager, buildID string) error {
 		}),
 	)
 
+	//nolint:staticcheck // Intentional infinite loop for polling, exits on build completion
 	for {
 		select {
 		case <-ticker.C:
