@@ -23,14 +23,22 @@ From template to working cluster with software installed - that's pctl.
 
 ## Key Features
 
-### ⚡ Lightning-Fast Deployment (v0.5.0)
+### ⚡ Lightning-Fast Deployment (v0.5.0+)
 **97% faster cluster creation** - Deploy production HPC clusters in 2-3 minutes instead of hours:
 - **Custom AMI building** - Pre-bake software into custom AMIs once (30-90 min)
+- **Detached builds** (v0.5.1) - Build AMIs in background, disconnect and check later
+- **Real-time progress** (v0.5.1) - Monitor builds with live progress updates
 - **Instant clusters** - Launch clusters with all software already installed
-- Perfect for testing, development, and rapid scaling
+- Perfect for testing, development, CI/CD, and rapid scaling
 ```bash
-# Build AMI once (30-90 minutes, one time)
-pctl ami build -t bioinformatics.yaml --name bio-v1
+# Build AMI once (30-90 minutes, one time) - runs in background
+pctl ami build -t bioinformatics.yaml --name bio-v1 --detach
+
+# Check build progress anytime, from anywhere
+pctl ami status <build-id> --watch
+
+# List all builds
+pctl ami list-builds
 
 # Deploy clusters in 2-3 minutes (forever after)
 pctl create -t bioinformatics.yaml --custom-ami ami-xxx
@@ -179,9 +187,39 @@ data:
       mount_point: /shared/data
 ```
 
+## AMI Management
+
+pctl provides powerful AMI building and management capabilities for pre-installing software:
+
+```bash
+# Build a custom AMI (detached mode - runs in background)
+pctl ami build -t template.yaml --name my-ami --detach
+
+# Check build status
+pctl ami status <build-id>
+
+# Watch build progress in real-time
+pctl ami status <build-id> --watch
+
+# List all AMI builds
+pctl ami list-builds
+
+# Use custom AMI when creating clusters
+pctl create -t template.yaml --custom-ami ami-xxxxx
+```
+
+### Why Build Custom AMIs?
+
+**30-90 minute builds → 2-3 minute clusters forever:**
+- Build AMI once with all software pre-installed
+- Launch unlimited clusters in 2-3 minutes
+- Perfect for CI/CD, testing, and rapid experimentation
+- Detached mode: start build and come back later
+
 ## Documentation
 
 - [Getting Started](docs/GETTING_STARTED.md)
+- [User Personas & Walkthroughs](docs/PERSONAS.md) - See how different users benefit from pctl
 - [Template Specification](docs/TEMPLATE_SPEC.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Project Analysis](PROJECT_ANALYSIS.md)
