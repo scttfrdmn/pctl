@@ -1,0 +1,158 @@
+# Metagenomics Cluster Template
+# Use Case: Microbiome and metagenomic analysis from environmental samples
+# Domain: Bioinformatics
+# Optimized for: Assembly, annotation, taxonomic classification, functional profiling
+# Included software: MEGAHIT, MetaSPAdes, Kraken2, MetaPhlAn, Prokka, HUMAnN
+# Instance recommendations: Compute + memory balance (c5, r5) for assembly and classification
+# Estimated costs: ~$2-3/hour for c5.9xlarge, ~$3-4/hour for r5.12xlarge
+
+cluster:
+  name: metagenomics-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for job management
+  head_node: m5.xlarge
+
+  queues:
+    # High-memory queue for metagenomic assembly
+    # Assembly requires significant memory (200-500GB for complex samples)
+    - name: assembly
+      instance_types:
+        - r5.12xlarge  # 48 vCPU, 384GB RAM - typical samples
+        - r5.16xlarge  # 64 vCPU, 512GB RAM - complex samples
+        - r5.24xlarge  # 96 vCPU, 768GB RAM - very complex samples
+        - x1e.8xlarge  # 32 vCPU, 976GB RAM - ultra-complex
+      min_count: 0
+      max_count: 10
+
+    # Compute-optimized queue for classification and profiling
+    # Kraken2, MetaPhlAn are CPU-intensive
+    - name: classification
+      instance_types:
+        - c5.9xlarge    # 36 vCPU, 72GB RAM
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+        - c5.24xlarge   # 96 vCPU, 192GB RAM
+      min_count: 0
+      max_count: 20
+
+    # General purpose queue for annotation and analysis
+    # Prokka, gene prediction, functional annotation
+    - name: annotation
+      instance_types:
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+        - m5.12xlarge  # 48 vCPU, 192GB RAM
+      min_count: 0
+      max_count: 15
+
+    # QC and preprocessing queue
+    # Quality control, adapter trimming, filtering
+    - name: qc
+      instance_types:
+        - c5.2xlarge   # 8 vCPU, 16GB RAM
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers and build tools
+    - gcc@11.3.0
+    - cmake@3.26.0
+
+    # Assembly tools
+    - megahit@1.2.9        # Fast, memory-efficient assembler
+    - spades@3.15.5        # SPAdes/metaSPAdes
+    # - metaflye (manual install - long-read assembly)
+
+    # Taxonomic classification
+    - kraken2@2.1.2
+    - bracken@2.7          # Species abundance estimation
+    # - metaphlan@4.0 (conda/pip - metagenomic profiling)
+
+    # Annotation tools
+    - prokka@1.14.6        # Prokaryotic genome annotation
+    - prodigal@2.6.3       # Gene prediction
+    # - eggnog-mapper (manual - functional annotation)
+
+    # Functional profiling
+    # - humann@3.7 (conda/pip - metabolic profiling)
+
+    # Quality control
+    - fastqc@0.11.9
+    - multiqc@1.13
+    - fastp@0.23.2         # All-in-one preprocessing
+    - trimmomatic@0.39
+    - bbmap@39.01          # BBTools suite
+
+    # Read mapping
+    - bowtie2@2.4.5
+    - bwa@0.7.17
+    - samtools@1.17
+
+    # Gene quantification
+    - salmon@1.9.0
+    - kallisto@0.48.0
+
+    # Python and scientific computing
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+    - py-scikit-learn@1.2.0
+
+    # Biopython
+    - py-biopython@1.81
+
+    # R for statistical analysis
+    - r@4.2.2
+    # - vegan, phyloseq (via R - ecological analysis)
+
+    # Utilities
+    - seqtk@1.3           # Sequence toolkit
+    - parallel@20230422
+    - git@2.40.0
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # File formats
+    - hdf5@1.14.0
+    - bedtools2@2.30.0
+
+users:
+  - name: metauser1
+    uid: 15001
+    gid: 15001
+  - name: metauser2
+    uid: 15002
+    gid: 15002
+  - name: metauser3
+    uid: 15003
+    gid: 15003
+
+data:
+  s3_mounts:
+    # Raw sequencing reads (FASTQ)
+    - bucket: my-meta-fastq
+      mount_point: /shared/fastq
+
+    # Reference databases (Kraken2, MetaPhlAn, etc.)
+    # These can be very large (100s of GB)
+    - bucket: my-meta-databases
+      mount_point: /shared/databases
+
+    # Assembled contigs and scaffolds
+    - bucket: my-meta-assemblies
+      mount_point: /shared/assemblies
+
+    # Annotated genomes and MAGs (metagenome-assembled genomes)
+    - bucket: my-meta-annotations
+      mount_point: /shared/annotations
+
+    # Analysis results (taxonomic profiles, functional profiles)
+    - bucket: my-meta-results
+      mount_point: /shared/results

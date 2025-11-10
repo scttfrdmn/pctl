@@ -1,0 +1,162 @@
+# Computer Vision Cluster Template
+# Use Case: Image classification, object detection, semantic segmentation
+# Domain: Machine Learning / AI
+# Optimized for: GPU-accelerated deep learning for vision tasks
+# Included software: PyTorch Vision, Detectron2, OpenCV, Albumentations
+# Instance recommendations: GPU instances (g4dn, g5, p3) based on scale
+# Estimated costs: ~$0.50-1/hour for g4dn.xlarge, ~$3-5/hour for g4dn.12xlarge
+
+cluster:
+  name: computervision-cluster
+  region: us-east-1
+
+compute:
+  # Head node for data preparation and model serving
+  head_node: m5.xlarge
+
+  queues:
+    # Multi-GPU queue for large-scale training
+    # g4dn.12xlarge = 4x T4 GPUs, 48 vCPUs, 192GB RAM
+    # g5.12xlarge = 4x A10G GPUs, 48 vCPUs, 192GB RAM
+    - name: multigpu-training
+      instance_types:
+        - g4dn.12xlarge  # 4x T4 16GB - cost-effective training
+        - g5.12xlarge    # 4x A10G 24GB - faster, newer GPUs
+        - p3.8xlarge     # 4x V100 16GB - high performance
+      min_count: 0
+      max_count: 8
+
+    # Single GPU queue for experimentation and fine-tuning
+    # g4dn instances are cost-effective for most CV workloads
+    - name: singlegpu
+      instance_types:
+        - g4dn.xlarge    # 1x T4 16GB - small models
+        - g4dn.2xlarge   # 1x T4 16GB - medium models
+        - g5.xlarge      # 1x A10G 24GB - cost-effective A10G
+        - g5.2xlarge     # 1x A10G 24GB - more CPU/RAM
+      min_count: 0
+      max_count: 20
+
+    # CPU queue for data preprocessing and augmentation
+    # Image resizing, format conversion, dataset preparation
+    - name: preprocessing
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Inference queue for batch predictions
+    # Can use smaller GPU instances for inference
+    - name: inference
+      instance_types:
+        - g4dn.xlarge    # 1x T4 16GB
+        - g5.xlarge      # 1x A10G 24GB
+        - c5.2xlarge     # CPU-only inference for small models
+      min_count: 0
+      max_count: 30
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # CUDA and GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nccl@2.15.5
+
+    # Python and deep learning
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+
+    # PyTorch (CUDA-enabled)
+    - py-torch@2.0.0+cuda
+    - py-torchvision@0.15.0
+
+    # Computer vision libraries
+    - opencv@4.7.0+python3
+    - py-pillow@9.4.0
+    - py-scikit-image@0.20.0
+
+    # Data augmentation
+    # Note: albumentations best installed via pip for latest version
+    # - py-albumentations (pip)
+
+    # Object detection frameworks
+    # Note: detectron2, mmdetection typically installed via pip/git
+    # - detectron2 (pip/git)
+    # - mmdetection (pip/git)
+    # - mmcv (pip)
+
+    # Model frameworks and utilities
+    # - timm (pip - PyTorch Image Models)
+    # - segmentation-models-pytorch (pip)
+    # - efficientnet-pytorch (pip)
+
+    # Visualization and monitoring
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+    # - wandb (pip)
+    # - tensorboard (pip)
+
+    # Data loading and processing
+    - py-h5py@3.8.0
+    - py-tqdm@4.65.0
+    - hdf5@1.14.0
+
+    # Jupyter for experiments
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+    - py-ipython@8.12.0
+
+    # Utilities
+    - git@2.40.0
+    - git-lfs@3.3.0
+    - tmux@3.3a
+    - htop@3.2.1
+    - parallel@20230422
+
+    # GPU monitoring
+    - nvtop@2.0.0
+
+    # Video processing (for video datasets)
+    - ffmpeg@5.1.2
+
+users:
+  - name: cvuser1
+    uid: 11001
+    gid: 11001
+  - name: cvuser2
+    uid: 11002
+    gid: 11002
+  - name: cvuser3
+    uid: 11003
+    gid: 11003
+
+data:
+  s3_mounts:
+    # Raw image datasets (ImageNet, COCO, etc.)
+    - bucket: my-cv-datasets
+      mount_point: /shared/datasets
+
+    # Preprocessed data and augmented images
+    - bucket: my-cv-processed
+      mount_point: /shared/processed
+
+    # Pre-trained model weights
+    - bucket: my-cv-models
+      mount_point: /shared/models
+
+    # Training outputs (checkpoints, logs)
+    - bucket: my-cv-training
+      mount_point: /shared/training
+
+    # Inference results and predictions
+    - bucket: my-cv-predictions
+      mount_point: /shared/predictions

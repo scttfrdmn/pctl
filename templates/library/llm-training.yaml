@@ -1,0 +1,124 @@
+# LLM Training Cluster Template
+# Use Case: Large language model training and fine-tuning
+# Domain: Machine Learning / AI
+# Optimized for: Multi-GPU distributed training with transformers
+# Included software: PyTorch, transformers, accelerate, deepspeed, flash-attention, wandb
+# Instance recommendations: Multi-GPU (p3.16xlarge, p4d.24xlarge) for distributed training
+# Estimated costs: ~$24/hour for p3.16xlarge (8x V100), ~$32/hour for p4d.24xlarge (8x A100)
+
+cluster:
+  name: llm-training-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for orchestration and monitoring
+  head_node: m5.xlarge
+
+  queues:
+    # Multi-GPU queue for large model training
+    # p3.16xlarge = 8x V100 GPUs, 64 vCPUs, 488GB RAM
+    # p4d.24xlarge = 8x A100 GPUs, 96 vCPUs, 1152GB RAM
+    - name: multigpu
+      instance_types:
+        - p3.16xlarge   # 8x V100 16GB - good for most LLMs
+        - p4d.24xlarge  # 8x A100 40GB - largest models
+      min_count: 0
+      max_count: 4   # Up to 32 A100s for large-scale training
+
+    # Single/dual GPU queue for smaller jobs, experimentation
+    # p3.2xlarge = 1x V100, p3.8xlarge = 4x V100
+    - name: singlegpu
+      instance_types:
+        - p3.2xlarge   # 1x V100 16GB
+        - p3.8xlarge   # 4x V100 16GB
+        - g5.xlarge    # 1x A10G 24GB - cost-effective
+        - g5.12xlarge  # 4x A10G 24GB
+      min_count: 0
+      max_count: 10
+
+    # CPU-only queue for preprocessing and evaluation
+    - name: cpu
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+      min_count: 0
+      max_count: 20
+
+software:
+  spack_packages:
+    # Compilers and MPI for distributed training
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # CUDA and GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+    - nccl@2.15.5
+
+    # Python and deep learning frameworks
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+
+    # PyTorch (CUDA-enabled)
+    - py-torch@2.0.0+cuda
+    - py-torchvision@0.15.0
+
+    # Hugging Face ecosystem
+    # Note: Install via pip in bootstrap for latest versions
+    # - transformers (pip)
+    # - accelerate (pip)
+    # - datasets (pip)
+    # - tokenizers (pip)
+
+    # Distributed training frameworks
+    # - deepspeed (pip)
+    # - flash-attention (pip)
+
+    # Experiment tracking and monitoring
+    # - wandb (pip)
+    # - tensorboard (pip)
+
+    # Data processing
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+    - hdf5@1.14.0
+
+    # Utilities
+    - git@2.40.0
+    - git-lfs@3.3.0
+    - tmux@3.3a
+    - htop@3.2.1
+
+    # Monitoring tools
+    - nvtop@2.0.0  # GPU monitoring
+
+users:
+  - name: mluser1
+    uid: 6001
+    gid: 6001
+  - name: mluser2
+    uid: 6002
+    gid: 6002
+  - name: mluser3
+    uid: 6003
+    gid: 6003
+
+data:
+  s3_mounts:
+    # Pre-trained model weights and checkpoints
+    - bucket: my-model-weights
+      mount_point: /shared/models
+
+    # Training datasets
+    - bucket: my-training-data
+      mount_point: /shared/datasets
+
+    # Training outputs (checkpoints, logs)
+    - bucket: my-training-outputs
+      mount_point: /shared/outputs
+
+    # Evaluation results and metrics
+    - bucket: my-eval-results
+      mount_point: /shared/eval

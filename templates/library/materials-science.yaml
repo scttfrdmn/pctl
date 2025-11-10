@@ -1,0 +1,146 @@
+# Materials Science Cluster Template
+# Use Case: DFT calculations, materials modeling, solid-state physics
+# Domain: Computational Chemistry / Physics
+# Optimized for: Density functional theory and electronic structure calculations
+# Included software: Quantum ESPRESSO, VASP (if licensed), LAMMPS, SIESTA, Pymatgen
+# Instance recommendations: Compute-optimized (c5) for DFT calculations
+# Estimated costs: ~$3-4/hour for c5.24xlarge
+
+cluster:
+  name: materials-science-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for job submission and analysis
+  head_node: m5.xlarge
+
+  queues:
+    # Large compute queue for DFT calculations
+    # DFT is CPU-bound and scales well with cores
+    - name: dft-large
+      instance_types:
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+        - c5.24xlarge   # 96 vCPU, 192GB RAM
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM + 100 Gbps network
+      min_count: 0
+      max_count: 20
+
+    # Medium compute queue for typical calculations
+    - name: dft-medium
+      instance_types:
+        - c5.9xlarge    # 36 vCPU, 72GB RAM
+        - c5.12xlarge   # 48 vCPU, 96GB RAM
+      min_count: 0
+      max_count: 30
+
+    # High-memory queue for large unit cells
+    # Some calculations require significant memory
+    - name: highmem
+      instance_types:
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+        - r5.16xlarge  # 64 vCPU, 512GB RAM
+        - r5.24xlarge  # 96 vCPU, 768GB RAM
+      min_count: 0
+      max_count: 10
+
+    # GPU queue for specialized codes
+    # Some DFT codes support GPU acceleration
+    - name: gpu
+      instance_types:
+        - g4dn.12xlarge  # 4x T4, 48 vCPU, 192GB RAM
+        - p3.8xlarge     # 4x V100, 32 vCPU, 244GB RAM
+      min_count: 0
+      max_count: 5
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries (critical for DFT performance)
+    - openblas@0.3.21
+    - scalapack@2.2.0
+    - fftw@3.3.10+mpi
+    - elpa@2023.05.001  # Eigenvalue solvers
+
+    # Quantum ESPRESSO (flagship open-source DFT code)
+    - quantum-espresso@7.2+mpi+scalapack
+
+    # LAMMPS (classical and ReaxFF MD)
+    - lammps@20230802+molecule+kspace+manybody
+
+    # SIESTA (efficient DFT code)
+    - siesta@4.1.5+mpi
+
+    # VASP (commercial - requires license)
+    # Note: Install manually if licensed
+    # Most widely used DFT code in materials science
+
+    # Crystal structure tools
+    # - pymatgen (pip - Python materials genomics)
+    # - ase (pip - Atomic Simulation Environment)
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # Visualization
+    - vmd@1.9.4a57
+    - avogadro2@1.95.1
+    # - vesta (manual install - crystal structure viz)
+
+    # File formats
+    - hdf5@1.14.0+mpi
+    - netcdf-c@4.9.0
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # GPU support (for GPU-enabled codes)
+    - cuda@11.8.0
+
+users:
+  - name: matsci1
+    uid: 17001
+    gid: 17001
+  - name: matsci2
+    uid: 17002
+    gid: 17002
+  - name: matsci3
+    uid: 17003
+    gid: 17003
+
+data:
+  s3_mounts:
+    # Crystal structures and input files
+    - bucket: my-materials-structures
+      mount_point: /shared/structures
+
+    # Pseudopotentials and basis sets
+    - bucket: my-materials-potentials
+      mount_point: /shared/potentials
+
+    # Calculation outputs (wavefunctions, charge density)
+    - bucket: my-materials-outputs
+      mount_point: /shared/outputs
+
+    # Converged structures and properties database
+    - bucket: my-materials-results
+      mount_point: /shared/results
+
+    # Analysis and post-processing
+    - bucket: my-materials-analysis
+      mount_point: /shared/analysis

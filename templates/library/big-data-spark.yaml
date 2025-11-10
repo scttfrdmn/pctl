@@ -1,0 +1,145 @@
+# Big Data Spark Cluster Template
+# Use Case: Apache Spark-based big data processing and analytics
+# Domain: Data Science / Analytics
+# Optimized for: Distributed data processing with Spark on large datasets
+# Included software: Spark, Hadoop, Python (PySpark), Scala, Hive
+# Instance recommendations: Memory-optimized (r5) for Spark executors
+# Estimated costs: ~$3-4/hour for r5.12xlarge, scales with cluster size
+
+cluster:
+  name: spark-cluster
+  region: us-east-1
+
+compute:
+  # Large head node to act as Spark master and driver
+  # Spark driver can be memory-intensive
+  head_node: r5.2xlarge
+
+  queues:
+    # Memory-optimized queue for Spark executors
+    # Spark benefits greatly from memory for caching and shuffles
+    # r5.12xlarge = 48 vCPU, 384GB RAM (ideal for executors)
+    - name: spark-executors
+      instance_types:
+        - r5.8xlarge   # 32 vCPU, 256GB RAM - medium workloads
+        - r5.12xlarge  # 48 vCPU, 384GB RAM - typical workloads
+        - r5.16xlarge  # 64 vCPU, 512GB RAM - large workloads
+        - r5.24xlarge  # 96 vCPU, 768GB RAM - very large workloads
+      min_count: 2     # Keep 2 executors running
+      max_count: 50    # Scale up to 50 for large jobs
+
+    # Compute-optimized queue for preprocessing
+    # Data cleaning, format conversion, ETL
+    - name: preprocessing
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 20
+
+    # General purpose queue for data ingestion and export
+    - name: dataops
+      instance_types:
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Java (required for Spark and Hadoop)
+    - openjdk@11.0.17
+
+    # Hadoop ecosystem
+    - hadoop@3.3.4
+
+    # Apache Spark
+    - spark@3.4.0+hadoop
+
+    # Scala (for Spark development)
+    - scala@2.12.17
+
+    # Python for PySpark
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-pandas@2.0.0
+    - py-scipy@1.10.0
+    - py-scikit-learn@1.2.0
+
+    # PySpark and related libraries
+    - py-pyspark@3.4.0
+
+    # Data formats and I/O
+    - py-pyarrow@11.0.0  # Parquet, Arrow format support
+    - py-h5py@3.8.0
+    - hdf5@1.14.0
+    - avro-c@1.11.1
+
+    # Database connectivity
+    - py-sqlalchemy@2.0.7
+    - py-psycopg2@2.9.5
+    - postgresql@15.2
+    - mysql@8.0.32
+
+    # Jupyter for interactive Spark
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+    - py-ipython@8.12.0
+
+    # Visualization
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+    - py-plotly@5.14.0
+
+    # Utilities
+    - git@2.40.0
+    - tmux@3.3a
+    - parallel@20230422
+    - htop@3.2.1
+    - vim@9.0
+
+    # Compression libraries (important for Hadoop)
+    - snappy@1.1.10
+    - lz4@1.9.4
+    - zstd@1.5.5
+
+users:
+  - name: sparkuser1
+    uid: 13001
+    gid: 13001
+  - name: sparkuser2
+    uid: 13002
+    gid: 13002
+  - name: sparkuser3
+    uid: 13003
+    gid: 13003
+  - name: sparkuser4
+    uid: 13004
+    gid: 13004
+  - name: sparkuser5
+    uid: 13005
+    gid: 13005
+
+data:
+  s3_mounts:
+    # Raw data lake (input data)
+    - bucket: my-data-lake-raw
+      mount_point: /shared/data/raw
+
+    # Processed/curated data
+    - bucket: my-data-lake-processed
+      mount_point: /shared/data/processed
+
+    # Spark warehouse (Hive tables, Parquet files)
+    - bucket: my-spark-warehouse
+      mount_point: /shared/warehouse
+
+    # Spark logs and history
+    - bucket: my-spark-logs
+      mount_point: /shared/spark-logs
+
+    # Analysis outputs and reports
+    - bucket: my-spark-outputs
+      mount_point: /shared/outputs

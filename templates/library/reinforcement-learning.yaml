@@ -1,0 +1,144 @@
+# Reinforcement Learning Cluster Template
+# Use Case: RL training for robotics, games, control systems
+# Domain: Machine Learning / AI
+# Optimized for: Massively parallel environment simulation and policy training
+# Included software: Ray/RLlib, Stable-Baselines3, Gymnasium, MuJoCo, PyTorch
+# Instance recommendations: CPU-heavy (c5) for parallel environments
+# Estimated costs: ~$3-4/hour for c5.18xlarge, scales with parallelism
+
+cluster:
+  name: reinforcement-learning-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for coordination and monitoring
+  head_node: m5.xlarge
+
+  queues:
+    # CPU-heavy queue for massively parallel rollouts
+    # RL training benefits from 100s-1000s of parallel environments
+    # Each environment runs on CPU
+    - name: rollout-workers
+      instance_types:
+        - c5.9xlarge    # 36 vCPU, 72GB RAM - ~30-60 envs
+        - c5.18xlarge   # 72 vCPU, 144GB RAM - ~60-120 envs
+        - c5.24xlarge   # 96 vCPU, 192GB RAM - ~80-160 envs
+      min_count: 2      # Keep workers running
+      max_count: 50     # Scale to 1000s of environments
+
+    # GPU queue for policy network training
+    # Policy and value networks trained on GPU
+    - name: trainers
+      instance_types:
+        - g4dn.xlarge    # 1x T4 16GB
+        - g4dn.2xlarge   # 1x T4 16GB
+        - g5.xlarge      # 1x A10G 24GB
+        - g5.2xlarge     # 1x A10G 24GB
+      min_count: 0
+      max_count: 10
+
+    # General purpose for simulation setup and analysis
+    - name: analysis
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+
+    # PyTorch for policy networks
+    - py-torch@2.0.0+cuda
+    - py-torchvision@0.15.0
+
+    # Scientific computing
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+
+    # Ray for distributed RL
+    # Note: Ray best installed via pip for latest features
+    # - ray[rllib] (pip)
+    # - ray[tune] (pip)
+
+    # RL frameworks (install via pip)
+    # - stable-baselines3 (pip)
+    # - gymnasium (pip - successor to gym)
+    # - tensorboard (pip - monitoring)
+    # - wandb (pip - experiment tracking)
+
+    # Simulation environments
+    # - mujoco (pip - physics simulator)
+    # - pybullet (pip - robotics simulator)
+    # - gym (pip - classic environments)
+
+    # Visualization
+    - py-plotly@5.14.0
+    # - tensorboard (pip)
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+
+    # Utilities
+    - git@2.40.0
+    - tmux@3.3a
+    - htop@3.2.1
+    - parallel@20230422
+
+    # GPU monitoring
+    - nvtop@2.0.0
+
+    # Video encoding (for rendering episodes)
+    - ffmpeg@5.1.2
+
+    # File formats
+    - hdf5@1.14.0
+    - py-h5py@3.8.0
+
+users:
+  - name: rluser1
+    uid: 16001
+    gid: 16001
+  - name: rluser2
+    uid: 16002
+    gid: 16002
+  - name: rluser3
+    uid: 16003
+    gid: 16003
+
+data:
+  s3_mounts:
+    # Environment definitions and configs
+    - bucket: my-rl-environments
+      mount_point: /shared/environments
+
+    # Pre-trained policies and checkpoints
+    - bucket: my-rl-models
+      mount_point: /shared/models
+
+    # Training logs and tensorboard data
+    - bucket: my-rl-logs
+      mount_point: /shared/logs
+
+    # Replay buffers and experience data
+    - bucket: my-rl-replay
+      mount_point: /shared/replay
+
+    # Episode recordings and visualizations
+    - bucket: my-rl-videos
+      mount_point: /shared/videos

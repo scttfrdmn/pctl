@@ -1,0 +1,143 @@
+# Molecular Dynamics Cluster Template
+# Use Case: Advanced molecular dynamics simulations and analysis
+# Domain: Computational Chemistry / Physics
+# Optimized for: GPU-accelerated MD simulations with long trajectories
+# Included software: GROMACS, AMBER, NAMD, LAMMPS, VMD, PyMOL
+# Instance recommendations: GPU-optimized (g4dn, p3) for production MD runs
+# Estimated costs: ~$1.50-2/hour for g4dn.xlarge, ~$5-12/hour for g4dn.12xlarge
+
+cluster:
+  name: molecular-dynamics-cluster
+  region: us-east-1
+
+compute:
+  # Head node for job submission and light analysis
+  head_node: m5.xlarge
+
+  queues:
+    # Multi-GPU queue for large-scale production runs
+    # g4dn.12xlarge = 4x T4 GPUs, 48 vCPUs, 192GB RAM
+    # p3.8xlarge = 4x V100 GPUs, 32 vCPUs, 244GB RAM
+    - name: production-md
+      instance_types:
+        - g4dn.12xlarge  # 4x T4 16GB - cost-effective for most MD
+        - p3.8xlarge     # 4x V100 16GB - higher performance
+      min_count: 0
+      max_count: 8
+
+    # Single GPU queue for smaller systems and testing
+    # g4dn.xlarge = 1x T4, 4 vCPUs, 16GB RAM
+    # g4dn.2xlarge = 1x T4, 8 vCPUs, 32GB RAM
+    - name: single-gpu
+      instance_types:
+        - g4dn.xlarge    # 1x T4 16GB - small systems
+        - g4dn.2xlarge   # 1x T4 16GB - medium systems
+        - g4dn.4xlarge   # 1x T4 16GB - larger systems
+      min_count: 0
+      max_count: 20
+
+    # CPU-only queue for classical MD and analysis
+    # Some MD codes still run efficiently on CPU
+    - name: cpu-md
+      instance_types:
+        - c5.9xlarge     # 36 vCPU, 72GB RAM
+        - c5.18xlarge    # 72 vCPU, 144GB RAM
+        - c5n.18xlarge   # 72 vCPU, 192GB RAM + 100 Gbps network
+      min_count: 0
+      max_count: 10
+
+    # High-memory queue for trajectory analysis
+    # Loading and analyzing large trajectories requires RAM
+    - name: analysis
+      instance_types:
+        - r5.4xlarge     # 16 vCPU, 128GB RAM
+        - r5.8xlarge     # 32 vCPU, 256GB RAM
+        - r5.12xlarge    # 48 vCPU, 384GB RAM
+      min_count: 0
+      max_count: 5
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4
+
+    # GPU support (for CUDA-enabled packages)
+    - cuda@11.8.0
+    - cudnn@8.6.0
+
+    # GROMACS (CUDA-enabled for GPU acceleration)
+    - gromacs@2023.1+cuda+mpi
+
+    # LAMMPS (versatile MD for materials and biomolecules)
+    - lammps@20230802+cuda+molecule+kspace
+
+    # AMBER (comprehensive biomolecular MD suite)
+    # Note: AmberTools is free; full AMBER requires license
+    - ambertools@22.0
+
+    # NAMD (scalable MD for biomolecules)
+    # Note: May need to install manually due to licensing
+    # - namd@3.0+cuda (check license requirements)
+
+    # Visualization tools
+    - vmd@1.9.4a57
+    - pymol@2.5.0
+
+    # Analysis tools
+    - gromacs@2023.1  # Includes analysis utilities
+    - py-mdanalysis@2.4.0
+    - py-mdtraj@1.9.7
+    - py-pytraj@2.0.6
+
+    # Python and scientific computing
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # File formats and I/O
+    - hdf5@1.14.0+mpi
+    - netcdf-c@4.9.0
+    - netcdf-cxx4@4.3.1
+
+    # Utilities
+    - openbabel@3.1.1  # Chemical file format conversion
+    - rdkit@2022.09.1  # Cheminformatics toolkit
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+
+    # GPU monitoring
+    - nvtop@2.0.0
+
+users:
+  - name: mduser1
+    uid: 7001
+    gid: 7001
+  - name: mduser2
+    uid: 7002
+    gid: 7002
+  - name: mduser3
+    uid: 7003
+    gid: 7003
+
+data:
+  s3_mounts:
+    # Input structures and topologies
+    - bucket: my-md-structures
+      mount_point: /shared/structures
+
+    # Force fields and parameters
+    - bucket: my-md-forcefields
+      mount_point: /shared/forcefields
+
+    # Production trajectories (large)
+    - bucket: my-md-trajectories
+      mount_point: /shared/trajectories
+
+    # Analysis results and figures
+    - bucket: my-md-analysis
+      mount_point: /shared/analysis

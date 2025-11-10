@@ -1,0 +1,145 @@
+# Data Science Cluster Template
+# Use Case: General data analysis, statistics, and exploratory research
+# Domain: Data Science / Analytics
+# Optimized for: Interactive analysis, statistical modeling, data visualization
+# Included software: Python (pandas, numpy, scipy), R (tidyverse), Jupyter, Dask
+# Instance recommendations: General purpose (m5 family) for balanced compute/memory
+# Estimated costs: ~$0.75-1.50/hour for m5.4xlarge usage
+
+cluster:
+  name: datascience-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for JupyterHub and interactive sessions
+  head_node: m5.xlarge
+
+  queues:
+    # General purpose queue for parallel data processing
+    # Good balance of CPU and memory for data analysis
+    - name: analysis
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 20
+
+    # Memory-optimized queue for large datasets
+    # For operations that require loading large datasets into memory
+    - name: highmem
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 10
+
+    # Compute-optimized queue for CPU-intensive tasks
+    # Statistical modeling, simulations, bootstrap methods
+    - name: compute
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 15
+
+software:
+  spack_packages:
+    # Compilers and build tools
+    - gcc@11.3.0
+    - cmake@3.26.0
+    - openmpi@4.1.4
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+    - py-plotly@5.14.0
+    - py-scikit-learn@1.2.0
+    - py-statsmodels@0.13.5
+    - py-networkx@3.0
+
+    # Parallel computing for Python
+    - py-dask@2023.3.0
+    - py-distributed@2023.3.0
+    - py-joblib@1.2.0
+
+    # Jupyter ecosystem
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+    - py-ipython@8.12.0
+    - py-notebook@6.5.3
+
+    # Data formats and I/O
+    - py-pyarrow@11.0.0
+    - py-h5py@3.8.0
+    - py-netcdf4@1.6.3
+    - hdf5@1.14.0
+    - netcdf-c@4.9.0
+
+    # R language and ecosystem
+    - r@4.2.2
+    # Note: R packages (tidyverse, ggplot2, etc.) typically installed via R's install.packages()
+    # or through Spack: r-tidyverse, r-ggplot2, r-dplyr, r-tidyr, r-readr
+
+    # Database connectivity
+    - py-sqlalchemy@2.0.7
+    - py-psycopg2@2.9.5
+    - postgresql@15.2
+
+    # Utilities
+    - git@2.40.0
+    - git-lfs@3.3.0
+    - tmux@3.3a
+    - parallel@20230422
+    - htop@3.2.1
+    - vim@9.0
+
+    # Text processing and NLP basics
+    - py-nltk@3.8.1
+    - py-spacy@3.5.0
+
+users:
+  - name: dsuser1
+    uid: 8001
+    gid: 8001
+  - name: dsuser2
+    uid: 8002
+    gid: 8002
+  - name: dsuser3
+    uid: 8003
+    gid: 8003
+  - name: dsuser4
+    uid: 8004
+    gid: 8004
+  - name: dsuser5
+    uid: 8005
+    gid: 8005
+
+data:
+  s3_mounts:
+    # Raw data sources
+    - bucket: my-raw-datasets
+      mount_point: /shared/data/raw
+
+    # Processed/cleaned data
+    - bucket: my-processed-data
+      mount_point: /shared/data/processed
+
+    # Analysis results and models
+    - bucket: my-analysis-results
+      mount_point: /shared/results
+
+    # Shared notebooks and scripts
+    - bucket: my-notebooks
+      mount_point: /shared/notebooks
+
+    # Reports and visualizations
+    - bucket: my-reports
+      mount_point: /shared/reports

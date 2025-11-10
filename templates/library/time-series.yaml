@@ -1,0 +1,158 @@
+# Time Series Analysis Cluster Template
+# Use Case: Financial modeling, forecasting, econometrics
+# Domain: Data Science / Analytics
+# Optimized for: Large-scale time series analysis and forecasting
+# Included software: Prophet, statsmodels, scikit-learn, TensorFlow (LSTM), R (forecast)
+# Instance recommendations: Compute-optimized (c5) for model training
+# Estimated costs: ~$2-3/hour for c5.9xlarge usage
+
+cluster:
+  name: timeseries-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for interactive analysis
+  head_node: m5.xlarge
+
+  queues:
+    # Compute-optimized queue for model training
+    # Time series models can be CPU-intensive (ARIMA, Prophet)
+    - name: training
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 20
+
+    # GPU queue for deep learning models (LSTM, Transformer)
+    - name: deep-learning
+      instance_types:
+        - g4dn.xlarge   # 1x T4 16GB
+        - g4dn.2xlarge  # 1x T4 16GB
+        - g5.xlarge     # 1x A10G 24GB
+      min_count: 0
+      max_count: 10
+
+    # General purpose for data preprocessing and feature engineering
+    - name: preprocessing
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+        - m5.8xlarge   # 32 vCPU, 128GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Memory-optimized for large datasets
+    - name: large-data
+      instance_types:
+        - r5.2xlarge   # 8 vCPU, 64GB RAM
+        - r5.4xlarge   # 16 vCPU, 128GB RAM
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers
+    - gcc@11.3.0
+
+    # Python ecosystem
+    - python@3.10.8
+    - py-pip@23.0
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-pandas@2.0.0
+
+    # Statistical and ML libraries
+    - py-scikit-learn@1.2.0
+    - py-statsmodels@0.13.5
+
+    # Time series specific packages (install via pip for latest)
+    # - prophet (pip - Facebook's forecasting tool)
+    # - pmdarima (pip - auto ARIMA)
+    # - sktime (pip - unified time series ML)
+    # - tslearn (pip - time series ML)
+
+    # Deep learning for time series
+    - py-torch@2.0.0+cuda
+    - py-tensorflow@2.12.0+cuda
+    # - pytorch-forecasting (pip)
+    # - darts (pip - time series forecasting)
+
+    # Visualization
+    - py-matplotlib@3.7.0
+    - py-seaborn@0.12.0
+    - py-plotly@5.14.0
+
+    # Data processing
+    - py-pyarrow@11.0.0
+    - py-h5py@3.8.0
+    - hdf5@1.14.0
+
+    # R ecosystem for time series
+    - r@4.2.2
+    # R packages (install via R):
+    # - forecast, tseries, zoo, xts
+    # - fable, feasts, tsibble (tidyverts)
+    # - prophet (R version)
+
+    # Database connectivity
+    - py-sqlalchemy@2.0.7
+    - py-psycopg2@2.9.5
+    - postgresql@15.2
+
+    # Jupyter for interactive analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+    - py-ipython@8.12.0
+
+    # Experiment tracking
+    # - mlflow (pip)
+    # - wandb (pip)
+
+    # GPU support
+    - cuda@11.8.0
+    - cudnn@8.6.0
+
+    # Utilities
+    - git@2.40.0
+    - tmux@3.3a
+    - htop@3.2.1
+    - parallel@20230422
+
+    # GPU monitoring
+    - nvtop@2.0.0
+
+users:
+  - name: tsuser1
+    uid: 18001
+    gid: 18001
+  - name: tsuser2
+    uid: 18002
+    gid: 18002
+  - name: tsuser3
+    uid: 18003
+    gid: 18003
+
+data:
+  s3_mounts:
+    # Raw time series data
+    - bucket: my-ts-raw-data
+      mount_point: /shared/data/raw
+
+    # Preprocessed and feature-engineered data
+    - bucket: my-ts-processed
+      mount_point: /shared/data/processed
+
+    # Trained models and forecasts
+    - bucket: my-ts-models
+      mount_point: /shared/models
+
+    # Evaluation results and metrics
+    - bucket: my-ts-results
+      mount_point: /shared/results
+
+    # Visualizations and reports
+    - bucket: my-ts-reports
+      mount_point: /shared/reports

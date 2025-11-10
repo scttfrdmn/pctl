@@ -1,0 +1,126 @@
+# CFD OpenFOAM Cluster Template
+# Use Case: Computational fluid dynamics simulations and analysis
+# Domain: Engineering / CFD
+# Optimized for: Large-scale parallel CFD simulations with OpenFOAM
+# Included software: OpenFOAM, ParaView, mesh tools (gmsh, scotch, metis)
+# Instance recommendations: Compute-optimized with high network bandwidth (c5n, c5)
+# Estimated costs: ~$3-4/hour for c5.18xlarge, ~$3.50/hour for c5n.18xlarge
+
+cluster:
+  name: cfd-openfoam-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for case setup and post-processing
+  head_node: m5.xlarge
+
+  queues:
+    # High-performance compute queue for large CFD cases
+    # c5n instances have 100 Gbps networking for MPI-intensive workloads
+    - name: large-cfd
+      instance_types:
+        - c5n.18xlarge  # 72 vCPU, 192GB RAM, 100 Gbps network
+        - c5.18xlarge   # 72 vCPU, 144GB RAM, 25 Gbps network
+      min_count: 0
+      max_count: 20
+
+    # Medium compute queue for typical CFD cases
+    - name: medium-cfd
+      instance_types:
+        - c5.9xlarge    # 36 vCPU, 72GB RAM
+        - c5.12xlarge   # 48 vCPU, 96GB RAM
+      min_count: 0
+      max_count: 30
+
+    # Small queue for testing and mesh generation
+    - name: small
+      instance_types:
+        - c5.2xlarge    # 8 vCPU, 16GB RAM
+        - c5.4xlarge    # 16 vCPU, 32GB RAM
+      min_count: 0
+      max_count: 10
+
+    # Memory-optimized queue for complex mesh generation
+    # Large meshes and mesh refinement can be memory-intensive
+    - name: meshing
+      instance_types:
+        - r5.4xlarge    # 16 vCPU, 128GB RAM
+        - r5.8xlarge    # 32 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 5
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # OpenFOAM (primary CFD solver)
+    - openfoam@2306+metis+kahip
+
+    # Mesh generation and processing
+    - gmsh@4.11.1        # Open-source mesh generator
+    - metis@5.1.0        # Mesh partitioning
+    - scotch@7.0.1       # Mesh partitioning (alternative)
+    - parmetis@4.0.3     # Parallel mesh partitioning
+    - kahip@3.14         # KaHIP mesh partitioning
+
+    # Visualization and post-processing
+    - paraview@5.11.1+mpi+python3
+    # For remote visualization on head node
+
+    # Python for scripting and analysis
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+
+    # File formats
+    - hdf5@1.14.0+mpi
+    - cgns@4.3.0+mpi     # CFD General Notation System
+
+    # Utilities
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+    - git@2.40.0
+
+    # Additional CFD utilities
+    - visit@3.3.3        # Alternative visualization tool
+    # - su2 (optional - another CFD solver)
+    # - fluent (commercial - requires license)
+
+users:
+  - name: cfduser1
+    uid: 9001
+    gid: 9001
+  - name: cfduser2
+    uid: 9002
+    gid: 9002
+  - name: cfduser3
+    uid: 9003
+    gid: 9003
+
+data:
+  s3_mounts:
+    # Geometry files and CAD models
+    - bucket: my-cfd-geometries
+      mount_point: /shared/geometries
+
+    # Mesh files (can be large)
+    - bucket: my-cfd-meshes
+      mount_point: /shared/meshes
+
+    # OpenFOAM case files and setups
+    - bucket: my-cfd-cases
+      mount_point: /shared/cases
+
+    # Simulation results and time directories
+    - bucket: my-cfd-results
+      mount_point: /shared/results
+
+    # Post-processing and visualization outputs
+    - bucket: my-cfd-postprocessing
+      mount_point: /shared/postprocessing

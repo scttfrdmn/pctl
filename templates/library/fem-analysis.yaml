@@ -1,0 +1,146 @@
+# FEM Analysis Cluster Template
+# Use Case: Finite element analysis for structural mechanics and engineering
+# Domain: Engineering / CFD
+# Optimized for: Large-scale structural analysis, modal analysis, thermal analysis
+# Included software: FEniCS, Elmer, gmsh, ParaView
+# Instance recommendations: Compute + memory (m5, c5) for FEM solvers
+# Estimated costs: ~$2-3/hour for m5.12xlarge usage
+
+cluster:
+  name: fem-analysis-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for mesh generation and post-processing
+  head_node: m5.xlarge
+
+  queues:
+    # High-compute queue for large FEM problems
+    # Sparse matrix solvers are CPU-intensive
+    - name: large-fem
+      instance_types:
+        - c5.12xlarge   # 48 vCPU, 96GB RAM
+        - c5.18xlarge   # 72 vCPU, 144GB RAM
+        - c5.24xlarge   # 96 vCPU, 192GB RAM
+      min_count: 0
+      max_count: 15
+
+    # Balanced queue for typical problems
+    - name: medium-fem
+      instance_types:
+        - m5.8xlarge    # 32 vCPU, 128GB RAM
+        - m5.12xlarge   # 48 vCPU, 192GB RAM
+        - m5.16xlarge   # 64 vCPU, 256GB RAM
+      min_count: 0
+      max_count: 20
+
+    # High-memory queue for very large meshes
+    # Some problems require significant memory for assembly
+    - name: highmem-fem
+      instance_types:
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+        - r5.16xlarge  # 64 vCPU, 512GB RAM
+      min_count: 0
+      max_count: 10
+
+    # Mesh generation and preprocessing queue
+    - name: meshing
+      instance_types:
+        - m5.2xlarge   # 8 vCPU, 32GB RAM
+        - m5.4xlarge   # 16 vCPU, 64GB RAM
+      min_count: 0
+      max_count: 10
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries
+    - openblas@0.3.21
+    - scalapack@2.2.0
+    - petsc@3.19.0+mpi  # Portable Extensible Toolkit for Scientific Computation
+    - slepc@3.19.0      # Scalable Library for Eigenvalue Problem Computations
+    - trilinos@13.4.1   # Collection of scientific computing libraries
+
+    # FEniCS (popular Python-based FEM framework)
+    - fenics@2019.1.0
+
+    # Elmer (open-source multiphysics FEM)
+    # Note: May require manual installation
+
+    # Mesh generation
+    - gmsh@4.11.1       # 3D finite element mesh generator
+    - netgen@6.2.2304   # Mesh generator
+
+    # Visualization
+    - paraview@5.11.1+mpi+python3
+
+    # Python ecosystem for FEM
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-h5py@3.8.0
+
+    # meshio for mesh I/O
+    # - meshio (pip)
+    # - pygmsh (pip - Python interface to gmsh)
+
+    # Scientific computing
+    - py-pandas@2.0.0
+    - py-scikit-learn@1.2.0
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # File formats
+    - hdf5@1.14.0+mpi
+    - netcdf-c@4.9.0
+    - cgns@4.3.0+mpi     # CFD General Notation System
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # CAD/geometry tools
+    - opencascade@7.7.0
+
+users:
+  - name: femuser1
+    uid: 19001
+    gid: 19001
+  - name: femuser2
+    uid: 19002
+    gid: 19002
+  - name: femuser3
+    uid: 19003
+    gid: 19003
+
+data:
+  s3_mounts:
+    # CAD geometries and input files
+    - bucket: my-fem-geometries
+      mount_point: /shared/geometries
+
+    # Generated meshes
+    - bucket: my-fem-meshes
+      mount_point: /shared/meshes
+
+    # Material properties and boundary conditions
+    - bucket: my-fem-materials
+      mount_point: /shared/materials
+
+    # Simulation results (displacement, stress, temperature)
+    - bucket: my-fem-results
+      mount_point: /shared/results
+
+    # Post-processing and visualizations
+    - bucket: my-fem-postprocessing
+      mount_point: /shared/postprocessing

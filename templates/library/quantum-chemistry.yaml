@@ -1,0 +1,155 @@
+# Quantum Chemistry Cluster Template
+# Use Case: Electronic structure calculations and quantum mechanics simulations
+# Domain: Computational Chemistry / Physics
+# Optimized for: Ab initio calculations with high memory and CPU requirements
+# Included software: NWChem, Psi4, ORCA, Gaussian (if licensed), Molpro
+# Instance recommendations: High-memory (r5, x1e) for correlated methods
+# Estimated costs: ~$3-4/hour for r5.12xlarge, ~$6-8/hour for r5.24xlarge
+
+cluster:
+  name: quantumchem-cluster
+  region: us-east-1
+
+compute:
+  # Medium head node for job submission and analysis
+  head_node: m5.xlarge
+
+  queues:
+    # Ultra-high-memory queue for CCSD(T) and multi-reference methods
+    # Correlated calculations can require 100s of GB to TBs of memory
+    - name: ultramem
+      instance_types:
+        - r5.24xlarge  # 96 vCPU, 768GB RAM
+        - x1e.8xlarge  # 32 vCPU, 976GB RAM
+        - x1e.16xlarge # 64 vCPU, 1952GB RAM - very large calculations
+      min_count: 0
+      max_count: 5
+
+    # High-memory queue for typical post-HF calculations
+    # MP2, CCSD, large basis sets
+    - name: highmem
+      instance_types:
+        - r5.8xlarge   # 32 vCPU, 256GB RAM
+        - r5.12xlarge  # 48 vCPU, 384GB RAM
+        - r5.16xlarge  # 64 vCPU, 512GB RAM
+      min_count: 0
+      max_count: 15
+
+    # General queue for DFT and HF calculations
+    # Most routine calculations
+    - name: standard
+      instance_types:
+        - c5.4xlarge   # 16 vCPU, 32GB RAM
+        - c5.9xlarge   # 36 vCPU, 72GB RAM
+        - c5.18xlarge  # 72 vCPU, 144GB RAM
+      min_count: 0
+      max_count: 20
+
+    # GPU queue for specialized methods
+    # Some quantum chemistry codes support GPU acceleration
+    - name: gpu
+      instance_types:
+        - g4dn.12xlarge  # 4x T4, 48 vCPU, 192GB RAM
+        - p3.8xlarge     # 4x V100, 32 vCPU, 244GB RAM
+      min_count: 0
+      max_count: 5
+
+software:
+  spack_packages:
+    # Compilers and MPI
+    - gcc@11.3.0
+    - openmpi@4.1.4+pmi
+
+    # Math libraries (critical for performance)
+    - openblas@0.3.21
+    - scalapack@2.2.0
+    - fftw@3.3.10+mpi
+
+    # NWChem (open-source quantum chemistry)
+    - nwchem@7.2.0+mpi
+
+    # Psi4 (open-source quantum chemistry)
+    - psi4@1.8+mpi
+
+    # ORCA (free for academic use)
+    # Note: Download from https://orcaforum.kofo.mpg.de
+    # Requires manual installation
+
+    # Gaussian (commercial - requires license)
+    # Note: Install manually if licensed
+
+    # Molpro (commercial - requires license)
+    # Note: Install manually if licensed
+
+    # Python and scientific computing
+    - python@3.10.8
+    - py-numpy@1.24.0
+    - py-scipy@1.10.0
+    - py-matplotlib@3.7.0
+    - py-pandas@2.0.0
+
+    # Molecular visualization
+    - pymol@2.5.0
+    - vmd@1.9.4a57
+    - avogadro2@1.95.1
+
+    # File format utilities
+    - openbabel@3.1.1
+    - cclib@1.7.2  # Python library for parsing QM outputs
+
+    # Jupyter for analysis
+    - py-jupyter@1.0.0
+    - py-jupyterlab@3.6.0
+
+    # Chemistry-specific Python packages
+    # - pyscf (pip - Python-based QM)
+    # - psi4numpy (pip - Psi4 Python API examples)
+    # - qcengine (pip - QC program executor)
+    # - qcelemental (pip - Physical constants)
+
+    # Utilities
+    - git@2.40.0
+    - parallel@20230422
+    - tmux@3.3a
+    - htop@3.2.1
+    - vim@9.0
+
+    # File formats
+    - hdf5@1.14.0+mpi
+    - netcdf-c@4.9.0
+
+    # GPU support (for GPU-enabled codes)
+    - cuda@11.8.0
+
+users:
+  - name: qcuser1
+    uid: 12001
+    gid: 12001
+  - name: qcuser2
+    uid: 12002
+    gid: 12002
+  - name: qcuser3
+    uid: 12003
+    gid: 12003
+
+data:
+  s3_mounts:
+    # Input files and geometries
+    - bucket: my-qc-inputs
+      mount_point: /shared/inputs
+
+    # Basis sets and pseudopotentials
+    - bucket: my-qc-basis-sets
+      mount_point: /shared/basis
+
+    # Calculation outputs (can be very large)
+    - bucket: my-qc-outputs
+      mount_point: /shared/outputs
+
+    # Checkpoint files and restart data
+    - bucket: my-qc-checkpoints
+      mount_point: /shared/checkpoints
+
+    # Analysis results and visualizations
+    - bucket: my-qc-analysis
+      mount_point: /shared/analysis
