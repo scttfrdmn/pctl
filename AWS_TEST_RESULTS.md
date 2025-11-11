@@ -107,7 +107,14 @@ export AWS_REGION=us-west-2
   --subnet-id subnet-0a73ca94ed00cdaf9
 ```
 
-**Status**: 🔄 IN PROGRESS - CREATE_IN_PROGRESS
+**Status**: ✅ Infrastructure CREATE_COMPLETE (but CloudFormation still finishing bootstrap)
+
+**Results**:
+- Creation time: ~10 minutes (infrastructure)
+- Head Node IP: 44.251.205.32
+- Head Node Type: t3.large
+- Scheduler: SLURM
+- Cost: ~$0.20 estimated
 
 **Software Packages (5)**:
 - gcc@11.3.0
@@ -123,17 +130,37 @@ export AWS_REGION=us-west-2
 - Changed region from us-east-1 to us-west-2
 - Removed S3 mount section (bucket "my-data-bucket" doesn't exist)
 
-**Observations So Far**:
+**Observations**:
+- ✅ Cluster infrastructure created successfully
+- ✅ Head node accessible (IP available)
 - ⚠️  **WARNING**: Bootstrap script not found in S3
   - Message: "Failed when accessing object 'install-software.sh' from bucket 'pctl-bootstrap'"
-  - Cluster creation still proceeded
-  - This may be potential Issue #91 - bootstrap bucket not created/uploaded
+  - Cluster creation proceeded anyway
+  - Cannot verify if software installed (no SSH key available)
+- ⚠️  Status discrepancy: `pctl list` shows CREATE_COMPLETE, `pctl status` shows CREATE_IN_PROGRESS
+  - Likely: local state updated, but CloudFormation still finishing bootstrap
 
-**Next Steps**:
-- Wait 15-30 minutes for cluster creation
-- Check if software actually installs despite warning
-- Verify user creation
-- Test module availability
+**Cannot Verify** (no SSH access):
+- ⚠️ Software package installation
+- ⚠️ Lmod module availability
+- ⚠️ User creation (UID/GID 5001)
+- ⚠️ SLURM functionality
+
+**Bugs/Issues Found**:
+1. **Potential Issue #91**: Bootstrap script not uploaded to S3
+   - Severity: High (if software doesn't install)
+   - Impact: Software installation may fail silently
+   - Bucket 'pctl-bootstrap' doesn't exist or script not uploaded
+   - Need to investigate software config generation
+
+2. **Status Sync Issue**: Discrepancy between list and status commands
+   - Minor: list reads local state, status queries AWS
+   - Could be confusing for users
+
+**Phase 2 Assessment**:
+- **Partial Success**: Infrastructure works ✅
+- **Unknown**: Software installation (warning suggests it may not work)
+- **Decision**: Need to investigate bootstrap script issue before Phase 3
 
 ---
 
