@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/pctl/internal/config"
+	"github.com/scttfrdmn/pctl/pkg/bootstrap"
 	pcconfig "github.com/scttfrdmn/pctl/pkg/config"
 	"github.com/scttfrdmn/pctl/pkg/network"
 	"github.com/scttfrdmn/pctl/pkg/state"
@@ -94,10 +95,33 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 		fmt.Printf("✅ Private subnet: %s\n", networkResources.PrivateSubnetID)
 	}
 
+	// Generate and upload bootstrap script if needed
+	var bootstrapS3URI string
+	if len(tmpl.Software.SpackPackages) > 0 || len(tmpl.Users) > 0 || len(tmpl.Data.S3Mounts) > 0 {
+		fmt.Printf("📝 Generating bootstrap script...\n")
+
+		// Generate bootstrap script content
+		scriptContent := p.configGen.GenerateBootstrapScript(tmpl)
+
+		// Upload to S3
+		fmt.Printf("☁️  Uploading bootstrap script to S3...\n")
+		s3Mgr, err := bootstrap.NewS3Manager(ctx, tmpl.Cluster.Region)
+		if err != nil {
+			return fmt.Errorf("failed to create S3 manager: %w", err)
+		}
+
+		bootstrapS3URI, err = s3Mgr.UploadBootstrapScript(ctx, tmpl.Cluster.Name, scriptContent)
+		if err != nil {
+			return fmt.Errorf("failed to upload bootstrap script: %w", err)
+		}
+		fmt.Printf("✅ Bootstrap script uploaded: %s\n", bootstrapS3URI)
+	}
+
 	// Generate ParallelCluster config
 	p.configGen.KeyName = opts.KeyName
 	p.configGen.SubnetID = subnetID
 	p.configGen.CustomAMI = opts.CustomAMI
+	p.configGen.BootstrapScriptS3URI = bootstrapS3URI
 
 	pcConfig, err := p.configGen.Generate(tmpl)
 	if err != nil {
@@ -113,13 +137,14 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 
 	// Create initial state
 	clusterState := &state.ClusterState{
-		Name:         tmpl.Cluster.Name,
-		Region:       tmpl.Cluster.Region,
-		Status:       "CREATE_IN_PROGRESS",
-		StackName:    fmt.Sprintf("pctl-%s", tmpl.Cluster.Name),
-		TemplatePath: opts.TemplatePath,
-		CreatedAt:    time.Now(),
-		CustomAMI:    opts.CustomAMI,
+		Name:                 tmpl.Cluster.Name,
+		Region:               tmpl.Cluster.Region,
+		Status:               "CREATE_IN_PROGRESS",
+		StackName:            fmt.Sprintf("pctl-%s", tmpl.Cluster.Name),
+		TemplatePath:         opts.TemplatePath,
+		CreatedAt:            time.Now(),
+		CustomAMI:            opts.CustomAMI,
+		BootstrapScriptS3URI: bootstrapS3URI,
 	}
 
 	// Store network resources if we created them

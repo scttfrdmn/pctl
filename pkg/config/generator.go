@@ -31,6 +31,8 @@ type Generator struct {
 	SubnetID string
 	// CustomAMI is a custom AMI ID to use instead of default
 	CustomAMI string
+	// BootstrapScriptS3URI is the S3 URI for the bootstrap script
+	BootstrapScriptS3URI string
 }
 
 // NewGenerator creates a new config generator.
@@ -163,12 +165,10 @@ func (g *Generator) buildParallelClusterConfig(tmpl *template.Template) map[stri
 	}
 
 	// Custom bootstrap actions for software installation and user creation
-	if len(tmpl.Software.SpackPackages) > 0 || len(tmpl.Users) > 0 || len(tmpl.Data.S3Mounts) > 0 {
-		// We'll add bootstrap scripts here in a later commit
-		// For now, document what needs to happen
+	if g.BootstrapScriptS3URI != "" {
 		config["HeadNode"].(map[string]interface{})["CustomActions"] = map[string]interface{}{
 			"OnNodeConfigured": map[string]interface{}{
-				"Script": "s3://pctl-bootstrap/install-software.sh",
+				"Script": g.BootstrapScriptS3URI,
 			},
 		}
 	}
