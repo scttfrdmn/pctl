@@ -26,7 +26,8 @@ import (
 )
 
 var (
-	deleteForce bool
+	deleteForce     bool
+	deleteLocalOnly bool
 )
 
 var deleteCmd = &cobra.Command{
@@ -52,6 +53,7 @@ Data in S3 buckets will NOT be deleted.`,
 
 func init() {
 	deleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "skip confirmation prompt")
+	deleteCmd.Flags().BoolVar(&deleteLocalOnly, "local-only", false, "only delete local state (cluster already deleted from AWS)")
 	rootCmd.AddCommand(deleteCmd)
 }
 
@@ -80,6 +82,35 @@ func runDelete(cmd *cobra.Command, args []string) error {
 
 	if !found {
 		return fmt.Errorf("cluster '%s' not found. Use 'pctl list' to see managed clusters", clusterName)
+	}
+
+	// Handle local-only deletion
+	if deleteLocalOnly {
+		fmt.Printf("🗑️  Deleting local state only for cluster: %s\n", clusterName)
+		fmt.Printf("⚠️  WARNING: This will NOT delete AWS resources.\n\n")
+
+		if !deleteForce {
+			fmt.Printf("Type the cluster name to confirm: ")
+			reader := bufio.NewReader(os.Stdin)
+			confirmation, err := reader.ReadString('\n')
+			if err != nil {
+				return fmt.Errorf("failed to read confirmation: %w", err)
+			}
+			confirmation = strings.TrimSpace(confirmation)
+			if confirmation != clusterName {
+				fmt.Printf("\n❌ Deletion cancelled. Cluster name did not match.\n")
+				return nil
+			}
+		}
+
+		// Delete just the local state
+		if err := prov.DeleteLocalState(clusterName); err != nil {
+			return fmt.Errorf("failed to delete local state: %w", err)
+		}
+
+		fmt.Printf("✅ Local state deleted for cluster '%s'.\n", clusterName)
+		fmt.Printf("⚠️  AWS resources (if any) were NOT affected.\n")
+		return nil
 	}
 
 	// Prompt for confirmation if not forced

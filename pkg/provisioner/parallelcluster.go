@@ -52,9 +52,21 @@ func NewProvisioner() (*Provisioner, error) {
 
 // CreateCluster creates a new cluster from a template.
 func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template, opts *CreateOptions) error {
-	// Check if cluster already exists
+	// Check if cluster already exists in AWS (not just local state)
+	awsStatus, err := p.runPClusterDescribe(ctx, tmpl.Cluster.Name, tmpl.Cluster.Region)
+	if err == nil {
+		// Cluster exists in AWS
+		if awsStatus.Status == "CREATE_FAILED" || awsStatus.Status == "DELETE_FAILED" {
+			return fmt.Errorf("cluster %s exists in AWS with status %s\n\nTo retry, first clean up the failed stack:\n  pctl delete %s\n\nOr use AWS CLI directly:\n  pcluster delete-cluster --cluster-name %s --region %s",
+				tmpl.Cluster.Name, awsStatus.Status, tmpl.Cluster.Name, tmpl.Cluster.Name, tmpl.Cluster.Region)
+		}
+		return fmt.Errorf("cluster %s already exists in AWS with status: %s", tmpl.Cluster.Name, awsStatus.Status)
+	}
+
+	// Check if cluster exists in local state
 	if p.stateManager.Exists(tmpl.Cluster.Name) {
-		return fmt.Errorf("cluster %s already exists", tmpl.Cluster.Name)
+		return fmt.Errorf("cluster %s exists in local state but not in AWS\n\nThe cluster may have been deleted outside of pctl. To clean up:\n  rm ~/.pctl/state/%s.json\n\nOr use:\n  pctl delete %s --local-only",
+			tmpl.Cluster.Name, tmpl.Cluster.Name, tmpl.Cluster.Name)
 	}
 
 	// Validate template
@@ -218,6 +230,11 @@ func (p *Provisioner) GetClusterStatus(ctx context.Context, name string) (*Clust
 // ListClusters lists all managed clusters.
 func (p *Provisioner) ListClusters() ([]*state.ClusterState, error) {
 	return p.stateManager.List()
+}
+
+// DeleteLocalState deletes only the local state for a cluster without touching AWS resources.
+func (p *Provisioner) DeleteLocalState(name string) error {
+	return p.stateManager.Delete(name)
 }
 
 func (p *Provisioner) writeConfigFile(name, content string) (string, error) {
