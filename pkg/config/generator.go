@@ -77,12 +77,12 @@ func (g *Generator) buildParallelClusterConfig(tmpl *template.Template) map[stri
 		},
 	}
 
-	// Add Iam configuration for S3 access if there are S3 mounts
-	if len(tmpl.Data.S3Mounts) > 0 {
+	// Add Iam configuration for S3 access if there are S3 mounts or bootstrap script
+	if len(tmpl.Data.S3Mounts) > 0 || g.BootstrapScriptS3URI != "" {
 		headNode["Iam"] = map[string]interface{}{
 			"AdditionalIamPolicies": []map[string]interface{}{
 				{
-					"Policy": "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+					"Policy": "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
 				},
 			},
 		}
@@ -129,12 +129,12 @@ func (g *Generator) buildParallelClusterConfig(tmpl *template.Template) map[stri
 			pcQueue["ComputeResources"] = computeResources
 		}
 
-		// Add IAM for S3 access
-		if len(tmpl.Data.S3Mounts) > 0 {
+		// Add IAM for S3 access if needed for S3 mounts or bootstrap script
+		if len(tmpl.Data.S3Mounts) > 0 || g.BootstrapScriptS3URI != "" {
 			pcQueue["Iam"] = map[string]interface{}{
 				"AdditionalIamPolicies": []map[string]interface{}{
 					{
-						"Policy": "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+						"Policy": "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
 					},
 				},
 			}
