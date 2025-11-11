@@ -27,6 +27,7 @@ import (
 var (
 	createTemplate  string
 	createName      string
+	createRegion    string
 	createKeyName   string
 	createSubnetID  string
 	createCustomAMI string
@@ -59,6 +60,9 @@ and private subnets, internet gateway, route tables, and security groups.`,
   # Create with custom name
   pctl create -t my-cluster.yaml --name production-cluster --key-name my-key
 
+  # Override region from template
+  pctl create -t bioinformatics.yaml --key-name my-key --region us-west-2
+
   # Create with custom AMI
   pctl create -t my-cluster.yaml --key-name my-key --custom-ami ami-0123456789
 
@@ -73,6 +77,7 @@ and private subnets, internet gateway, route tables, and security groups.`,
 func init() {
 	createCmd.Flags().StringVarP(&createTemplate, "template", "t", "", "path to template file (required)")
 	createCmd.Flags().StringVarP(&createName, "name", "n", "", "cluster name (overrides template)")
+	createCmd.Flags().StringVarP(&createRegion, "region", "r", "", "AWS region (overrides template)")
 	createCmd.Flags().StringVarP(&createKeyName, "key-name", "k", "", "EC2 key pair name for SSH access (required)")
 	createCmd.Flags().StringVarP(&createSubnetID, "subnet-id", "s", "", "subnet ID (optional, auto-creates VPC if not provided)")
 	createCmd.Flags().StringVar(&createCustomAMI, "custom-ami", "", "custom AMI ID to use")
@@ -178,6 +183,11 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	// Override cluster name in template if provided
 	if createName != "" {
 		tmpl.Cluster.Name = createName
+	}
+
+	// Override region in template if provided
+	if createRegion != "" {
+		tmpl.Cluster.Region = createRegion
 	}
 
 	// Create cluster
