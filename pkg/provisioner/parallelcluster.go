@@ -144,6 +144,7 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 		TemplatePath:         opts.TemplatePath,
 		CreatedAt:            time.Now(),
 		CustomAMI:            opts.CustomAMI,
+		KeyName:              opts.KeyName,
 		BootstrapScriptS3URI: bootstrapS3URI,
 	}
 
@@ -260,6 +261,11 @@ func (p *Provisioner) ListClusters() ([]*state.ClusterState, error) {
 // DeleteLocalState deletes only the local state for a cluster without touching AWS resources.
 func (p *Provisioner) DeleteLocalState(name string) error {
 	return p.stateManager.Delete(name)
+}
+
+// GetStateManager returns the state manager for direct state access.
+func (p *Provisioner) GetStateManager() (*state.Manager, error) {
+	return p.stateManager, nil
 }
 
 func (p *Provisioner) writeConfigFile(name, content string) (string, error) {

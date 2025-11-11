@@ -51,6 +51,8 @@ type ClusterState struct {
 	PCVersion string `json:"pc_version,omitempty"`
 	// CustomAMI is the custom AMI ID if used
 	CustomAMI string `json:"custom_ami,omitempty"`
+	// KeyName is the EC2 key pair name for SSH access
+	KeyName string `json:"key_name,omitempty"`
 	// Bootstrap script S3 URI
 	BootstrapScriptS3URI string `json:"bootstrap_script_s3_uri,omitempty"`
 	// Network resources (if managed by pctl)
