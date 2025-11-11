@@ -17,6 +17,7 @@ package provisioner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -269,13 +270,25 @@ func (p *Provisioner) runPClusterDescribe(ctx context.Context, name, region stri
 		return nil, fmt.Errorf("pcluster describe-cluster failed: %w: %s", err, output)
 	}
 
-	// TODO: Parse JSON output from pcluster describe-cluster
-	// For now, return basic status
-	return &ClusterStatus{
-		Name:   name,
-		Status: "RUNNING", // Placeholder
-		Region: region,
-	}, nil
+	// Parse JSON output from pcluster describe-cluster
+	var pcResponse pclusterDescribeResponse
+	if err := json.Unmarshal(output, &pcResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse pcluster output: %w", err)
+	}
+
+	status := &ClusterStatus{
+		Name:           name,
+		Status:         pcResponse.ClusterStatus,
+		Region:         region,
+		SchedulerState: pcResponse.ComputeFleetStatus,
+	}
+
+	// Extract head node info if available
+	if pcResponse.HeadNode != nil {
+		status.HeadNodeIP = pcResponse.HeadNode.PublicIPAddress
+	}
+
+	return status, nil
 }
 
 // CreateOptions contains options for cluster creation.
@@ -295,4 +308,20 @@ type ClusterStatus struct {
 	HeadNodeIP     string
 	ComputeNodes   int
 	SchedulerState string
+}
+
+// pclusterDescribeResponse represents the JSON response from pcluster describe-cluster
+type pclusterDescribeResponse struct {
+	ClusterStatus            string            `json:"clusterStatus"`
+	CloudFormationStackStatus string           `json:"cloudFormationStackStatus"`
+	ComputeFleetStatus       string            `json:"computeFleetStatus"`
+	HeadNode                 *pclusterHeadNode `json:"headNode"`
+}
+
+// pclusterHeadNode represents head node information from pcluster
+type pclusterHeadNode struct {
+	PublicIPAddress string `json:"publicIpAddress"`
+	PrivateIPAddress string `json:"privateIpAddress"`
+	InstanceType     string `json:"instanceType"`
+	State            string `json:"state"`
 }
