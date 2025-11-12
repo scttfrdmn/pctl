@@ -363,15 +363,15 @@ type ClusterStatus struct {
 
 // pclusterDescribeResponse represents the JSON response from pcluster describe-cluster
 type pclusterDescribeResponse struct {
-	ClusterStatus            string            `json:"clusterStatus"`
-	CloudFormationStackStatus string           `json:"cloudFormationStackStatus"`
-	ComputeFleetStatus       string            `json:"computeFleetStatus"`
-	HeadNode                 *pclusterHeadNode `json:"headNode"`
+	ClusterStatus             string            `json:"clusterStatus"`
+	CloudFormationStackStatus string            `json:"cloudFormationStackStatus"`
+	ComputeFleetStatus        string            `json:"computeFleetStatus"`
+	HeadNode                  *pclusterHeadNode `json:"headNode"`
 }
 
 // pclusterHeadNode represents head node information from pcluster
 type pclusterHeadNode struct {
-	PublicIPAddress string `json:"publicIpAddress"`
+	PublicIPAddress  string `json:"publicIpAddress"`
 	PrivateIPAddress string `json:"privateIpAddress"`
 	InstanceType     string `json:"instanceType"`
 	State            string `json:"state"`

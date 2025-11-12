@@ -41,7 +41,7 @@ type AMIFingerprint struct {
 func (t *Template) ComputeFingerprint() *AMIFingerprint {
 	// Default versions from pkg/software
 	const (
-		defaultBaseOS      = "amazonlinux2"
+		defaultBaseOS       = "amazonlinux2"
 		defaultSpackVersion = "releases/latest"
 		defaultLmodVersion  = "8.7.37"
 	)
@@ -109,11 +109,11 @@ func (fp *AMIFingerprint) TagValue() string {
 // Tags returns a map of all tags to apply to the AMI.
 func (fp *AMIFingerprint) Tags() map[string]string {
 	tags := map[string]string{
-		"pctl:fingerprint":    fp.Hash,
-		"pctl:base-os":        fp.BaseOS,
-		"pctl:spack-version":  fp.SpackVersion,
-		"pctl:lmod-version":   fp.LmodVersion,
-		"pctl:created-by":     "pctl",
+		"pctl:fingerprint":   fp.Hash,
+		"pctl:base-os":       fp.BaseOS,
+		"pctl:spack-version": fp.SpackVersion,
+		"pctl:lmod-version":  fp.LmodVersion,
+		"pctl:created-by":    "pctl",
 	}
 
 	// Add package count

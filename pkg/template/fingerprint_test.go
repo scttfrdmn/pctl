@@ -20,9 +20,9 @@ import (
 
 func TestComputeFingerprint(t *testing.T) {
 	tests := []struct {
-		name     string
-		template *Template
-		wantOS   string
+		name      string
+		template  *Template
+		wantOS    string
 		wantSpack string
 		wantLmod  string
 		wantPkgs  int
