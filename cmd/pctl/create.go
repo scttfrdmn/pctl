@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/scttfrdmn/pctl/pkg/ami"
 	"github.com/scttfrdmn/pctl/pkg/provisioner"
 	"github.com/scttfrdmn/pctl/pkg/template"
 	"github.com/spf13/cobra"
@@ -32,7 +33,9 @@ var (
 	createSubnetID  string
 	createCustomAMI string
 	createWait      bool
+	rebuildAMI      bool
 	dryRun          bool
+	forceBootstrap  bool
 )
 
 var createCmd = &cobra.Command{
@@ -82,7 +85,9 @@ func init() {
 	createCmd.Flags().StringVarP(&createSubnetID, "subnet-id", "s", "", "subnet ID (optional, auto-creates VPC if not provided)")
 	createCmd.Flags().StringVar(&createCustomAMI, "custom-ami", "", "custom AMI ID to use")
 	createCmd.Flags().BoolVar(&createWait, "wait", false, "wait for cluster creation to complete")
+	createCmd.Flags().BoolVar(&rebuildAMI, "rebuild-ami", false, "force rebuild of AMI even if cached version exists")
 	createCmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate and show plan without creating")
+	createCmd.Flags().BoolVar(&forceBootstrap, "force-bootstrap", false, "bypass AMI requirement and use bootstrap scripts (not recommended for production)")
 	createCmd.MarkFlagRequired("template")
 	rootCmd.AddCommand(createCmd)
 }
@@ -162,6 +167,80 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("📍 Using existing subnet: %s\n", createSubnetID)
 	} else {
 		fmt.Printf("📍 Will auto-create VPC and networking\n")
+	}
+
+	// Override region in template if provided (needed for AMI lookup)
+	region := tmpl.Cluster.Region
+	if createRegion != "" {
+		region = createRegion
+	}
+
+	// AMI lookup/building logic
+	if createCustomAMI == "" && len(tmpl.Software.SpackPackages) > 0 {
+		fmt.Printf("\n🔍 Checking for existing AMI with required software...\n")
+
+		// Compute template fingerprint
+		fingerprint := tmpl.ComputeFingerprint()
+		if verbose {
+			fmt.Printf("Template fingerprint: %s\n", fingerprint.String())
+			fmt.Printf("Fingerprint hash: %s\n", fingerprint.Hash)
+		}
+
+		// Create AMI manager
+		ctx := context.Background()
+		amiManager, err := ami.NewManager(ctx, region)
+		if err != nil {
+			return fmt.Errorf("failed to create AMI manager: %w", err)
+		}
+
+		// Check for existing AMI (skip cache if rebuild flag is set)
+		var amiID string
+		if rebuildAMI {
+			fmt.Printf("⚙️  Skipping cache lookup (--rebuild-ami flag set)\n")
+		} else {
+			amiID, err = amiManager.FindAMIByFingerprint(ctx, fingerprint)
+			if err != nil {
+				return fmt.Errorf("failed to lookup AMI: %w", err)
+			}
+
+			if amiID != "" {
+				fmt.Printf("✅ Found existing AMI: %s\n", amiID)
+				fmt.Printf("   Using cached AMI with pre-installed software\n")
+				createCustomAMI = amiID
+			}
+		}
+
+		// Build new AMI if not found or rebuild requested
+		if amiID == "" {
+			// Generate AMI name from fingerprint
+			amiName := fmt.Sprintf("pctl-%s", fingerprint.String())
+
+			fmt.Printf("\n❌ No AMI found for this software configuration\n\n")
+			fmt.Printf("pctl requires a custom AMI with pre-installed software for fast cluster creation.\n\n")
+			fmt.Printf("Why AMIs are required:\n")
+			fmt.Printf("  • Without AMI: EVERY cluster takes 30-90 minutes (slow every time)\n")
+			fmt.Printf("  • With AMI: Build once (30-90 min), then every cluster is 3-5 minutes\n")
+			fmt.Printf("  • Production-ready: Software pre-installed, tested, and ready to use\n\n")
+
+			fmt.Printf("Build an AMI for this template:\n")
+			fmt.Printf("  pctl ami build -t %s --name %s --detach\n\n", createTemplate, amiName)
+
+			fmt.Printf("The AMI will build in the background (~30-90 minutes). Monitor with:\n")
+			fmt.Printf("  pctl ami status %s\n\n", amiName)
+
+			if !forceBootstrap {
+				fmt.Printf("To bypass this check (not recommended for production):\n")
+				fmt.Printf("  pctl create -t %s --key-name %s --force-bootstrap\n\n", createTemplate, createKeyName)
+				return fmt.Errorf("AMI required for software packages - build AMI first or use --force-bootstrap")
+			}
+
+			// forceBootstrap is set - allow continuing with bootstrap scripts
+			fmt.Printf("⚠️  WARNING: Using --force-bootstrap\n")
+			fmt.Printf("   This cluster will take 30-90 minutes to be ready.\n")
+			fmt.Printf("   Not recommended for production use.\n\n")
+		}
+	} else if createCustomAMI != "" {
+		fmt.Printf("📀 Using custom AMI: %s\n", createCustomAMI)
 	}
 
 	// Create provisioner
