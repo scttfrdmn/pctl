@@ -45,14 +45,18 @@ Data in S3 buckets will NOT be deleted.`,
 	Example: `  # Delete a cluster (with confirmation)
   pctl delete my-cluster
 
-  # Force delete without confirmation
-  pctl delete my-cluster --force`,
+  # Skip confirmation prompt
+  pctl delete my-cluster --force
+  pctl delete my-cluster -f
+  pctl delete my-cluster --yes
+  pctl delete my-cluster -y`,
 	Args: cobra.ExactArgs(1),
 	RunE: runDelete,
 }
 
 func init() {
 	deleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "skip confirmation prompt")
+	deleteCmd.Flags().BoolVarP(&deleteForce, "yes", "y", false, "skip confirmation prompt (alias for --force)")
 	deleteCmd.Flags().BoolVar(&deleteLocalOnly, "local-only", false, "only delete local state (cluster already deleted from AWS)")
 	rootCmd.AddCommand(deleteCmd)
 }

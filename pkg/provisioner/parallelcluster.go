@@ -96,8 +96,9 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 	}
 
 	// Generate and upload bootstrap script if needed
+	// Skip if CustomAMI is provided (software pre-installed in AMI)
 	var bootstrapS3URI string
-	if len(tmpl.Software.SpackPackages) > 0 || len(tmpl.Users) > 0 || len(tmpl.Data.S3Mounts) > 0 {
+	if opts.CustomAMI == "" && (len(tmpl.Software.SpackPackages) > 0 || len(tmpl.Users) > 0 || len(tmpl.Data.S3Mounts) > 0) {
 		fmt.Printf("📝 Generating bootstrap script...\n")
 
 		// Generate bootstrap script content
@@ -115,6 +116,8 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 			return fmt.Errorf("failed to upload bootstrap script: %w", err)
 		}
 		fmt.Printf("✅ Bootstrap script uploaded: %s\n", bootstrapS3URI)
+	} else if opts.CustomAMI != "" {
+		fmt.Printf("📀 Using custom AMI with pre-installed software (skipping bootstrap)\n")
 	}
 
 	// Generate ParallelCluster config
