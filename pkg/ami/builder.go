@@ -255,14 +255,23 @@ func DefaultBuildOptions() *BuildOptions {
 }
 
 func (b *Builder) launchBuildInstance(ctx context.Context, tmpl *template.Template, opts *BuildOptions) (string, error) {
+	// Determine architecture from the instance type
+	// Use the template's head_node instance type, or fall back to opts.InstanceType
+	instanceType := opts.InstanceType
+	if tmpl.Compute.HeadNode != "" {
+		instanceType = tmpl.Compute.HeadNode
+	}
+	architecture := getInstanceTypeArchitecture(instanceType)
+
 	// Get base AMI if not specified
 	baseAMI := opts.BaseAMI
 	if baseAMI == "" {
 		var err error
-		baseAMI, err = b.getLatestParallelClusterAMI(ctx)
+		baseAMI, err = b.getLatestParallelClusterAMI(ctx, architecture)
 		if err != nil {
-			return "", fmt.Errorf("failed to get base AMI: %w", err)
+			return "", fmt.Errorf("failed to get base AMI for architecture %s: %w", architecture, err)
 		}
+		fmt.Printf("   Using base AMI %s (%s architecture)\n", baseAMI, architecture)
 	}
 
 	// Generate user data script for software installation
@@ -515,8 +524,8 @@ func (b *Builder) terminateInstance(ctx context.Context, instanceID string) erro
 	return err
 }
 
-func (b *Builder) getLatestParallelClusterAMI(ctx context.Context) (string, error) {
-	// Query for AWS ParallelCluster AMIs
+func (b *Builder) getLatestParallelClusterAMI(ctx context.Context, architecture string) (string, error) {
+	// Query for AWS ParallelCluster AMIs with matching architecture
 	// This is a simplified version - in production, query AWS Systems Manager Parameter Store
 	result, err := b.ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 		Owners: []string{"amazon"},
@@ -528,6 +537,10 @@ func (b *Builder) getLatestParallelClusterAMI(ctx context.Context) (string, erro
 			{
 				Name:   aws.String("state"),
 				Values: []string{"available"},
+			},
+			{
+				Name:   aws.String("architecture"),
+				Values: []string{architecture},
 			},
 		},
 	})
@@ -551,4 +564,49 @@ func (b *Builder) getLatestParallelClusterAMI(ctx context.Context) (string, erro
 	}
 
 	return *latest.ImageId, nil
+}
+
+// getInstanceTypeArchitecture determines the CPU architecture for an instance type.
+// This allows AMI building to work correctly from any host (e.g., Mac ARM building x86 AMIs).
+func getInstanceTypeArchitecture(instanceType string) string {
+	// Extract instance family (e.g., "t3", "c5", "m6g")
+	// ARM instance families end with 'g' or 'gd' (Graviton)
+	// Examples: t4g, m6g, c6gd, r6gd
+
+	// Common ARM (Graviton) prefixes
+	armFamilies := map[string]bool{
+		"t4g":   true,
+		"m6g":   true,
+		"m6gd":  true,
+		"m7g":   true,
+		"m7gd":  true,
+		"c6g":   true,
+		"c6gd":  true,
+		"c6gn":  true,
+		"c7g":   true,
+		"c7gd":  true,
+		"c7gn":  true,
+		"r6g":   true,
+		"r6gd":  true,
+		"r7g":   true,
+		"r7gd":  true,
+		"x2gd":  true,
+		"im4gn": true,
+		"is4gen": true,
+	}
+
+	// Extract family from instance type (e.g., "t3.large" -> "t3")
+	parts := strings.Split(instanceType, ".")
+	if len(parts) < 2 {
+		// Default to x86_64 if we can't parse
+		return "x86_64"
+	}
+
+	family := parts[0]
+	if armFamilies[family] {
+		return "arm64"
+	}
+
+	// Default to x86_64 for all other instance types
+	return "x86_64"
 }
