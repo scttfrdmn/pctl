@@ -65,6 +65,8 @@ func (l *LmodInstaller) GenerateInstallScript() string {
 
 	// Install prerequisites
 	script.WriteString("echo \"Installing Lmod prerequisites...\"\n")
+	script.WriteString("# Remove lua53-devel to avoid conflict with lua-devel\n")
+	script.WriteString("yum remove -y lua53-devel || true\n")
 	script.WriteString("yum install -y lua lua-devel lua-filesystem lua-posix lua-json \\\n")
 	script.WriteString("  tcl tcl-devel\n")
 	script.WriteString("# Verify lua-posix is installed\n")

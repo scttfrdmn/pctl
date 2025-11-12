@@ -291,7 +291,7 @@ func (b *Builder) launchBuildInstance(ctx context.Context, tmpl *template.Templa
 	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
 
 	// Launch instance
-	runResult, err := b.ec2Client.RunInstances(ctx, &ec2.RunInstancesInput{
+	runInput := &ec2.RunInstancesInput{
 		ImageId:      aws.String(baseAMI),
 		InstanceType: types.InstanceType(opts.InstanceType),
 		MinCount:     aws.Int32(1),
@@ -315,7 +315,14 @@ func (b *Builder) launchBuildInstance(ctx context.Context, tmpl *template.Templa
 				DeleteOnTermination:      aws.Bool(true),
 			},
 		},
-	})
+	}
+
+	// Add SSH key if specified
+	if opts.KeyName != "" {
+		runInput.KeyName = aws.String(opts.KeyName)
+	}
+
+	runResult, err := b.ec2Client.RunInstances(ctx, runInput)
 
 	if err != nil {
 		return "", err
