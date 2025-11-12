@@ -36,7 +36,7 @@ type SpackConfig struct {
 func DefaultSpackConfig() *SpackConfig {
 	return &SpackConfig{
 		InstallPath: "/opt/spack",
-		Version:     "releases/latest",
+		Version:     "v0.23.0",
 		CompilerPackages: []string{
 			"gcc@11.3.0",
 		},
@@ -94,7 +94,7 @@ func (s *SpackInstaller) GenerateInstallScript() string {
 	// Configure AWS Spack buildcache
 	script.WriteString("# Configure AWS Spack buildcache for faster installations\n")
 	script.WriteString("echo \"Configuring AWS Spack buildcache...\"\n")
-	script.WriteString("spack mirror add --scope site aws-binaries https://binaries.spack.io/releases/v0.21 || true\n")
+	script.WriteString("spack mirror add --scope site aws-binaries https://binaries.spack.io/releases/v0.23 || true\n")
 	script.WriteString("spack buildcache keys --install --trust || true\n")
 	script.WriteString("spack config add \"config:install_tree:padded_length:128\" || true\n\n")
 
@@ -168,8 +168,7 @@ func (s *SpackInstaller) GeneratePackageInstallScript(packages []string) string 
 			progress := baseProgress + (currentPackage * (80 - baseProgress) / totalPackages)
 			script.WriteString(fmt.Sprintf("echo \"PCTL_PROGRESS: Installing compiler %s (%d/%d packages, %d%%)\"\n",
 				compiler, currentPackage, totalPackages, progress))
-			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=only,package:always %s || \\\n", compiler))
-			script.WriteString(fmt.Sprintf("  spack install --fail-fast %s || \\\n", compiler))
+			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=auto %s || \\\n", compiler))
 			script.WriteString(fmt.Sprintf("  echo \"Warning: Failed to install %s\"\n", compiler))
 		}
 		script.WriteString("spack compiler find || true\n\n")
@@ -186,8 +185,7 @@ func (s *SpackInstaller) GeneratePackageInstallScript(packages []string) string 
 			progress := baseProgress + (currentPackage * (80 - baseProgress) / totalPackages)
 			script.WriteString(fmt.Sprintf("echo \"PCTL_PROGRESS: Installing %s (%d/%d packages, %d%%)\"\n",
 				pkg, currentPackage, totalPackages, progress))
-			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=only,package:always %s || \\\n", pkg))
-			script.WriteString(fmt.Sprintf("  spack install --fail-fast %s || \\\n", pkg))
+			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=auto %s || \\\n", pkg))
 			script.WriteString(fmt.Sprintf("  echo \"Warning: Failed to install %s\"\n", pkg))
 		}
 	}
