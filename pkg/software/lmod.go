@@ -66,7 +66,14 @@ func (l *LmodInstaller) GenerateInstallScript() string {
 	// Install prerequisites
 	script.WriteString("echo \"Installing Lmod prerequisites...\"\n")
 	script.WriteString("yum install -y lua lua-devel lua-filesystem lua-posix lua-json \\\n")
-	script.WriteString("  tcl tcl-devel || true\n\n")
+	script.WriteString("  tcl tcl-devel\n")
+	script.WriteString("# Verify lua-posix is installed\n")
+	script.WriteString("lua -e 'require(\"posix\")' 2>/dev/null || {\n")
+	script.WriteString("  echo \"ERROR: lua-posix not properly installed\"\n")
+	script.WriteString("  yum list installed | grep lua\n")
+	script.WriteString("  exit 1\n")
+	script.WriteString("}\n")
+	script.WriteString("echo \"lua-posix verified successfully\"\n\n")
 
 	// Download and install Lmod
 	script.WriteString(fmt.Sprintf("echo \"Installing Lmod %s...\"\n", l.config.Version))

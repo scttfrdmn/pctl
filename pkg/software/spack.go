@@ -38,7 +38,7 @@ func DefaultSpackConfig() *SpackConfig {
 		InstallPath: "/opt/spack",
 		Version:     "v0.23.0",
 		CompilerPackages: []string{
-			"gcc@11.3.0",
+			"gcc@11.3.0~docs",
 		},
 	}
 }
