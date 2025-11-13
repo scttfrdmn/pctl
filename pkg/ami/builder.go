@@ -247,7 +247,7 @@ type BuildOptions struct {
 func DefaultBuildOptions() *BuildOptions {
 	return &BuildOptions{
 		InstanceType: "t3.xlarge",
-		WaitTimeout:  90 * time.Minute,
+		WaitTimeout:  4 * time.Hour, // 4 hours - generous timeout for Spack builds
 		Tags: map[string]string{
 			"ManagedBy": "pctl",
 		},
