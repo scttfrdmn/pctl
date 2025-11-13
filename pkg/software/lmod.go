@@ -155,7 +155,7 @@ func (l *LmodInstaller) GenerateSpackIntegrationScript() string {
 
 	// Generate modules from installed packages
 	script.WriteString("echo \"Generating Lmod modules for installed Spack packages...\"\n")
-	script.WriteString("spack module lmod refresh --delete-tree -y --yes-to-all\n\n")
+	script.WriteString("spack module lmod refresh --delete-tree -y --latest\n\n")
 
 	// Link Spack modules to system module path
 	spackModulePath := fmt.Sprintf("%s/share/spack/lmod", l.config.SpackRoot)
