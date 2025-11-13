@@ -132,7 +132,7 @@ func init() {
 	buildAMICmd.Flags().StringVar(&amiDescription, "description", "", "AMI description")
 	buildAMICmd.Flags().StringVar(&amiSubnetID, "subnet-id", "", "subnet ID for build instance (required)")
 	buildAMICmd.Flags().StringVar(&amiKeyName, "key-name", "", "EC2 key pair name for SSH access (optional)")
-	buildAMICmd.Flags().IntVar(&amiTimeout, "timeout", 90, "timeout in minutes for software installation")
+	buildAMICmd.Flags().IntVar(&amiTimeout, "timeout", 480, "timeout in minutes for software installation (default: 8 hours)")
 	buildAMICmd.Flags().BoolVar(&amiSkipCleanup, "no-cleanup", false, "skip automatic cleanup before AMI creation (not recommended)")
 	buildAMICmd.Flags().BoolVar(&amiDetach, "detach", false, "start build and exit immediately (build continues in AWS)")
 
