@@ -143,19 +143,19 @@ func (l *LmodInstaller) GenerateSpackIntegrationScript() string {
 	script.WriteString("        - 'gcc@7.5.0'\n")
 	script.WriteString("      hierarchy:\n")
 	script.WriteString("        - mpi\n")
-	script.WriteString("      hash_length: 0\n")
+	script.WriteString("      hash_length: 7\n")
 	script.WriteString("      all:\n")
 	script.WriteString("        environment:\n")
 	script.WriteString("          set:\n")
 	script.WriteString("            '{name}_ROOT': '{prefix}'\n")
 	script.WriteString("      projections:\n")
-	script.WriteString("        all: '{name}/{version}'\n")
-	script.WriteString("        ^mpi: '{name}/{version}-{^mpi.name}-{^mpi.version}'\n")
+	script.WriteString("        all: '{name}/{version}-{hash:7}'\n")
+	script.WriteString("        ^mpi: '{name}/{version}-{^mpi.name}-{^mpi.version}-{hash:7}'\n")
 	script.WriteString("EOF\n\n")
 
 	// Generate modules from installed packages
 	script.WriteString("echo \"Generating Lmod modules for installed Spack packages...\"\n")
-	script.WriteString("spack module lmod refresh --delete-tree -y --latest\n\n")
+	script.WriteString("spack module lmod refresh --delete-tree -y\n\n")
 
 	// Link Spack modules to system module path
 	spackModulePath := fmt.Sprintf("%s/share/spack/lmod", l.config.SpackRoot)
