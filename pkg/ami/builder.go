@@ -446,6 +446,7 @@ func extractProgressPercentage(message string) int {
 func (b *Builder) getConsoleProgress(ctx context.Context, instanceID string) (string, error) {
 	output, err := b.ec2Client.GetConsoleOutput(ctx, &ec2.GetConsoleOutputInput{
 		InstanceId: aws.String(instanceID),
+		Latest:     aws.Bool(true), // Force retrieval of most recent console output
 	})
 	if err != nil {
 		return "", err
