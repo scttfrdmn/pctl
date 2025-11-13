@@ -520,9 +520,10 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, tmpl *templa
 
 func (b *Builder) waitForAMIAvailable(ctx context.Context, amiID string) error {
 	waiter := ec2.NewImageAvailableWaiter(b.ec2Client)
+	// Increase timeout to 60 minutes for large AMIs (EBS snapshot can take 30-45 min for 40-50GB volumes)
 	return waiter.Wait(ctx, &ec2.DescribeImagesInput{
 		ImageIds: []string{amiID},
-	}, 15*time.Minute)
+	}, 60*time.Minute)
 }
 
 func (b *Builder) terminateInstance(ctx context.Context, instanceID string) error {
