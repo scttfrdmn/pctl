@@ -53,6 +53,28 @@ func (m *Manager) GenerateBootstrapScript(tmpl *template.Template, includeUsers,
 	script.WriteString("exec 1> >(logger -s -t pctl-bootstrap) 2>&1\n")
 	script.WriteString("echo \"Starting pctl bootstrap at $(date)\"\n\n")
 
+	// Add progress tagging helper function
+	script.WriteString("# Helper function to update progress tag\n")
+	script.WriteString("update_progress_tag() {\n")
+	script.WriteString("  local message=\"$1\"\n")
+	script.WriteString("  local percent=\"$2\"\n")
+	script.WriteString("  \n")
+	script.WriteString("  # Get instance ID and region from metadata\n")
+	script.WriteString("  INSTANCE_ID=$(ec2-metadata --instance-id | cut -d ' ' -f 2)\n")
+	script.WriteString("  REGION=$(ec2-metadata --availability-zone | cut -d ' ' -f 2 | sed 's/[a-z]$//')\n")
+	script.WriteString("  \n")
+	script.WriteString("  # Update tag (don't fail build if tagging fails)\n")
+	script.WriteString("  aws ec2 create-tags --resources \"$INSTANCE_ID\" --region \"$REGION\" \\\n")
+	script.WriteString("    --tags \"Key=pctl-progress,Value=${percent}% - ${message}\" 2>/dev/null || \\\n")
+	script.WriteString("    echo \"Warning: Failed to update progress tag\"\n")
+	script.WriteString("  \n")
+	script.WriteString("  # Also echo for console output\n")
+	script.WriteString("  echo \"PCTL_PROGRESS: ${message} (${percent}%)\"\n")
+	script.WriteString("}\n\n")
+
+	script.WriteString("# Initialize progress\n")
+	script.WriteString("update_progress_tag \"Bootstrap started\" 0\n\n")
+
 	// User creation
 	if includeUsers && len(tmpl.Users) > 0 {
 		script.WriteString("#" + strings.Repeat("=", 78) + "\n")
@@ -92,32 +114,41 @@ func (m *Manager) GenerateBootstrapScript(tmpl *template.Template, includeUsers,
 		script.WriteString("#" + strings.Repeat("=", 78) + "\n\n")
 
 		// Install Spack
-		script.WriteString("echo \"PCTL_PROGRESS: Installing Spack package manager (10%)\"\n")
+		script.WriteString("update_progress_tag \"Installing Spack package manager\" 10\n")
 		script.WriteString("# Install Spack\n")
 		script.WriteString(m.spackInstaller.GenerateInstallScript())
 		script.WriteString("\n")
 
 		// Install Lmod
-		script.WriteString("echo \"PCTL_PROGRESS: Installing Lmod module system (15%)\"\n")
+		script.WriteString("update_progress_tag \"Installing Lmod module system\" 15\n")
 		script.WriteString("# Install Lmod\n")
 		script.WriteString(m.lmodInstaller.GenerateInstallScript())
 		script.WriteString("\n")
 
 		// Install packages
-		script.WriteString("echo \"PCTL_PROGRESS: Starting package installation (20%)\"\n")
+		script.WriteString("update_progress_tag \"Starting package installation\" 20\n")
 		script.WriteString("# Install Spack packages\n")
 		script.WriteString(m.spackInstaller.GeneratePackageInstallScript(tmpl.Software.SpackPackages))
 		script.WriteString("\n")
 
 		// Integrate Spack with Lmod
-		script.WriteString("echo \"PCTL_PROGRESS: Integrating Spack with Lmod (85%)\"\n")
+		script.WriteString("update_progress_tag \"Integrating Spack with Lmod\" 85\n")
 		script.WriteString("# Integrate Spack with Lmod\n")
 		script.WriteString(m.lmodInstaller.GenerateSpackIntegrationScript())
 		script.WriteString("\n")
+
+		// Mark completion at 100%
+		script.WriteString("update_progress_tag \"Finalizing installation\" 95\n")
+		script.WriteString("echo \"Flushing data to disk...\"\n")
+		script.WriteString("sync\n")
+		script.WriteString("sleep 2\n")
+		script.WriteString("sync\n\n")
 	}
 
+	script.WriteString("update_progress_tag \"Installation complete\" 100\n")
 	script.WriteString("echo \"Bootstrap complete at $(date)\"\n")
 	script.WriteString("echo \"Cluster is ready for use!\"\n")
+	script.WriteString("sync\n") // Final sync to ensure all data is written
 
 	return script.String()
 }

@@ -18,7 +18,10 @@ package ami
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -26,6 +29,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/schollz/progressbar/v3"
 	"github.com/scttfrdmn/pctl/pkg/software"
 	"github.com/scttfrdmn/pctl/pkg/template"
@@ -54,6 +59,7 @@ type AMIMetadata struct {
 // Builder builds custom AMIs with pre-installed software.
 type Builder struct {
 	ec2Client    *ec2.Client
+	iamClient    *iam.Client
 	region       string
 	stateManager *StateManager
 }
@@ -72,6 +78,7 @@ func NewBuilder(ctx context.Context, region string) (*Builder, error) {
 
 	return &Builder{
 		ec2Client:    ec2.NewFromConfig(cfg),
+		iamClient:    iam.NewFromConfig(cfg),
 		region:       region,
 		stateManager: stateManager,
 	}, nil
@@ -290,6 +297,13 @@ func (b *Builder) launchBuildInstance(ctx context.Context, tmpl *template.Templa
 	// Base64 encode user data
 	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
 
+	// Ensure IAM instance profile exists for tag-based progress monitoring
+	fmt.Printf("   Setting up IAM permissions for progress monitoring...\n")
+	instanceProfileArn, err := b.ensureIAMInstanceProfile(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to setup IAM instance profile: %w", err)
+	}
+
 	// Launch instance
 	runInput := &ec2.RunInstancesInput{
 		ImageId:      aws.String(baseAMI),
@@ -297,6 +311,9 @@ func (b *Builder) launchBuildInstance(ctx context.Context, tmpl *template.Templa
 		MinCount:     aws.Int32(1),
 		MaxCount:     aws.Int32(1),
 		UserData:     aws.String(userDataEncoded),
+		IamInstanceProfile: &types.IamInstanceProfileSpecification{
+			Arn: aws.String(instanceProfileArn),
+		},
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeInstance,
@@ -412,11 +429,22 @@ func (b *Builder) waitForSoftwareInstallation(ctx context.Context, instanceID, b
 					lastProgressInt = progressInt
 				}
 
-				// If we see cleanup complete (95%), we're almost done
-				if strings.Contains(progress, "95%") || strings.Contains(progress, "cleanup complete") {
+				// Wait for explicit 100% completion marker
+				if strings.Contains(progress, "100%") || strings.Contains(progress, "Installation complete") {
 					bar.Add(100 - lastProgressInt) // Complete the bar
-					// Give it another minute for final steps
-					time.Sleep(1 * time.Minute)
+					fmt.Println("\n   ✅ Installation complete, verifying via SSH...")
+
+					// Verify completion via SSH (more reliable than arbitrary wait)
+					if opts.KeyName != "" {
+						if b.verifyCloudInitComplete(ctx, instanceID, opts.KeyName) {
+							fmt.Println("   ✅ Cloud-init confirmed complete via SSH")
+							return nil
+						}
+					}
+
+					// Fallback: short wait if SSH unavailable
+					fmt.Println("   ⏳ Waiting 2 minutes for final sync...")
+					time.Sleep(2 * time.Minute)
 					return nil
 				}
 			}
@@ -442,11 +470,57 @@ func extractProgressPercentage(message string) int {
 	return 0
 }
 
-// getConsoleProgress retrieves and parses progress markers from EC2 console output.
+// getConsoleProgress retrieves progress from EC2 instance tags (primary) with console output fallback.
 func (b *Builder) getConsoleProgress(ctx context.Context, instanceID string) (string, error) {
+	// Primary: Try to get progress from instance tag (more reliable, no caching issues)
+	tagProgress, tagErr := b.getTagProgress(ctx, instanceID)
+	if tagErr == nil && tagProgress != "" {
+		return tagProgress, nil
+	}
+
+	// Fallback: Try console output (may be stale but better than nothing)
+	consoleProgress, consoleErr := b.getConsoleProgressFromOutput(ctx, instanceID)
+	if consoleErr == nil && consoleProgress != "" {
+		return consoleProgress, nil
+	}
+
+	// Return the more informative error
+	if tagErr != nil {
+		return "", tagErr
+	}
+	return "", consoleErr
+}
+
+// getTagProgress retrieves progress from the pctl-progress EC2 instance tag.
+func (b *Builder) getTagProgress(ctx context.Context, instanceID string) (string, error) {
+	result, err := b.ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return "", fmt.Errorf("instance not found")
+	}
+
+	instance := result.Reservations[0].Instances[0]
+
+	// Find the pctl-progress tag
+	for _, tag := range instance.Tags {
+		if tag.Key != nil && *tag.Key == "pctl-progress" && tag.Value != nil {
+			return *tag.Value, nil
+		}
+	}
+
+	return "", nil // No progress tag found yet
+}
+
+// getConsoleProgressFromOutput retrieves progress markers from EC2 console output (fallback).
+func (b *Builder) getConsoleProgressFromOutput(ctx context.Context, instanceID string) (string, error) {
 	output, err := b.ec2Client.GetConsoleOutput(ctx, &ec2.GetConsoleOutputInput{
 		InstanceId: aws.String(instanceID),
-		Latest:     aws.Bool(true), // Force retrieval of most recent console output
+		Latest:     aws.Bool(true),
 	})
 	if err != nil {
 		return "", err
@@ -478,6 +552,59 @@ func (b *Builder) getConsoleProgress(ctx context.Context, instanceID string) (st
 	}
 
 	return lastProgress, nil
+}
+
+// getInstancePublicIP retrieves the public IP address of an EC2 instance.
+func (b *Builder) getInstancePublicIP(ctx context.Context, instanceID string) (string, error) {
+	result, err := b.ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return "", fmt.Errorf("instance %s not found", instanceID)
+	}
+
+	instance := result.Reservations[0].Instances[0]
+	if instance.PublicIpAddress == nil {
+		return "", fmt.Errorf("instance %s has no public IP", instanceID)
+	}
+
+	return *instance.PublicIpAddress, nil
+}
+
+// verifyCloudInitComplete checks if cloud-init has finished via SSH.
+// Returns true if cloud-init is complete, false otherwise.
+func (b *Builder) verifyCloudInitComplete(ctx context.Context, instanceID, keyName string) bool {
+	// Get instance public IP
+	ip, err := b.getInstancePublicIP(ctx, instanceID)
+	if err != nil {
+		return false
+	}
+
+	// Construct SSH command to check cloud-init status
+	keyPath := fmt.Sprintf("%s/.ssh/%s.pem", os.Getenv("HOME"), keyName)
+	cmd := exec.CommandContext(ctx,
+		"ssh",
+		"-i", keyPath,
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "ConnectTimeout=10",
+		"-o", "LogLevel=ERROR",
+		fmt.Sprintf("ec2-user@%s", ip),
+		"cloud-init status --wait --long 2>/dev/null && echo COMPLETE || echo RUNNING",
+	)
+
+	// Execute SSH command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false
+	}
+
+	// Check if cloud-init is complete
+	return strings.Contains(string(output), "status: done") || strings.Contains(string(output), "COMPLETE")
 }
 
 func (b *Builder) stopInstance(ctx context.Context, instanceID string) error {
@@ -618,4 +745,127 @@ func getInstanceTypeArchitecture(instanceType string) string {
 
 	// Default to x86_64 for all other instance types
 	return "x86_64"
+}
+
+// ensureIAMInstanceProfile ensures the IAM role and instance profile exist for AMI builder instances.
+// Returns the instance profile ARN if successful.
+func (b *Builder) ensureIAMInstanceProfile(ctx context.Context) (string, error) {
+	roleName := "pctl-ami-builder-role"
+	profileName := "pctl-ami-builder-profile"
+	var profileArn string
+
+	// Check if role exists
+	_, err := b.iamClient.GetRole(ctx, &iam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	})
+
+	if err != nil {
+		// Role doesn't exist, create it
+		trustPolicy := map[string]interface{}{
+			"Version": "2012-10-17",
+			"Statement": []map[string]interface{}{
+				{
+					"Effect": "Allow",
+					"Principal": map[string]string{
+						"Service": "ec2.amazonaws.com",
+					},
+					"Action": "sts:AssumeRole",
+				},
+			},
+		}
+
+		trustPolicyJSON, err := json.Marshal(trustPolicy)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal trust policy: %w", err)
+		}
+
+		fmt.Printf("   Creating IAM role: %s\n", roleName)
+		_, err = b.iamClient.CreateRole(ctx, &iam.CreateRoleInput{
+			RoleName:                 aws.String(roleName),
+			AssumeRolePolicyDocument: aws.String(string(trustPolicyJSON)),
+			Description:              aws.String("IAM role for pctl AMI builder instances to create progress tags"),
+			Tags: []iamtypes.Tag{
+				{Key: aws.String("ManagedBy"), Value: aws.String("pctl")},
+				{Key: aws.String("Purpose"), Value: aws.String("AMI-Builder")},
+			},
+		})
+
+		if err != nil {
+			return "", fmt.Errorf("failed to create IAM role: %w", err)
+		}
+
+		// Create and attach inline policy for EC2 tag creation
+		policyDocument := map[string]interface{}{
+			"Version": "2012-10-17",
+			"Statement": []map[string]interface{}{
+				{
+					"Effect": "Allow",
+					"Action": []string{
+						"ec2:CreateTags",
+						"ec2:DescribeTags",
+					},
+					"Resource": "*",
+				},
+			},
+		}
+
+		policyJSON, err := json.Marshal(policyDocument)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal policy document: %w", err)
+		}
+
+		_, err = b.iamClient.PutRolePolicy(ctx, &iam.PutRolePolicyInput{
+			RoleName:       aws.String(roleName),
+			PolicyName:     aws.String("pctl-ami-builder-tags-policy"),
+			PolicyDocument: aws.String(string(policyJSON)),
+		})
+
+		if err != nil {
+			return "", fmt.Errorf("failed to attach policy to role: %w", err)
+		}
+
+		fmt.Printf("   IAM role created successfully\n")
+	}
+
+	// Check if instance profile exists
+	getProfileOutput, err := b.iamClient.GetInstanceProfile(ctx, &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(profileName),
+	})
+
+	if err != nil {
+		// Instance profile doesn't exist, create it
+		fmt.Printf("   Creating instance profile: %s\n", profileName)
+		createProfileOutput, err := b.iamClient.CreateInstanceProfile(ctx, &iam.CreateInstanceProfileInput{
+			InstanceProfileName: aws.String(profileName),
+			Tags: []iamtypes.Tag{
+				{Key: aws.String("ManagedBy"), Value: aws.String("pctl")},
+				{Key: aws.String("Purpose"), Value: aws.String("AMI-Builder")},
+			},
+		})
+
+		if err != nil {
+			return "", fmt.Errorf("failed to create instance profile: %w", err)
+		}
+
+		profileArn = *createProfileOutput.InstanceProfile.Arn
+
+		// Add role to instance profile
+		_, err = b.iamClient.AddRoleToInstanceProfile(ctx, &iam.AddRoleToInstanceProfileInput{
+			InstanceProfileName: aws.String(profileName),
+			RoleName:            aws.String(roleName),
+		})
+
+		if err != nil {
+			return "", fmt.Errorf("failed to add role to instance profile: %w", err)
+		}
+
+		fmt.Printf("   Instance profile created and role attached\n")
+		fmt.Printf("   Waiting for IAM propagation (10 seconds)...\n")
+		time.Sleep(10 * time.Second)
+	} else {
+		// Use existing profile ARN
+		profileArn = *getProfileOutput.InstanceProfile.Arn
+	}
+
+	return profileArn, nil
 }

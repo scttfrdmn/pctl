@@ -37,9 +37,9 @@ func DefaultSpackConfig() *SpackConfig {
 	return &SpackConfig{
 		InstallPath: "/opt/spack",
 		Version:     "v0.23.0",
-		CompilerPackages: []string{
-			"gcc@11.3.0~docs",
-		},
+		// Don't install compilers here - they'll be installed from template
+		// to avoid variant conflicts (e.g., gcc@11.3.0 vs gcc@11.3.0~docs)
+		CompilerPackages: []string{},
 	}
 }
 
@@ -71,6 +71,7 @@ func (s *SpackInstaller) GenerateInstallScript() string {
 	script.WriteString("yum install -y git python3 python3-pip python3-setuptools \\\n")
 	script.WriteString("  gcc gcc-c++ gcc-gfortran make patch patchelf bzip2 \\\n")
 	script.WriteString("  unzip gzip tar file findutils which diffutils \\\n")
+	script.WriteString("  texinfo texinfo-tex \\\n")
 	script.WriteString("  environment-modules || true\n\n")
 
 	// Clone Spack
@@ -96,7 +97,8 @@ func (s *SpackInstaller) GenerateInstallScript() string {
 	script.WriteString("echo \"Configuring AWS Spack buildcache...\"\n")
 	script.WriteString("spack mirror add --scope site aws-binaries https://binaries.spack.io/releases/v0.23 || true\n")
 	script.WriteString("spack buildcache keys --install --trust || true\n")
-	script.WriteString("spack config add \"config:install_tree:padded_length:128\" || true\n\n")
+	script.WriteString("# Configure default target to x86_64 for buildcache compatibility\n")
+	script.WriteString("spack config add \"packages:all:target:[x86_64]\" || true\n\n")
 
 	// Install compilers if specified
 	if len(s.config.CompilerPackages) > 0 {
@@ -168,8 +170,10 @@ func (s *SpackInstaller) GeneratePackageInstallScript(packages []string) string 
 			progress := baseProgress + (currentPackage * (80 - baseProgress) / totalPackages)
 			script.WriteString(fmt.Sprintf("echo \"PCTL_PROGRESS: Installing compiler %s (%d/%d packages, %d%%)\"\n",
 				compiler, currentPackage, totalPackages, progress))
-			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=auto %s || \\\n", compiler))
-			script.WriteString(fmt.Sprintf("  echo \"Warning: Failed to install %s\"\n", compiler))
+			script.WriteString(fmt.Sprintf("if ! spack install --fail-fast --use-buildcache=auto %s; then\n", compiler))
+			script.WriteString(fmt.Sprintf("  echo \"ERROR: Failed to install %s\"\n", compiler))
+			script.WriteString("  exit 1\n")
+			script.WriteString("fi\n")
 		}
 		script.WriteString("spack compiler find || true\n\n")
 	}
@@ -185,8 +189,10 @@ func (s *SpackInstaller) GeneratePackageInstallScript(packages []string) string 
 			progress := baseProgress + (currentPackage * (80 - baseProgress) / totalPackages)
 			script.WriteString(fmt.Sprintf("echo \"PCTL_PROGRESS: Installing %s (%d/%d packages, %d%%)\"\n",
 				pkg, currentPackage, totalPackages, progress))
-			script.WriteString(fmt.Sprintf("spack install --fail-fast --use-buildcache=auto %s || \\\n", pkg))
-			script.WriteString(fmt.Sprintf("  echo \"Warning: Failed to install %s\"\n", pkg))
+			script.WriteString(fmt.Sprintf("if ! spack install --fail-fast --use-buildcache=auto %s; then\n", pkg))
+			script.WriteString(fmt.Sprintf("  echo \"ERROR: Failed to install %s\"\n", pkg))
+			script.WriteString("  exit 1\n")
+			script.WriteString("fi\n")
 		}
 	}
 
