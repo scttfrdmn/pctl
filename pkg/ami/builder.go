@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -646,11 +647,109 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, tmpl *templa
 }
 
 func (b *Builder) waitForAMIAvailable(ctx context.Context, amiID string) error {
+	// Get AMI details to find snapshot ID for progress monitoring
+	amiResp, err := b.ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+		ImageIds: []string{amiID},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to describe AMI: %w", err)
+	}
+	if len(amiResp.Images) == 0 {
+		return fmt.Errorf("AMI %s not found", amiID)
+	}
+
+	// Extract snapshot ID from block device mappings
+	var snapshotID string
+	if len(amiResp.Images[0].BlockDeviceMappings) > 0 && amiResp.Images[0].BlockDeviceMappings[0].Ebs != nil {
+		snapshotID = *amiResp.Images[0].BlockDeviceMappings[0].Ebs.SnapshotId
+	}
+
+	// If we have a snapshot ID, show progress; otherwise fall back to simple waiting
+	if snapshotID != "" {
+		return b.waitWithSnapshotProgress(ctx, amiID, snapshotID)
+	}
+
+	// Fallback to simple waiter if no snapshot found
 	waiter := ec2.NewImageAvailableWaiter(b.ec2Client)
-	// Increase timeout to 60 minutes for large AMIs (EBS snapshot can take 30-45 min for 40-50GB volumes)
 	return waiter.Wait(ctx, &ec2.DescribeImagesInput{
 		ImageIds: []string{amiID},
 	}, 60*time.Minute)
+}
+
+func (b *Builder) waitWithSnapshotProgress(ctx context.Context, amiID, snapshotID string) error {
+	// Create progress bar
+	bar := progressbar.NewOptions(100,
+		progressbar.OptionSetDescription("   📸 Creating snapshot"),
+		progressbar.OptionSetWidth(40),
+		progressbar.OptionShowCount(),
+		progressbar.OptionShowIts(),
+		progressbar.OptionSetItsString("%"),
+		progressbar.OptionThrottle(time.Second),
+		progressbar.OptionOnCompletion(func() { fmt.Printf("\n") }),
+	)
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	timeout := time.After(60 * time.Minute)
+	lastProgress := 0
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for AMI to become available")
+		case <-ticker.C:
+			// Check snapshot progress
+			snapshotResp, err := b.ec2Client.DescribeSnapshots(ctx, &ec2.DescribeSnapshotsInput{
+				SnapshotIds: []string{snapshotID},
+			})
+			if err == nil && len(snapshotResp.Snapshots) > 0 {
+				snapshot := snapshotResp.Snapshots[0]
+
+				// Parse progress (format: "75%")
+				if snapshot.Progress != nil {
+					progressStr := *snapshot.Progress
+					if len(progressStr) > 0 && progressStr[len(progressStr)-1] == '%' {
+						progressStr = progressStr[:len(progressStr)-1]
+					}
+					if progress, err := strconv.Atoi(progressStr); err == nil {
+						if progress > lastProgress {
+							bar.Add(progress - lastProgress)
+							lastProgress = progress
+						}
+					}
+				}
+
+				// Check if snapshot is completed
+				if snapshot.State == "completed" {
+					bar.Set(100)
+					break
+				}
+			}
+
+			// Also check if AMI is available (in case snapshot completes quickly)
+			amiResp, err := b.ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+				ImageIds: []string{amiID},
+			})
+			if err == nil && len(amiResp.Images) > 0 {
+				if amiResp.Images[0].State == "available" {
+					bar.Set(100)
+					return nil
+				}
+				if amiResp.Images[0].State == "failed" {
+					return fmt.Errorf("AMI creation failed")
+				}
+			}
+		}
+	}
+
+	// Final wait for AMI to be fully available
+	waiter := ec2.NewImageAvailableWaiter(b.ec2Client)
+	return waiter.Wait(ctx, &ec2.DescribeImagesInput{
+		ImageIds: []string{amiID},
+	}, 5*time.Minute) // Short timeout since snapshot is already done
 }
 
 func (b *Builder) terminateInstance(ctx context.Context, instanceID string) error {
