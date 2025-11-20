@@ -62,7 +62,38 @@ progress := *snapshotResp.Snapshots[0].Progress // e.g., "75%"
 - This issue focuses specifically on the AMI snapshot creation phase
 
 ## Acceptance Criteria
-- [ ] AMI snapshot creation shows real-time progress updates
-- [ ] Users receive feedback at least every 15 seconds during snapshot creation
-- [ ] Progress display is consistent with software installation phase UX
-- [ ] No silent periods > 30 seconds during AMI builds
+- [x] AMI snapshot creation shows real-time progress updates
+- [x] Users receive feedback at least every 15 seconds during snapshot creation
+- [x] Progress display is consistent with software installation phase UX
+- [x] No silent periods > 30 seconds during AMI builds
+
+## Implementation Status: COMPLETE ✅
+
+### What Was Implemented
+
+**File:** `pkg/ami/builder.go`
+
+Modified `waitForAMIAvailable()` method to:
+- Extract snapshot ID from AMI block device mappings
+- Poll EBS snapshot progress using DescribeSnapshots API every 15 seconds
+- Display real-time progress bar with percentage updates (0-100%)
+- Show 📸 camera emoji indicator during snapshot creation
+- Gracefully fall back to simple waiter if snapshot ID unavailable
+- Maintain 60-minute overall timeout for large AMIs
+
+### Verified Working
+End-to-end test on 2025-11-19:
+- ✅ Snapshot progress: 22% → 43% → 85% → 99% → 100%
+- ✅ Progress updates every 15 seconds
+- ✅ Visual progress bar with camera emoji
+- ✅ Time estimates updating dynamically
+- ✅ ~10 minutes snapshot time with continuous feedback
+- ✅ Zero silent periods > 30 seconds during entire build
+- ✅ AMI successfully created: `ami-06cd829dbdeb5c79b`
+- ✅ Deployed to ParallelCluster: All software accessible
+
+### Related Issues
+- #101 - Tag-based progress monitoring (COMPLETE ✅)
+- #102 - AMI snapshot progress reporting (COMPLETE ✅)
+
+**Issue #102 is ready to close.**
