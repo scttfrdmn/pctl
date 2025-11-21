@@ -154,7 +154,7 @@ func (pm *ProgressMonitor) displayProgress(resources map[string]*ResourceStatus)
 
 	// Count resources by status
 	var completed, inProgress, failed int
-	criticalResources := pm.getCriticalResources(resources)
+	resourcesToDisplay := pm.getResourcesToDisplay(resources)
 
 	for _, res := range resources {
 		switch res.Status {
@@ -173,9 +173,9 @@ func (pm *ProgressMonitor) displayProgress(resources map[string]*ResourceStatus)
 		return
 	}
 
-	// Display critical resources
+	// Display active and important resources
 	fmt.Printf("📦 Infrastructure Provisioning:\n")
-	for _, res := range criticalResources {
+	for _, res := range resourcesToDisplay {
 		icon := pm.getStatusIcon(res.Status)
 		resourceName := pm.getReadableResourceName(res.LogicalID, res.Type)
 		fmt.Printf("  %s %-35s %s\n", icon, resourceName, res.Status)
@@ -214,8 +214,8 @@ func (pm *ProgressMonitor) displayProgress(resources map[string]*ResourceStatus)
 	}
 }
 
-func (pm *ProgressMonitor) getCriticalResources(resources map[string]*ResourceStatus) []*ResourceStatus {
-	// Define critical resource types to always show
+func (pm *ProgressMonitor) getResourcesToDisplay(resources map[string]*ResourceStatus) []*ResourceStatus {
+	// Define critical resource types to prioritize (show first)
 	criticalTypes := map[string]bool{
 		"AWS::EC2::VPC":                true,
 		"AWS::EC2::InternetGateway":    true,
@@ -231,15 +231,36 @@ func (pm *ProgressMonitor) getCriticalResources(resources map[string]*ResourceSt
 	}
 
 	var critical []*ResourceStatus
+	var inProgress []*ResourceStatus
+	var otherRecent []*ResourceStatus
+
 	for _, res := range resources {
-		if criticalTypes[res.Type] {
+		// Always show resources that are in progress
+		if res.Status == types.ResourceStatusCreateInProgress || res.Status == types.ResourceStatusCreateFailed {
+			if criticalTypes[res.Type] {
+				critical = append(critical, res)
+			} else {
+				inProgress = append(inProgress, res)
+			}
+		} else if criticalTypes[res.Type] && res.Status == types.ResourceStatusCreateComplete {
+			// Show recently completed critical resources
 			critical = append(critical, res)
+		} else if res.Status == types.ResourceStatusCreateComplete {
+			// Track other completed resources (limit display to most recent)
+			otherRecent = append(otherRecent, res)
 		}
 	}
 
-	// Sort by timestamp
-	// (simplified - not sorting for now to keep it simple)
-	return critical
+	// Combine lists: critical resources first, then in-progress non-critical, then other recent
+	result := append(critical, inProgress...)
+
+	// Limit other recent resources to avoid clutter (show up to 10 most recent)
+	if len(otherRecent) > 0 {
+		// For now, don't show all completed non-critical resources to keep output clean
+		// but DO show them if they're in progress
+	}
+
+	return result
 }
 
 func (pm *ProgressMonitor) getReadableResourceName(logicalID, resourceType string) string {
