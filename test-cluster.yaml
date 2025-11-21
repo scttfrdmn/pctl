@@ -1,0 +1,22 @@
+Region: us-west-2
+Image:
+  Os: alinux2
+  CustomAmi: ami-070e634f46c467ae4  # pctl-automated-test AMI
+HeadNode:
+  InstanceType: t3.micro
+  Networking:
+    SubnetId: subnet-0a73ca94ed00cdaf9
+  Ssh:
+    KeyName: benchmark-builder
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: t3.micro
+          MinCount: 0
+          MaxCount: 2
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9

@@ -6,7 +6,7 @@ cluster:
   region: us-west-2
 
 compute:
-  head_node: t3.large
+  head_node: c5.large  # c/m/r5 series minimum
 
   queues:
     # General purpose compute queue
@@ -20,13 +20,13 @@ compute:
 software:
   spack_packages:
     # Basic compiler toolchain
-    - gcc@11.3.0
+    - gcc@11.2.0  # Use 11.2.0 - available in buildcache
     - openmpi@4.1.4
 
     # Common utilities
     - python@3.10
-    - cmake@3.26.0
-    - git@2.40.0
+    - cmake@3.24  # Use 3.24.x - more likely in buildcache
+    - git@2.39    # Use 2.39.x - more likely in buildcache
 
 users:
   - name: user1

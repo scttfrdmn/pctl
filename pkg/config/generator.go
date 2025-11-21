@@ -75,6 +75,12 @@ func (g *Generator) buildParallelClusterConfig(tmpl *template.Template) map[stri
 		"Ssh": map[string]interface{}{
 			"KeyName": g.KeyName,
 		},
+		"LocalStorage": map[string]interface{}{
+			"RootVolume": map[string]interface{}{
+				"Size":       100, // 100GB root volume (AMI is 45GB, extra space for user data)
+				"VolumeType": "gp3",
+			},
+		},
 	}
 
 	// Add Iam configuration for S3 access if there are S3 mounts or bootstrap script

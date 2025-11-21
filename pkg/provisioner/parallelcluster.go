@@ -166,8 +166,9 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 		return fmt.Errorf("failed to save initial state: %w", err)
 	}
 
-	// Create cluster using pcluster CLI
-	if err := p.runPClusterCreate(ctx, tmpl.Cluster.Name, configPath, tmpl.Cluster.Region); err != nil {
+	// Create cluster using pcluster CLI (initiates async creation)
+	fmt.Printf("🔧 Initiating cluster creation...\n")
+	if err := p.runPClusterCreateAsync(ctx, tmpl.Cluster.Name, configPath, tmpl.Cluster.Region); err != nil {
 		clusterState.Status = "CREATE_FAILED"
 		p.stateManager.Save(clusterState)
 
@@ -181,6 +182,39 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 		}
 
 		return fmt.Errorf("failed to create cluster: %w", err)
+	}
+
+	// Monitor cluster creation progress
+	stackName := clusterState.StackName
+	monitor, err := NewProgressMonitor(ctx, stackName, tmpl.Cluster.Region, tmpl.Cluster.Name)
+	if err != nil {
+		fmt.Printf("⚠️  Warning: Failed to create progress monitor: %v\n", err)
+		fmt.Printf("⏳ Cluster is being created in the background. Check status with: pctl status %s\n", tmpl.Cluster.Name)
+	} else {
+		// Monitor with timeout (30 minutes max)
+		monitorCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+		defer cancel()
+
+		if err := monitor.MonitorCreation(monitorCtx); err != nil {
+			if monitorCtx.Err() == context.DeadlineExceeded {
+				fmt.Printf("\n⚠️  Monitoring timeout reached (30 minutes). Cluster is still being created.\n")
+				fmt.Printf("Check status with: pctl status %s\n", tmpl.Cluster.Name)
+			} else {
+				clusterState.Status = "CREATE_FAILED"
+				p.stateManager.Save(clusterState)
+
+				// Clean up network resources if we created them
+				if networkResources != nil {
+					fmt.Printf("\n🧹 Cleaning up network resources due to cluster creation failure...\n")
+					netMgr, _ := network.NewManager(ctx, tmpl.Cluster.Region)
+					if netMgr != nil {
+						netMgr.DeleteNetwork(ctx, networkResources)
+					}
+				}
+
+				return fmt.Errorf("cluster creation failed: %w", err)
+			}
+		}
 	}
 
 	// Update state
@@ -285,8 +319,28 @@ func (p *Provisioner) writeConfigFile(name, content string) (string, error) {
 	return path, nil
 }
 
+func (p *Provisioner) getPClusterBinary() (string, error) {
+	// Use only the private venv pcluster installation
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	venvPCluster := filepath.Join(homeDir, ".pctl", "venv", "bin", "pcluster")
+	if _, err := os.Stat(venvPCluster); err != nil {
+		return "", fmt.Errorf("pcluster not found in private venv (%s)\n\nThe pctl installation may be corrupted. Please reinstall pctl.", venvPCluster)
+	}
+
+	return venvPCluster, nil
+}
+
 func (p *Provisioner) runPClusterCreate(ctx context.Context, name, configPath, region string) error {
-	cmd := exec.CommandContext(ctx, "pcluster", "create-cluster",
+	pclusterBin, err := p.getPClusterBinary()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.CommandContext(ctx, pclusterBin, "create-cluster",
 		"--cluster-name", name,
 		"--cluster-configuration", configPath,
 		"--region", region,
@@ -298,8 +352,37 @@ func (p *Provisioner) runPClusterCreate(ctx context.Context, name, configPath, r
 	return cmd.Run()
 }
 
+// runPClusterCreateAsync initiates cluster creation without blocking on output
+// The pcluster create-cluster command is already async, but we suppress stdout/stderr
+// and let the progress monitor handle the display
+func (p *Provisioner) runPClusterCreateAsync(ctx context.Context, name, configPath, region string) error {
+	pclusterBin, err := p.getPClusterBinary()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.CommandContext(ctx, pclusterBin, "create-cluster",
+		"--cluster-name", name,
+		"--cluster-configuration", configPath,
+		"--region", region,
+	)
+
+	// Capture output but don't display it (progress monitor will handle display)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("pcluster create-cluster failed: %w: %s", err, output)
+	}
+
+	return nil
+}
+
 func (p *Provisioner) runPClusterDelete(ctx context.Context, name, region string) error {
-	cmd := exec.CommandContext(ctx, "pcluster", "delete-cluster",
+	pclusterBin, err := p.getPClusterBinary()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.CommandContext(ctx, pclusterBin, "delete-cluster",
 		"--cluster-name", name,
 		"--region", region,
 	)
@@ -311,7 +394,12 @@ func (p *Provisioner) runPClusterDelete(ctx context.Context, name, region string
 }
 
 func (p *Provisioner) runPClusterDescribe(ctx context.Context, name, region string) (*ClusterStatus, error) {
-	cmd := exec.CommandContext(ctx, "pcluster", "describe-cluster",
+	pclusterBin, err := p.getPClusterBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.CommandContext(ctx, pclusterBin, "describe-cluster",
 		"--cluster-name", name,
 		"--region", region,
 	)

@@ -178,8 +178,9 @@ func (v *Validator) validateSoftware(t *Template, errs *ValidationError) {
 			if pkg == "" {
 				errs.Add(fmt.Sprintf("software.spack_packages[%d] cannot be empty", i))
 			}
-			// Basic validation of package spec format (name@version or name)
-			if !regexp.MustCompile(`^[a-zA-Z0-9_-]+(@[a-zA-Z0-9._-]+)?$`).MatchString(pkg) {
+			// Basic validation of package spec format (supports variants, versions, etc.)
+			// Format: name[@version][~variant][+variant][%compiler][...]
+			if !regexp.MustCompile(`^[a-zA-Z0-9_-]+(@[a-zA-Z0-9._-]+)?([~+][a-zA-Z0-9_-]+)*(%[a-zA-Z0-9._@-]+)?$`).MatchString(pkg) {
 				errs.Add(fmt.Sprintf("software.spack_packages[%d] '%s' is not a valid package spec format", i, pkg))
 			}
 		}

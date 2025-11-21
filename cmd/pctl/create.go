@@ -278,15 +278,11 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		defer cancel()
 	}
 
-	fmt.Printf("📝 Generating ParallelCluster configuration...\n")
-	fmt.Printf("🔧 Provisioning cluster infrastructure...\n")
-	fmt.Printf("⏳ This may take 10-15 minutes...\n\n")
-
 	if err := prov.CreateCluster(ctx, tmpl, opts); err != nil {
 		return fmt.Errorf("failed to create cluster: %w", err)
 	}
 
-	fmt.Printf("\n✅ Cluster creation initiated successfully!\n\n")
+	fmt.Printf("\n✅ Cluster created successfully!\n\n")
 	fmt.Printf("Cluster: %s\n", clusterName)
 	fmt.Printf("Region: %s\n", tmpl.Cluster.Region)
 	fmt.Printf("\nNext steps:\n")
