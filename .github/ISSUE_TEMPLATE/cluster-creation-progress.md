@@ -163,21 +163,51 @@ Creating cluster: my-cluster
 - This issue extends progress monitoring to cluster creation
 
 ## Acceptance Criteria
-- [ ] CloudFormation resource creation shows real-time progress updates
-- [ ] Users receive feedback every 10-15 seconds during cluster creation
+- [x] CloudFormation resource creation shows real-time progress updates
+- [x] Users receive feedback every 10-15 seconds during cluster creation
 - [ ] Progress display shows both infrastructure (0-70%) and configuration (70-100%) phases
-- [ ] No silent periods > 30 seconds during cluster creation
+- [x] No silent periods > 30 seconds during cluster creation
 - [ ] Time estimates are reasonably accurate (within 30% of actual time)
 - [ ] Failed resource creation shows clear error messages
-- [ ] Progress bar visually matches AMI build progress UX
+- [x] Progress bar visually matches AMI build progress UX
+
+## Implementation Status: Phase 1 Complete ✅
+
+### Phase 1: Basic CloudFormation Event Monitoring (MVP) ✅
+- [x] Add CloudFormation SDK
+- [x] Create basic event polling loop
+- [x] Display resource names and statuses
+- [x] Show elapsed time
+
+**Implemented** (2025-11-20):
+- Created `pkg/provisioner/progress.go` with full CloudFormation monitoring
+- Real-time resource tracking with status icons (✅ 🔄 ❌)
+- Progress bar: 0-70% for infrastructure phase
+- 15-second polling interval
+- Critical resource highlighting (VPC, EC2, IAM, Security Groups)
+- Stack existence detection with 100s timeout
+
+**Test Results**:
+```
+Stack: progress-debug-test
+Resources: 46/46 created successfully
+Progress: 68% → 70% (infrastructure complete)
+Time: ~1m 15s
+Status icons working: ✅ HeadNode CREATE_COMPLETE, 🔄 CREATE_IN_PROGRESS
+```
+
+**Bugs Fixed**:
+- Stack name: Changed from `pctl-{name}` to `{name}` (ParallelCluster convention)
+- Async execution: pcluster command runs in background with error capture
+- Error visibility: Added stderr buffer for logging pcluster errors
 
 ## Implementation Phases
 
-### Phase 1: Basic CloudFormation Event Monitoring (MVP)
-- Add CloudFormation SDK
-- Create basic event polling loop
-- Display resource names and statuses
-- Show elapsed time
+### Phase 1: Basic CloudFormation Event Monitoring (MVP) ✅ COMPLETE
+- ✅ Add CloudFormation SDK
+- ✅ Create basic event polling loop
+- ✅ Display resource names and statuses
+- ✅ Show elapsed time
 
 ### Phase 2: Progress Calculation & Time Estimates
 - Calculate percentage based on completed/total resources
