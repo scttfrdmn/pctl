@@ -45,6 +45,38 @@ type ResourceStatus struct {
 	Timestamp  time.Time
 }
 
+// estimatedResourceTimes maps AWS resource types to their typical creation times
+var estimatedResourceTimes = map[string]time.Duration{
+	// Fast resources (< 30s)
+	"AWS::IAM::InstanceProfile":            15 * time.Second,
+	"AWS::EC2::SecurityGroupIngress":       10 * time.Second,
+	"AWS::EC2::SecurityGroupEgress":        10 * time.Second,
+	"AWS::EC2::VPCGatewayAttachment":       20 * time.Second,
+	"AWS::EC2::SubnetRouteTableAssociation": 15 * time.Second,
+
+	// Medium resources (30s - 2m)
+	"AWS::EC2::VPC":                      30 * time.Second,
+	"AWS::EC2::InternetGateway":          45 * time.Second,
+	"AWS::EC2::Subnet":                   60 * time.Second,
+	"AWS::EC2::RouteTable":               45 * time.Second,
+	"AWS::EC2::Route":                    30 * time.Second,
+	"AWS::EC2::SecurityGroup":            30 * time.Second,
+	"AWS::IAM::Role":                     60 * time.Second,
+	"AWS::IAM::Policy":                   45 * time.Second,
+	"AWS::Lambda::Function":              90 * time.Second,
+	"AWS::CloudWatch::Dashboard":         60 * time.Second,
+	"AWS::CloudWatch::CompositeAlarm":    45 * time.Second,
+	"AWS::CloudWatch::LogGroup":          30 * time.Second,
+	"AWS::Logs::LogGroup":                30 * time.Second,
+	"AWS::SNS::Topic":                    30 * time.Second,
+	"AWS::SQS::Queue":                    30 * time.Second,
+
+	// Slow resources (2m - 5m)
+	"AWS::EC2::Instance":                 180 * time.Second, // 3 minutes
+	"AWS::EC2::Volume":                   120 * time.Second,
+	"AWS::CloudFormation::WaitCondition": 300 * time.Second, // 5 minutes
+}
+
 // NewProgressMonitor creates a new progress monitor
 func NewProgressMonitor(ctx context.Context, stackName, region, clusterName string) (*ProgressMonitor, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
@@ -202,12 +234,24 @@ func (pm *ProgressMonitor) displayProgress(resources map[string]*ResourceStatus)
 	bar.Set(progressPct)
 	fmt.Printf("\n")
 
-	// Display summary
+	// Display summary with time estimates
 	fmt.Printf("Resources: %d/%d created", completed, total)
 	if failed > 0 {
 		fmt.Printf(" (%d failed)", failed)
 	}
-	fmt.Printf(" | Elapsed: %s\n", formatDuration(elapsed))
+	fmt.Printf(" | Elapsed: %s", formatDuration(elapsed))
+
+	// Show remaining time estimate if there are incomplete resources
+	if inProgress > 0 || (completed < total) {
+		remainingTime := pm.calculateRemainingTime(resources)
+		if remainingTime > 0 {
+			etaTime := time.Now().Add(remainingTime)
+			fmt.Printf(" | Remaining: ~%s | ETA: %s",
+				formatDuration(remainingTime),
+				etaTime.Format("15:04:05"))
+		}
+	}
+	fmt.Printf("\n")
 
 	if inProgress > 0 {
 		fmt.Printf("⏳ %d resource(s) in progress...\n", inProgress)
@@ -338,6 +382,39 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%dm %ds", minutes, seconds)
 	}
 	return fmt.Sprintf("%ds", seconds)
+}
+
+// calculateRemainingTime estimates remaining time based on incomplete resources
+func (pm *ProgressMonitor) calculateRemainingTime(resources map[string]*ResourceStatus) time.Duration {
+	const defaultResourceTime = 60 * time.Second
+	var remainingTime time.Duration
+
+	for _, res := range resources {
+		if res.Status != types.ResourceStatusCreateComplete {
+			// Get estimated time for this resource type
+			estimatedTime, exists := estimatedResourceTimes[res.Type]
+			if !exists {
+				estimatedTime = defaultResourceTime
+			}
+
+			// If resource is in progress, reduce estimate by time elapsed
+			if res.Status == types.ResourceStatusCreateInProgress {
+				elapsed := time.Since(res.Timestamp)
+				remaining := estimatedTime - elapsed
+				if remaining > 0 {
+					remainingTime += remaining
+				} else {
+					// Resource taking longer than expected, add minimal time
+					remainingTime += 30 * time.Second
+				}
+			} else {
+				// Resource not started yet
+				remainingTime += estimatedTime
+			}
+		}
+	}
+
+	return remainingTime
 }
 
 // waitForStackToExist waits for the CloudFormation stack to be created
