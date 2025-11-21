@@ -166,18 +166,19 @@ Creating cluster: my-cluster
 - [x] CloudFormation resource creation shows real-time progress updates
 - [x] Users receive feedback every 10-15 seconds during cluster creation
 - [ ] Progress display shows both infrastructure (0-70%) and configuration (70-100%) phases
-- [x] No silent periods > 30 seconds during cluster creation
+- [x] No silent periods > 30 seconds during cluster creation (FIXED: now shows ALL in-progress resources)
 - [ ] Time estimates are reasonably accurate (within 30% of actual time)
 - [ ] Failed resource creation shows clear error messages
 - [x] Progress bar visually matches AMI build progress UX
 
 ## Implementation Status: Phase 1 Complete ✅
 
-### Phase 1: Basic CloudFormation Event Monitoring (MVP) ✅
+### Phase 1: Basic CloudFormation Event Monitoring (MVP) ✅ VERIFIED
 - [x] Add CloudFormation SDK
 - [x] Create basic event polling loop
 - [x] Display resource names and statuses
 - [x] Show elapsed time
+- [x] End-to-end verification: cluster creation to usable state
 
 **Implemented** (2025-11-20):
 - Created `pkg/provisioner/progress.go` with full CloudFormation monitoring
@@ -187,7 +188,18 @@ Creating cluster: my-cluster
 - Critical resource highlighting (VPC, EC2, IAM, Security Groups)
 - Stack existence detection with 100s timeout
 
-**Test Results**:
+**End-to-End Test Results** (2025-11-20):
+```
+Cluster: e2e-progress-test
+Stack Status: CREATE_COMPLETE ✅
+Resources: 48/48 created successfully
+Progress: 0% → 33% → 55% → 64% → 66% → 68% → 70%
+Total Time: 8m 51s
+Updates: Every 15 seconds throughout creation
+Status: Cluster verified in usable state
+```
+
+**Initial Test Results**:
 ```
 Stack: progress-debug-test
 Resources: 46/46 created successfully
@@ -200,6 +212,10 @@ Status icons working: ✅ HeadNode CREATE_COMPLETE, 🔄 CREATE_IN_PROGRESS
 - Stack name: Changed from `pctl-{name}` to `{name}` (ParallelCluster convention)
 - Async execution: pcluster command runs in background with error capture
 - Error visibility: Added stderr buffer for logging pcluster errors
+- **Silent period fix**: Changed from showing only "critical" resources to showing ALL in-progress resources
+  - Issue: 3m 30s silent period when CloudWatch Dashboard and CompositeAlarm were being created
+  - Fix: Updated `getResourcesToDisplay()` to show ALL CREATE_IN_PROGRESS resources regardless of type
+  - Result: No silent periods, continuous visibility of resource creation
 
 ## Implementation Phases
 
