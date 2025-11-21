@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/scttfrdmn/pctl/internal/config"
@@ -139,11 +140,12 @@ func (p *Provisioner) CreateCluster(ctx context.Context, tmpl *template.Template
 	defer os.Remove(configPath)
 
 	// Create initial state
+	// Note: ParallelCluster creates stacks with the cluster name (not pctl-{name})
 	clusterState := &state.ClusterState{
 		Name:                 tmpl.Cluster.Name,
 		Region:               tmpl.Cluster.Region,
 		Status:               "CREATE_IN_PROGRESS",
-		StackName:            fmt.Sprintf("pctl-%s", tmpl.Cluster.Name),
+		StackName:            tmpl.Cluster.Name,
 		TemplatePath:         opts.TemplatePath,
 		CreatedAt:            time.Now(),
 		CustomAMI:            opts.CustomAMI,
@@ -352,9 +354,9 @@ func (p *Provisioner) runPClusterCreate(ctx context.Context, name, configPath, r
 	return cmd.Run()
 }
 
-// runPClusterCreateAsync initiates cluster creation without blocking on output
-// The pcluster create-cluster command is already async, but we suppress stdout/stderr
-// and let the progress monitor handle the display
+// runPClusterCreateAsync initiates cluster creation and runs it in background
+// The pcluster create-cluster command is started but we don't wait for it to complete
+// The progress monitor will track the CloudFormation stack creation instead
 func (p *Provisioner) runPClusterCreateAsync(ctx context.Context, name, configPath, region string) error {
 	pclusterBin, err := p.getPClusterBinary()
 	if err != nil {
@@ -367,11 +369,23 @@ func (p *Provisioner) runPClusterCreateAsync(ctx context.Context, name, configPa
 		"--region", region,
 	)
 
-	// Capture output but don't display it (progress monitor will handle display)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("pcluster create-cluster failed: %w: %s", err, output)
+	// Capture stderr to log errors, but let stdout go to null
+	var stderrBuf strings.Builder
+	cmd.Stderr = &stderrBuf
+	cmd.Stdout = os.Stdout // Let stdout show pcluster initial response
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start pcluster create-cluster: %w", err)
 	}
+
+	// Launch goroutine to wait for command completion and log any errors
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			if stderrBuf.Len() > 0 {
+				fmt.Fprintf(os.Stderr, "\nWarning: pcluster command error: %v\n%s\n", err, stderrBuf.String())
+			}
+		}
+	}()
 
 	return nil
 }
