@@ -34,7 +34,7 @@ func TestComputeFingerprint(t *testing.T) {
 					SpackPackages: []string{},
 				},
 			},
-			wantOS:    "amazonlinux2",
+			wantOS:    "amazonlinux2023",
 			wantSpack: "releases/latest",
 			wantLmod:  "8.7.37",
 			wantPkgs:  0,
@@ -46,7 +46,7 @@ func TestComputeFingerprint(t *testing.T) {
 					SpackPackages: []string{"gcc@11.3.0"},
 				},
 			},
-			wantOS:    "amazonlinux2",
+			wantOS:    "amazonlinux2023",
 			wantSpack: "releases/latest",
 			wantLmod:  "8.7.37",
 			wantPkgs:  1,
@@ -62,7 +62,7 @@ func TestComputeFingerprint(t *testing.T) {
 					},
 				},
 			},
-			wantOS:    "amazonlinux2",
+			wantOS:    "amazonlinux2023",
 			wantSpack: "releases/latest",
 			wantLmod:  "8.7.37",
 			wantPkgs:  3,
@@ -189,8 +189,8 @@ func TestFingerprintString(t *testing.T) {
 	fp := template.ComputeFingerprint()
 	str := fp.String()
 
-	// Should start with "al2-spack-latest-lmod-8.7.37-"
-	expectedPrefix := "al2-spack-latest-lmod-8.7.37-"
+	// Should start with "al2023-spack-latest-lmod-8.7.37-"
+	expectedPrefix := "al2023-spack-latest-lmod-8.7.37-"
 	if len(str) < len(expectedPrefix) {
 		t.Errorf("String too short: %v", str)
 	}
@@ -225,7 +225,7 @@ func TestFingerprintTags(t *testing.T) {
 	if tags["pctl:fingerprint"] != fp.Hash {
 		t.Error("Missing or incorrect pctl:fingerprint tag")
 	}
-	if tags["pctl:base-os"] != "amazonlinux2" {
+	if tags["pctl:base-os"] != "amazonlinux2023" {
 		t.Error("Missing or incorrect pctl:base-os tag")
 	}
 	if tags["pctl:spack-version"] != "releases/latest" {

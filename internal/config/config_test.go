@@ -169,8 +169,8 @@ func TestLoadDefaults(t *testing.T) {
 		t.Errorf("Default region = %s, want us-east-1", cfg.Defaults.Region)
 	}
 
-	if cfg.ParallelCluster.Version != "3.8.0" {
-		t.Errorf("Default ParallelCluster version = %s, want 3.8.0", cfg.ParallelCluster.Version)
+	if cfg.ParallelCluster.Version != "3.14.0" {
+		t.Errorf("Default ParallelCluster version = %s, want 3.14.0", cfg.ParallelCluster.Version)
 	}
 
 	if cfg.ParallelCluster.InstallMethod != "pipx" {

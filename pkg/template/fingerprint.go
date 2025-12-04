@@ -24,7 +24,7 @@ import (
 
 // AMIFingerprint represents a unique identifier for an AMI based on software configuration.
 type AMIFingerprint struct {
-	// BaseOS is the operating system (e.g., "amazonlinux2")
+	// BaseOS is the operating system (e.g., "amazonlinux2023")
 	BaseOS string
 	// SpackVersion is the Spack version (e.g., "releases/latest")
 	SpackVersion string
@@ -41,7 +41,7 @@ type AMIFingerprint struct {
 func (t *Template) ComputeFingerprint() *AMIFingerprint {
 	// Default versions from pkg/software
 	const (
-		defaultBaseOS       = "amazonlinux2"
+		defaultBaseOS       = "amazonlinux2023"
 		defaultSpackVersion = "releases/latest"
 		defaultLmodVersion  = "8.7.37"
 	)

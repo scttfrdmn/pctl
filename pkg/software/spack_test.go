@@ -35,7 +35,7 @@ func TestSpackInstaller_GenerateInstallScript(t *testing.T) {
 				"git clone",
 				"https://github.com/spack/spack.git",
 				"/opt/spack",
-				"releases/latest",
+				"v0.23.0",
 				"spack compiler find",
 				"aws-binaries",
 				"https://binaries.spack.io",

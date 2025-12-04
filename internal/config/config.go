@@ -70,7 +70,7 @@ func Load() (*Config, error) {
 
 	// Set defaults
 	v.SetDefault("defaults.region", "us-east-1")
-	v.SetDefault("parallelcluster.version", "3.8.0")
+	v.SetDefault("parallelcluster.version", "3.14.0")
 	v.SetDefault("parallelcluster.install_method", "pipx")
 	v.SetDefault("preferences.auto_update_registry", true)
 	v.SetDefault("preferences.validate_before_create", true)
