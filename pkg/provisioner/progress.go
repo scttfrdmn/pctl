@@ -152,10 +152,17 @@ func (pm *ProgressMonitor) monitorInfrastructure(ctx context.Context) error {
 			if stackStatus == types.StackStatusCreateComplete {
 				fmt.Printf("\n✅ Infrastructure provisioning complete! (70%%)\n")
 				return nil
-			} else if stackStatus == types.StackStatusCreateFailed ||
-				stackStatus == types.StackStatusRollbackInProgress ||
-				stackStatus == types.StackStatusRollbackComplete {
-				return fmt.Errorf("cluster creation failed with status: %s", stackStatus)
+			} else if stackStatus == types.StackStatusCreateFailed {
+				// Display failure details
+				pm.displayFailureDetails(ctx)
+				return fmt.Errorf("cluster creation failed")
+			} else if stackStatus == types.StackStatusRollbackInProgress {
+				// Monitor rollback progress
+				return pm.monitorRollback(ctx)
+			} else if stackStatus == types.StackStatusRollbackComplete {
+				// Rollback completed, show failure details
+				pm.displayFailureDetails(ctx)
+				return fmt.Errorf("cluster creation failed and rolled back")
 			}
 		}
 	}
@@ -599,4 +606,233 @@ func (pm *ProgressMonitor) MonitorClusterConfiguration(ctx context.Context) erro
 			}
 		}
 	}
+}
+
+// FailureDetails contains information about a failed cluster creation
+type FailureDetails struct {
+	FailedResource    *ResourceStatus
+	StackStatus       types.StackStatus
+	StackStatusReason string
+	FailureTime       time.Time
+}
+
+// getFailedResources returns all resources that failed during creation
+func (pm *ProgressMonitor) getFailedResources(ctx context.Context) ([]*ResourceStatus, error) {
+	events, err := pm.getStackEvents(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var failedResources []*ResourceStatus
+	for _, event := range events {
+		if event.ResourceStatus == types.ResourceStatusCreateFailed {
+			failedResources = append(failedResources, &ResourceStatus{
+				LogicalID:  aws.ToString(event.LogicalResourceId),
+				Type:       aws.ToString(event.ResourceType),
+				Status:     event.ResourceStatus,
+				StatusText: aws.ToString(event.ResourceStatusReason),
+				Timestamp:  *event.Timestamp,
+			})
+		}
+	}
+
+	return failedResources, nil
+}
+
+// getConsoleURL returns the AWS Console URL for the CloudFormation stack
+func (pm *ProgressMonitor) getConsoleURL() string {
+	return fmt.Sprintf(
+		"https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks/stackinfo?stackId=%s",
+		pm.region,
+		pm.stackName,
+	)
+}
+
+// getCloudWatchLogsURL returns the AWS Console URL for CloudWatch logs
+func (pm *ProgressMonitor) getCloudWatchLogsURL() string {
+	return fmt.Sprintf(
+		"https://console.aws.amazon.com/cloudwatch/home?region=%s#logsV2:log-groups/log-group//aws/parallelcluster/%s",
+		pm.region,
+		pm.clusterName,
+	)
+}
+
+// displayFailureDetails displays detailed information about a failed cluster creation
+func (pm *ProgressMonitor) displayFailureDetails(ctx context.Context) error {
+	fmt.Printf("\n❌ Cluster creation failed!\n\n")
+
+	// Get failed resources
+	failedResources, err := pm.getFailedResources(ctx)
+	if err != nil {
+		fmt.Printf("Unable to retrieve failure details: %v\n", err)
+		return nil
+	}
+
+	if len(failedResources) == 0 {
+		fmt.Printf("No specific resource failures found.\n")
+		return nil
+	}
+
+	// Display the most recent failure
+	latestFailure := failedResources[0]
+	fmt.Printf("Failed Resource: %s (%s)\n",
+		latestFailure.LogicalID,
+		latestFailure.Type)
+
+	if latestFailure.StatusText != "" {
+		fmt.Printf("Reason: %s\n", latestFailure.StatusText)
+	}
+
+	fmt.Printf("Status: %s\n", latestFailure.Status)
+	fmt.Printf("Timestamp: %s\n\n", latestFailure.Timestamp.Format("2006-01-02 15:04:05"))
+
+	// Show AWS Console links
+	fmt.Printf("View in AWS Console:\n")
+	fmt.Printf("  CloudFormation: %s\n", pm.getConsoleURL())
+	fmt.Printf("  CloudWatch Logs: %s\n\n", pm.getCloudWatchLogsURL())
+
+	// Show troubleshooting hints
+	fmt.Printf("Troubleshooting:\n")
+	hints := getTroubleshootingHints(latestFailure.Type, latestFailure.StatusText)
+	for _, hint := range hints {
+		fmt.Printf("  • %s\n", hint)
+	}
+
+	return nil
+}
+
+// getTroubleshootingHints returns troubleshooting suggestions based on resource type and error
+func getTroubleshootingHints(resourceType, statusReason string) []string {
+	hints := []string{}
+
+	switch resourceType {
+	case "AWS::EC2::Instance":
+		hints = append(hints, "Check EC2 instance launch logs in AWS Console")
+		hints = append(hints, "Verify AMI exists in the target region")
+		hints = append(hints, "Check EC2 service quotas (vCPU limits)")
+		if strings.Contains(statusReason, "subnet") {
+			hints = append(hints, "Verify subnet ID is correct and exists in your account")
+		}
+	case "AWS::EC2::Subnet":
+		hints = append(hints, "Verify VPC exists and is accessible")
+		hints = append(hints, "Check subnet CIDR doesn't overlap with existing subnets")
+	case "AWS::IAM::Role", "AWS::IAM::Policy", "AWS::IAM::InstanceProfile":
+		hints = append(hints, "Verify IAM permissions to create roles and policies")
+		hints = append(hints, "Check for IAM policy conflicts or naming collisions")
+	case "AWS::CloudFormation::WaitCondition":
+		hints = append(hints, "EC2 instance may have failed to signal completion")
+		hints = append(hints, "Check CloudWatch Logs for bootstrap script errors")
+		hints = append(hints, "Verify instance can reach CloudFormation service endpoints")
+	default:
+		hints = append(hints, "Check CloudFormation stack events for more details")
+		hints = append(hints, "Review CloudWatch Logs for cluster initialization errors")
+	}
+
+	hints = append(hints, fmt.Sprintf("See: https://docs.aws.amazon.com/parallelcluster/latest/ug/troubleshooting.html"))
+
+	return hints
+}
+
+// monitorRollback monitors the rollback progress when stack creation fails
+func (pm *ProgressMonitor) monitorRollback(ctx context.Context) error {
+	fmt.Printf("\n🔄 Stack creation failed, rolling back...\n\n")
+
+	seenEvents := make(map[string]bool)
+	resources := make(map[string]*ResourceStatus)
+
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			events, err := pm.getStackEvents(ctx)
+			if err != nil {
+				return err
+			}
+
+			// Track DELETE events
+			for _, event := range events {
+				if strings.Contains(string(event.ResourceStatus), "DELETE") {
+					eventKey := fmt.Sprintf("%s-%s", aws.ToString(event.LogicalResourceId), event.ResourceStatus)
+					if !seenEvents[eventKey] {
+						seenEvents[eventKey] = true
+						resources[aws.ToString(event.LogicalResourceId)] = &ResourceStatus{
+							LogicalID:  aws.ToString(event.LogicalResourceId),
+							Type:       aws.ToString(event.ResourceType),
+							Status:     event.ResourceStatus,
+							StatusText: string(event.ResourceStatus),
+							Timestamp:  *event.Timestamp,
+						}
+					}
+				}
+			}
+
+			pm.displayRollbackProgress(resources)
+
+			// Check if rollback complete
+			stackStatus, err := pm.getStackStatus(ctx)
+			if err != nil {
+				// Stack might be deleted
+				if strings.Contains(err.Error(), "does not exist") {
+					fmt.Printf("\n✅ Rollback complete (stack deleted)\n")
+					return fmt.Errorf("cluster creation failed and rolled back")
+				}
+				return err
+			}
+
+			if stackStatus == types.StackStatusRollbackComplete ||
+				stackStatus == types.StackStatusDeleteComplete {
+				fmt.Printf("\n✅ Rollback complete\n")
+				return fmt.Errorf("cluster creation failed and rolled back")
+			}
+		}
+	}
+}
+
+// displayRollbackProgress displays rollback progress
+func (pm *ProgressMonitor) displayRollbackProgress(resources map[string]*ResourceStatus) {
+	fmt.Printf("\n🔄 Rollback Progress:\n")
+
+	var deleted, inProgress, pending int
+	var displayedCount int
+	maxDisplay := 10
+
+	for _, res := range resources {
+		icon := "⏳"
+		switch res.Status {
+		case types.ResourceStatusDeleteComplete:
+			icon = "✅"
+			deleted++
+		case types.ResourceStatusDeleteInProgress:
+			icon = "🔄"
+			inProgress++
+		default:
+			pending++
+		}
+
+		// Only display up to maxDisplay resources
+		if displayedCount < maxDisplay {
+			fmt.Printf("  %s %-35s %s\n",
+				icon,
+				pm.getReadableResourceName(res.LogicalID, res.Type),
+				res.Status)
+			displayedCount++
+		}
+	}
+
+	total := len(resources)
+	elapsed := time.Since(pm.startTime)
+
+	if total > maxDisplay {
+		fmt.Printf("  ... and %d more resources\n", total-maxDisplay)
+	}
+
+	fmt.Printf("\nRollback: %d/%d resources deleted", deleted, total)
+	if inProgress > 0 {
+		fmt.Printf(" (%d in progress)", inProgress)
+	}
+	fmt.Printf(" | Elapsed: %s\n", formatDuration(elapsed))
 }
