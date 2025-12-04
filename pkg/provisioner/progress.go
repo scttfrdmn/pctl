@@ -16,7 +16,9 @@ package provisioner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -97,6 +99,21 @@ func NewProgressMonitor(ctx context.Context, stackName, region, clusterName stri
 func (pm *ProgressMonitor) MonitorCreation(ctx context.Context) error {
 	fmt.Printf("\n🚀 Monitoring cluster creation: %s\n\n", pm.clusterName)
 
+	// Phase 1: Monitor CloudFormation infrastructure (0-70%)
+	if err := pm.monitorInfrastructure(ctx); err != nil {
+		return err
+	}
+
+	// Phase 2: Monitor cluster configuration (70-100%)
+	if err := pm.MonitorClusterConfiguration(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// monitorInfrastructure monitors CloudFormation stack creation (Phase 1: 0-70%)
+func (pm *ProgressMonitor) monitorInfrastructure(ctx context.Context) error {
 	// Wait for stack to be created (pcluster create-cluster is async)
 	fmt.Printf("⏳ Waiting for CloudFormation stack to be created...\n")
 	if err := pm.waitForStackToExist(ctx); err != nil {
@@ -133,7 +150,7 @@ func (pm *ProgressMonitor) MonitorCreation(ctx context.Context) error {
 			}
 
 			if stackStatus == types.StackStatusCreateComplete {
-				fmt.Printf("\n✅ Cluster creation complete!\n")
+				fmt.Printf("\n✅ Infrastructure provisioning complete! (70%%)\n")
 				return nil
 			} else if stackStatus == types.StackStatusCreateFailed ||
 				stackStatus == types.StackStatusRollbackInProgress ||
@@ -438,4 +455,148 @@ func (pm *ProgressMonitor) waitForStackToExist(ctx context.Context) error {
 	}
 
 	return fmt.Errorf("stack %s was not created within expected time", pm.stackName)
+}
+
+// getClusterStatus retrieves the cluster status from pcluster describe-cluster
+func (pm *ProgressMonitor) getClusterStatus(ctx context.Context) (*pclusterDescribeResponse, error) {
+	cmd := exec.CommandContext(ctx, "pcluster", "describe-cluster",
+		"--cluster-name", pm.clusterName,
+		"--region", pm.region,
+		"--output", "json",
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cluster status: %w", err)
+	}
+
+	// Parse the response - pcluster wraps the result in a "cluster" object
+	var response struct {
+		Cluster pclusterDescribeResponse `json:"cluster"`
+	}
+
+	if err := json.Unmarshal(output, &response); err != nil {
+		return nil, fmt.Errorf("failed to parse cluster status: %w", err)
+	}
+
+	return &response.Cluster, nil
+}
+
+// calculateClusterProgress calculates progress from 70-100% based on cluster status
+func (pm *ProgressMonitor) calculateClusterProgress(status *pclusterDescribeResponse) int {
+	baseProgress := 70 // Infrastructure complete
+
+	switch status.ClusterStatus {
+	case "CREATE_IN_PROGRESS":
+		// Cluster is initializing - progress based on compute fleet
+		switch status.ComputeFleetStatus {
+		case "STARTING":
+			return baseProgress + 10 // 80%
+		case "RUNNING":
+			return baseProgress + 15 // 85%
+		case "ENABLED", "PROTECTED":
+			return baseProgress + 20 // 90%
+		default:
+			return baseProgress + 5 // 75%
+		}
+	case "CREATE_COMPLETE":
+		return 100 // Fully ready
+	case "CREATE_FAILED":
+		return baseProgress // Stay at 70% on failure
+	default:
+		return baseProgress
+	}
+}
+
+// displayClusterProgress displays cluster configuration phase progress
+func (pm *ProgressMonitor) displayClusterProgress(status *pclusterDescribeResponse, progress int) {
+	fmt.Printf("\n🎯 Cluster Configuration:\n")
+
+	// Head node status
+	headNodeIcon := "⏳"
+	headNodeStatus := "PENDING"
+	if status.ClusterStatus == "CREATE_IN_PROGRESS" {
+		headNodeIcon = "🔄"
+		headNodeStatus = "INITIALIZING"
+	} else if status.ClusterStatus == "CREATE_COMPLETE" {
+		headNodeIcon = "✅"
+		headNodeStatus = "READY"
+	}
+	fmt.Printf("  Head Node:        %s %s\n", headNodeIcon, headNodeStatus)
+
+	// Scheduler status (Slurm)
+	schedulerIcon := "⏳"
+	schedulerStatus := "PENDING"
+	if status.ClusterStatus == "CREATE_IN_PROGRESS" {
+		schedulerIcon = "🔄"
+		schedulerStatus = "STARTING"
+	} else if status.ClusterStatus == "CREATE_COMPLETE" {
+		schedulerIcon = "✅"
+		schedulerStatus = "ACTIVE"
+	}
+	fmt.Printf("  Slurm Controller: %s %s\n", schedulerIcon, schedulerStatus)
+
+	// Compute fleet status
+	computeIcon := "⏳"
+	computeStatus := status.ComputeFleetStatus
+	if computeStatus == "" {
+		computeStatus = "PENDING"
+	} else if computeStatus == "RUNNING" || computeStatus == "ENABLED" {
+		computeIcon = "✅"
+	} else if computeStatus == "STARTING" {
+		computeIcon = "🔄"
+	}
+	fmt.Printf("  Compute Fleet:    %s %s\n", computeIcon, computeStatus)
+
+	// Progress bar
+	elapsed := time.Since(pm.startTime)
+	fmt.Printf("\n")
+	bar := progressbar.NewOptions(100,
+		progressbar.OptionSetDescription("Progress"),
+		progressbar.OptionSetWidth(40),
+		progressbar.OptionShowCount(),
+	)
+	bar.Set(progress)
+	fmt.Printf("\n")
+
+	fmt.Printf("Status: %s | Elapsed: %s\n", status.ClusterStatus, formatDuration(elapsed))
+}
+
+// MonitorClusterConfiguration monitors cluster initialization from 70-100%
+func (pm *ProgressMonitor) MonitorClusterConfiguration(ctx context.Context) error {
+	fmt.Printf("\n🎯 Cluster Configuration:\n")
+	fmt.Printf("⏳ Monitoring cluster initialization...\n")
+
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	// Initial check
+	status, err := pm.getClusterStatus(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get initial cluster status: %w", err)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			status, err = pm.getClusterStatus(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get cluster status: %w", err)
+			}
+
+			progress := pm.calculateClusterProgress(status)
+			pm.displayClusterProgress(status, progress)
+
+			if status.ClusterStatus == "CREATE_COMPLETE" {
+				fmt.Printf("\n✅ Cluster fully ready!\n")
+				return nil
+			}
+
+			if status.ClusterStatus == "CREATE_FAILED" {
+				return fmt.Errorf("cluster configuration failed")
+			}
+		}
+	}
 }
