@@ -50,28 +50,28 @@ type ResourceStatus struct {
 // estimatedResourceTimes maps AWS resource types to their typical creation times
 var estimatedResourceTimes = map[string]time.Duration{
 	// Fast resources (< 30s)
-	"AWS::IAM::InstanceProfile":            15 * time.Second,
-	"AWS::EC2::SecurityGroupIngress":       10 * time.Second,
-	"AWS::EC2::SecurityGroupEgress":        10 * time.Second,
-	"AWS::EC2::VPCGatewayAttachment":       20 * time.Second,
+	"AWS::IAM::InstanceProfile":             15 * time.Second,
+	"AWS::EC2::SecurityGroupIngress":        10 * time.Second,
+	"AWS::EC2::SecurityGroupEgress":         10 * time.Second,
+	"AWS::EC2::VPCGatewayAttachment":        20 * time.Second,
 	"AWS::EC2::SubnetRouteTableAssociation": 15 * time.Second,
 
 	// Medium resources (30s - 2m)
-	"AWS::EC2::VPC":                      30 * time.Second,
-	"AWS::EC2::InternetGateway":          45 * time.Second,
-	"AWS::EC2::Subnet":                   60 * time.Second,
-	"AWS::EC2::RouteTable":               45 * time.Second,
-	"AWS::EC2::Route":                    30 * time.Second,
-	"AWS::EC2::SecurityGroup":            30 * time.Second,
-	"AWS::IAM::Role":                     60 * time.Second,
-	"AWS::IAM::Policy":                   45 * time.Second,
-	"AWS::Lambda::Function":              90 * time.Second,
-	"AWS::CloudWatch::Dashboard":         60 * time.Second,
-	"AWS::CloudWatch::CompositeAlarm":    45 * time.Second,
-	"AWS::CloudWatch::LogGroup":          30 * time.Second,
-	"AWS::Logs::LogGroup":                30 * time.Second,
-	"AWS::SNS::Topic":                    30 * time.Second,
-	"AWS::SQS::Queue":                    30 * time.Second,
+	"AWS::EC2::VPC":                   30 * time.Second,
+	"AWS::EC2::InternetGateway":       45 * time.Second,
+	"AWS::EC2::Subnet":                60 * time.Second,
+	"AWS::EC2::RouteTable":            45 * time.Second,
+	"AWS::EC2::Route":                 30 * time.Second,
+	"AWS::EC2::SecurityGroup":         30 * time.Second,
+	"AWS::IAM::Role":                  60 * time.Second,
+	"AWS::IAM::Policy":                45 * time.Second,
+	"AWS::Lambda::Function":           90 * time.Second,
+	"AWS::CloudWatch::Dashboard":      60 * time.Second,
+	"AWS::CloudWatch::CompositeAlarm": 45 * time.Second,
+	"AWS::CloudWatch::LogGroup":       30 * time.Second,
+	"AWS::Logs::LogGroup":             30 * time.Second,
+	"AWS::SNS::Topic":                 30 * time.Second,
+	"AWS::SQS::Queue":                 30 * time.Second,
 
 	// Slow resources (2m - 5m)
 	"AWS::EC2::Instance":                 180 * time.Second, // 3 minutes
@@ -285,17 +285,17 @@ func (pm *ProgressMonitor) displayProgress(resources map[string]*ResourceStatus)
 func (pm *ProgressMonitor) getResourcesToDisplay(resources map[string]*ResourceStatus) []*ResourceStatus {
 	// Define critical resource types to prioritize (show first)
 	criticalTypes := map[string]bool{
-		"AWS::EC2::VPC":                true,
-		"AWS::EC2::InternetGateway":    true,
-		"AWS::EC2::Subnet":             true,
-		"AWS::EC2::SecurityGroup":      true,
-		"AWS::EC2::RouteTable":         true,
-		"AWS::IAM::Role":               true,
-		"AWS::IAM::Policy":             true,
-		"AWS::EC2::Instance":           true,
-		"AWS::EC2::Volume":             true,
-		"AWS::CloudWatch::LogGroup":    true,
-		"AWS::Lambda::Function":        true,
+		"AWS::EC2::VPC":             true,
+		"AWS::EC2::InternetGateway": true,
+		"AWS::EC2::Subnet":          true,
+		"AWS::EC2::SecurityGroup":   true,
+		"AWS::EC2::RouteTable":      true,
+		"AWS::IAM::Role":            true,
+		"AWS::IAM::Policy":          true,
+		"AWS::EC2::Instance":        true,
+		"AWS::EC2::Volume":          true,
+		"AWS::CloudWatch::LogGroup": true,
+		"AWS::Lambda::Function":     true,
 	}
 
 	var critical []*ResourceStatus

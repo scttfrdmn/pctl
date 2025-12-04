@@ -255,7 +255,7 @@ type BuildOptions struct {
 func DefaultBuildOptions() *BuildOptions {
 	return &BuildOptions{
 		InstanceType: "c6a.4xlarge", // 16 vCPUs, compute-optimized for fast Spack builds
-		WaitTimeout:  4 * time.Hour,  // 4 hours - generous timeout for Spack builds
+		WaitTimeout:  4 * time.Hour, // 4 hours - generous timeout for Spack builds
 		Tags: map[string]string{
 			"ManagedBy": "pctl",
 		},
@@ -816,23 +816,23 @@ func getInstanceTypeArchitecture(instanceType string) string {
 
 	// Common ARM (Graviton) prefixes
 	armFamilies := map[string]bool{
-		"t4g":   true,
-		"m6g":   true,
-		"m6gd":  true,
-		"m7g":   true,
-		"m7gd":  true,
-		"c6g":   true,
-		"c6gd":  true,
-		"c6gn":  true,
-		"c7g":   true,
-		"c7gd":  true,
-		"c7gn":  true,
-		"r6g":   true,
-		"r6gd":  true,
-		"r7g":   true,
-		"r7gd":  true,
-		"x2gd":  true,
-		"im4gn": true,
+		"t4g":    true,
+		"m6g":    true,
+		"m6gd":   true,
+		"m7g":    true,
+		"m7gd":   true,
+		"c6g":    true,
+		"c6gd":   true,
+		"c6gn":   true,
+		"c7g":    true,
+		"c7gd":   true,
+		"c7gn":   true,
+		"r6g":    true,
+		"r6gd":   true,
+		"r7g":    true,
+		"r7gd":   true,
+		"x2gd":   true,
+		"im4gn":  true,
 		"is4gen": true,
 	}
 
