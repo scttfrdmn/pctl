@@ -8,13 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- None
+- **Real-time progress monitoring for cluster creation** (Phases 1-4 complete)
+  - CloudFormation resource tracking (0-70% infrastructure phase)
+  - Cluster configuration monitoring (70-100% initialization phase)
+  - Time estimates with ETA display
+  - Comprehensive error handling with AWS Console links
+  - Rollback progress monitoring
+  - Actionable troubleshooting hints based on resource types
+  - Status icons: ✅ 🔄 ❌ ⏳
+  - Updates every 10-15 seconds with no silent periods
 
 ### Changed
-- None
+- **Upgraded to Amazon Linux 2023** (from Amazon Linux 2)
+  - AL2023 supported until 2029 (vs AL2 ending 2025)
+  - Kernel 6.12 for improved performance and hardware support
+  - Better P6e-GB200 and P6-B200 instance compatibility
+  - Enhanced security and long-term stability
+  - All templates and tests updated to use `al2023`
+- **Upgraded to AWS ParallelCluster 3.14.0** (from 3.8.0)
+  - Latest stable release (September 2025)
+  - Slurm 24.05.7 with improved scheduler performance
+  - NICE DCV support on Amazon Linux 2023
+  - P6e-GB200 and P6-B200 instance type support
+  - Ubuntu 24.04 compatibility
+  - Improved EFA support for AL2023
 
 ### Fixed
-- None
+- Silent periods during cluster creation (all resources now tracked)
+- Progress monitoring stuck at 68% during CloudWatch resource creation
+- Stack name mismatch in progress monitor (now uses cluster name directly)
 
 ## [1.0.0] - 2025-11-12
 

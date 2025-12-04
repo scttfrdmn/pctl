@@ -122,6 +122,21 @@ make build
 sudo make install
 ```
 
+### System Requirements
+
+**AWS ParallelCluster**
+- Version: **3.14.0** (latest stable, auto-installed via `pctl pcluster install`)
+- Includes Slurm 24.05.7, NICE DCV support, and P6e instance compatibility
+
+**Operating System**
+- Default: **Amazon Linux 2023** (supported until 2029)
+- Also supports: Ubuntu 24.04, Ubuntu 22.04, RHEL 8/9, Rocky 8/9
+- AL2023 features: Kernel 6.12, improved hardware support, long-term stability
+
+**AWS Account Requirements**
+- Active AWS account with appropriate permissions
+- AWS credentials configured (via `aws configure`)
+
 ### Initial Setup
 
 ```bash
