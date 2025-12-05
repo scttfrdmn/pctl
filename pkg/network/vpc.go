@@ -18,6 +18,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -130,6 +131,26 @@ func (m *Manager) createVPC(ctx context.Context, clusterName string) (string, er
 		},
 	})
 	if err != nil {
+		// Check if this is a VPC limit exceeded error
+		if strings.Contains(err.Error(), "VpcLimitExceeded") {
+			return "", fmt.Errorf(`VPC limit reached in region %s
+
+The maximum number of VPCs has been reached. To resolve this:
+
+1. Delete unused clusters to free up VPCs:
+   pctl list                    # List all clusters
+   pctl delete <cluster-name>   # Delete a cluster and its VPC
+
+2. View VPCs in the AWS console:
+   https://console.aws.amazon.com/vpc/home?region=%s#vpcs:
+
+3. Try a different region (update your template's region field)
+
+4. Use an existing VPC (requires manual configuration)
+
+Note: By default, AWS accounts have a limit of 5 VPCs per region.
+You can request a limit increase at: https://console.aws.amazon.com/servicequotas/`, m.region, m.region)
+		}
 		return "", err
 	}
 
