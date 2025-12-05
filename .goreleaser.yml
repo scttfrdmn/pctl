@@ -1,4 +1,4 @@
-project_name: pctl
+project_name: petal
 
 before:
   hooks:
@@ -20,13 +20,13 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    main: ./cmd/pctl
-    binary: pctl
+    main: ./cmd/petal
+    binary: petal
     ldflags:
       - -s -w
-      - -X github.com/scttfrdmn/pctl/internal/version.Version={{.Version}}
-      - -X github.com/scttfrdmn/pctl/internal/version.BuildTime={{.Date}}
-      - -X github.com/scttfrdmn/pctl/internal/version.GitCommit={{.Commit}}
+      - -X github.com/scttfrdmn/petal/internal/version.Version={{.Version}}
+      - -X github.com/scttfrdmn/petal/internal/version.BuildTime={{.Date}}
+      - -X github.com/scttfrdmn/petal/internal/version.GitCommit={{.Commit}}
 
 archives:
   - format: tar.gz
@@ -44,7 +44,7 @@ archives:
       - LICENSE
       - README.md
       - CHANGELOG.md
-      - templates/**/*
+      - seeds/**/*
 
 checksum:
   name_template: 'checksums.txt'

@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/scttfrdmn/pctl/internal/config"
+	"github.com/scttfrdmn/petal/internal/config"
 )
 
 // ClusterState represents the state of a managed cluster.

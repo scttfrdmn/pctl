@@ -87,13 +87,13 @@ func (b *Builder) validateBaseAMI(ctx context.Context, amiID, region string) err
 ### Manual testing
 ```bash
 # Build foundation
-./bin/pctl ami build -t templates/examples/starter-usw2.yaml \
+./bin/pctl ami build -t seeds/examples/starter-usw2.yaml \
   --name foundation-test --subnet-id subnet-xxx --key-name test-key
 
 # Note the AMI ID (e.g., ami-123)
 
 # Build derived AMI
-./bin/pctl ami build -t templates/examples/minimal.yaml \
+./bin/pctl ami build -t seeds/examples/minimal.yaml \
   --name derived-test --base-ami ami-123 \
   --subnet-id subnet-xxx --key-name test-key
 

@@ -45,7 +45,7 @@ func NewGitHubRegistry(owner, repo string) *GitHubRegistry {
 		Owner:    owner,
 		Repo:     repo,
 		Branch:   "main",
-		BasePath: "templates",
+		BasePath: "seeds",
 		client:   &http.Client{Timeout: 30 * time.Second},
 	}
 }

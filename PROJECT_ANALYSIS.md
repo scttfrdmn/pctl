@@ -185,7 +185,7 @@ pctl
 
 **Registry Structure**:
 ```
-aws-pcluster-templates/
+aws-pcluster-seeds/
 ├── official/              # Curated by maintainers
 │   ├── bioinformatics/
 │   ├── machine-learning/
@@ -383,7 +383,7 @@ pctl/
 │       ├── installer.go
 │       └── version.go
 │
-├── templates/library/     # Pre-built templates
+├── seeds/library/     # Pre-built templates
 │   ├── bioinformatics.yaml
 │   ├── machine-learning.yaml
 │   └── computational-chemistry.yaml
@@ -485,12 +485,12 @@ pctl/
 brew install pctl
 
 # Option 2: Download binary
-wget https://github.com/aws-pcluster-templates/pctl/releases/latest/pctl
+wget https://github.com/aws-pcluster-seeds/pctl/releases/latest/pctl
 chmod +x pctl
 sudo mv pctl /usr/local/bin/
 
 # Option 3: Build from source
-git clone https://github.com/aws-pcluster-templates/pctl
+git clone https://github.com/aws-pcluster-seeds/pctl
 cd pctl
 make build
 sudo make install
@@ -522,9 +522,9 @@ defaults:
 registry:
   sources:
     - name: official
-      url: github.com/aws-pcluster-templates/official
+      url: github.com/aws-pcluster-seeds/official
     - name: community
-      url: github.com/aws-pcluster-templates/community
+      url: github.com/aws-pcluster-seeds/community
     - name: myorg
       url: github.com/myorg/pctl-templates
 
@@ -556,10 +556,10 @@ pctl registry search bioinformatics
 pctl templates show bioinformatics
 
 # Validate before creation
-pctl validate -t templates/library/bioinformatics.yaml
+pctl validate -t seeds/library/bioinformatics.yaml
 
 # Create cluster
-pctl create -t templates/library/bioinformatics.yaml --name bio-cluster-01
+pctl create -t seeds/library/bioinformatics.yaml --name bio-cluster-01
 
 # Monitor creation
 pctl status bio-cluster-01

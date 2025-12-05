@@ -66,9 +66,9 @@ $ pctl ami share-chain ami-456 --public
 
 #### Using shared AMIs
 ```yaml
-# templates/my-research.yaml
+# seeds/my-research.yaml
 extends:
-  template: https://pctl-public.s3.amazonaws.com/templates/foundation.yaml
+  template: https://pctl-public.s3.amazonaws.com/seeds/foundation.yaml
   ami: ami-123  # Public AMI to use
 
 software:
@@ -186,9 +186,9 @@ $ pctl ami build -t foundation.yaml \
 $ pctl template install foundation
 
 📦 Installing template 'foundation' from registry...
-   Source: https://github.com/pctl-templates/foundation
+   Source: https://github.com/pctl-seeds/foundation
    Version: v1.2.0
-   ✅ Installed to ~/.pctl/templates/foundation.yaml
+   ✅ Installed to ~/.pctl/seeds/foundation.yaml
 
 # List installed templates
 $ pctl template list
@@ -435,7 +435,7 @@ Reference public AMIs in templates:
 ```yaml
 extends:
   ami: ami-123  # Public foundation AMI
-  template: https://example.com/templates/foundation.yaml
+  template: https://example.com/seeds/foundation.yaml
 
 software:
   spack_packages:

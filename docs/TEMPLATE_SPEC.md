@@ -758,7 +758,7 @@ pctl validates templates comprehensively:
 Don't write templates from scratch. Start with an example and modify it:
 
 ```bash
-cp templates/library/bioinformatics.yaml my-cluster.yaml
+cp seeds/library/bioinformatics.yaml my-cluster.yaml
 vim my-cluster.yaml
 ```
 
@@ -965,5 +965,5 @@ See [Spack Package List](https://packages.spack.io/) for complete list.
 
 - [Getting Started Guide](GETTING_STARTED.md)
 - [Architecture Documentation](ARCHITECTURE.md)
-- [Example Templates](../templates/)
+- [Example Templates](../seeds/)
 - [Spack Documentation](https://spack.readthedocs.io/)

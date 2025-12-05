@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/scttfrdmn/pctl/internal/version"
+	"github.com/scttfrdmn/petal/internal/version"
 	"github.com/spf13/cobra"
 )
 

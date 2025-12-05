@@ -25,12 +25,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/pctl/internal/config"
-	"github.com/scttfrdmn/pctl/pkg/bootstrap"
-	pcconfig "github.com/scttfrdmn/pctl/pkg/config"
-	"github.com/scttfrdmn/pctl/pkg/network"
-	"github.com/scttfrdmn/pctl/pkg/state"
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/internal/config"
+	"github.com/scttfrdmn/petal/pkg/bootstrap"
+	pcconfig "github.com/scttfrdmn/petal/pkg/config"
+	"github.com/scttfrdmn/petal/pkg/network"
+	"github.com/scttfrdmn/petal/pkg/state"
+	"github.com/scttfrdmn/petal/pkg/template"
 )
 
 // Provisioner handles cluster provisioning using ParallelCluster.

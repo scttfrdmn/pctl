@@ -51,7 +51,7 @@ module github.com/scttfrdmn/pctl → module github.com/scttfrdmn/petal
 |----------|----------|--------|
 | template | seed | Shorter, metaphor-consistent, distinctive |
 | template file | seed file | Natural terminology |
-| templates/ | seeds/ | Directory naming |
+| seeds/ | seeds/ | Directory naming |
 
 ### 3. Command Structure
 
@@ -94,7 +94,7 @@ petal greenhouse list                           # = ami list
 ```bash
 # Before
 pctl/
-├── templates/
+├── seeds/
 │   ├── library/
 │   └── examples/
 └── ~/.pctl/
@@ -212,7 +212,7 @@ petal/
 
 5. **Rename directories**
    ```bash
-   git mv templates/ seeds/
+   git mv seeds/ seeds/
    git mv cmd/pctl/ cmd/petal/
    git mv pkg/template/ pkg/seed/
    ```
@@ -304,7 +304,7 @@ petal/
    1. Reinstall: `brew upgrade petal` or download new binary
    2. Update scripts: `pctl` → `petal`
    3. Update flags: `--template` → `--seed` (old flag still works with warning)
-   4. Rename `templates/` directories to `seeds/` (optional)
+   4. Rename `seeds/` directories to `seeds/` (optional)
 
    **What's Automatic:**
    - Config migration from `~/.pctl` to `~/.petal`
@@ -347,7 +347,7 @@ petal/
 - [ ] GitHub repository description/topics
 
 ### Directories
-- [ ] `templates/` → `seeds/`
+- [ ] `seeds/` → `seeds/`
 - [ ] `cmd/pctl/` → `cmd/petal/`
 - [ ] `pkg/template/` → `pkg/seed/`
 

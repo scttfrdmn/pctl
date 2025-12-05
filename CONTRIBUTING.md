@@ -134,7 +134,7 @@ pctl/
 ├── internal/              # Private packages
 ├── tests/                 # Test suites
 ├── docs/                  # Documentation
-└── templates/             # Example templates
+└── seeds/             # Example templates
 ```
 
 - `cmd/`: Command-line interface code

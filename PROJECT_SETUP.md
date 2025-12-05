@@ -45,7 +45,7 @@ pctl/
 │   ├── GETTING_STARTED.md             # (To be created)
 │   ├── TEMPLATE_SPEC.md               # (To be created)
 │   └── ARCHITECTURE.md                # (To be created)
-├── templates/library/                  # Template library (to be populated)
+├── seeds/library/                  # Template library (to be populated)
 ├── .gitignore                          # Git ignore rules
 ├── .golangci.yml                       # Linter configuration
 ├── CHANGELOG.md                        # Keep a Changelog format
@@ -224,7 +224,7 @@ $ pctl version -o json
 - docs/GETTING_STARTED.md: Step-by-step tutorial
 - docs/TEMPLATE_SPEC.md: Complete template specification
 - docs/ARCHITECTURE.md: Architecture documentation
-- templates/library/: Example templates for common workloads
+- seeds/library/: Example templates for common workloads
 
 ## Getting Started with Development
 

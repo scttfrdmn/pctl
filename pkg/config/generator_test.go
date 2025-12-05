@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/template"
 	"gopkg.in/yaml.v3"
 )
 

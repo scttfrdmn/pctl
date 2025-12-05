@@ -15,6 +15,9 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/scttfrdmn/petal/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -24,19 +27,26 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "pctl",
-	Short: "ParallelCluster Templates - Simplified AWS ParallelCluster deployment",
-	Long: `pctl is a CLI tool that simplifies AWS ParallelCluster deployment using
-intuitive YAML templates. It bridges the gap between ParallelCluster's power
-and what users actually need - a simple, repeatable way to deploy HPC clusters
-with software, users, and data pre-configured.
+	Use:   "petal",
+	Short: "🌸 Grow HPC clusters from seeds - Simplified AWS ParallelCluster deployment",
+	Long: `petal is a CLI tool that simplifies AWS ParallelCluster deployment using
+intuitive seed files (YAML). Plant a seed, watch your cluster bloom! 🌱
 
-For more information, visit: https://github.com/scttfrdmn/pctl`,
+Bridges the gap between ParallelCluster's power and what you actually need:
+a simple, repeatable way to deploy HPC clusters with software, users, and
+data pre-configured.
+
+For more information, visit: https://github.com/scttfrdmn/petal`,
 	SilenceUsage:  true,
 	SilenceErrors: false,
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pctl/config.yaml)")
+	// Migrate from old pctl directory to petal on first run
+	if err := config.MigrateFromPctl(); err != nil {
+		fmt.Printf("⚠️  Warning: Config migration failed: %v\n", err)
+	}
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.petal/config.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 }

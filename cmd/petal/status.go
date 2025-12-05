@@ -18,13 +18,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/scttfrdmn/pctl/pkg/provisioner"
+	"github.com/scttfrdmn/petal/pkg/provisioner"
 	"github.com/spf13/cobra"
 )
 
 var statusCmd = &cobra.Command{
-	Use:   "status CLUSTER_NAME",
-	Short: "Get cluster status",
+	Use:     "status CLUSTER_NAME",
+	Aliases: []string{"inspect"},
+	Short:   "Get cluster status",
 	Long: `Get detailed status information for a cluster.
 
 Shows:

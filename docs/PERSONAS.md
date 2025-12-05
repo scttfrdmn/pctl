@@ -213,7 +213,7 @@ Jamie supports 5 research teams using AWS. Each team has different software requ
 #### Create Template Library
 ```bash
 # Create team-specific templates
-templates/
+seeds/
   chemistry/
     gromacs.yaml
     quantum-espresso.yaml
@@ -230,7 +230,7 @@ templates/
 name: Build AMIs
 on:
   push:
-    paths: ['templates/**']
+    paths: ['seeds/**']
 
 jobs:
   build:
@@ -238,7 +238,7 @@ jobs:
     steps:
       - name: Build Chemistry AMI
         run: |
-          pctl ami build -t templates/chemistry/gromacs.yaml \
+          pctl ami build -t seeds/chemistry/gromacs.yaml \
             --name gromacs-$(date +%Y%m%d) \
             --detach
 
@@ -254,7 +254,7 @@ pctl registry search chemistry
 pctl create -t chemistry/gromacs --name my-experiment
 
 # Or customize their own template
-cp templates/chemistry/gromacs.yaml my-cluster.yaml
+cp seeds/chemistry/gromacs.yaml my-cluster.yaml
 # Edit my-cluster.yaml
 pctl create -t my-cluster.yaml
 ```
@@ -316,7 +316,7 @@ pctl ami build -t lab-standard.yaml --name lab-2024 --detach
 
 #### Project-Specific Templates
 ```bash
-# templates/projects/
+# seeds/projects/
 project-a-genomics.yaml    # Uses lab-2024 AMI + specific tools
 project-b-proteomics.yaml  # Uses lab-2024 AMI + mass spec software
 project-c-metabolomics.yaml # Uses lab-2024 AMI + metabolomics stack

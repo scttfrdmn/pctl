@@ -148,11 +148,11 @@ Every doc emphasizes: **pctl delivers clusters with software, not just nodes.**
 
 ```bash
 # Validate any template
-$ pctl validate -t templates/library/bioinformatics.yaml
+$ pctl validate -t seeds/library/bioinformatics.yaml
 ✅ Template is valid!
 
 # See what would be created
-$ pctl create -t templates/examples/starter.yaml --dry-run
+$ pctl create -t seeds/examples/starter.yaml --dry-run
 🔍 Dry run mode - no resources will be created
 
 Cluster Configuration:

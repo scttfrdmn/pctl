@@ -31,7 +31,7 @@ Problems:
 ## Desired Behavior
 
 ```yaml
-# templates/foundation.yaml
+# seeds/foundation.yaml
 cluster:
   name: foundation
   region: us-west-2
@@ -46,7 +46,7 @@ software:
 ```
 
 ```yaml
-# templates/gromacs.yaml
+# seeds/gromacs.yaml
 extends: foundation.yaml
 
 cluster:

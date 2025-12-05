@@ -19,13 +19,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/pctl/pkg/provisioner"
+	"github.com/scttfrdmn/petal/pkg/provisioner"
 	"github.com/spf13/cobra"
 )
 
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all managed clusters",
+	Use:     "list",
+	Aliases: []string{"garden"},
+	Short:   "List all managed clusters",
 	Long: `List all HPC clusters managed by pctl.
 
 Shows cluster name, status, region, and creation date for all clusters.`,

@@ -1,13 +1,13 @@
 .PHONY: all build clean test coverage lint fmt vet check install uninstall help deps security pre-commit integration-test hooks
 
 # Variables
-BINARY_NAME=pctl
+BINARY_NAME=petal
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "v0.0.0-dev")
 BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
 COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-LDFLAGS=-ldflags "-X github.com/scttfrdmn/pctl/internal/version.Version=${VERSION} \
-                  -X github.com/scttfrdmn/pctl/internal/version.BuildTime=${BUILD_TIME} \
-                  -X github.com/scttfrdmn/pctl/internal/version.GitCommit=${COMMIT}"
+LDFLAGS=-ldflags "-X github.com/scttfrdmn/petal/internal/version.Version=${VERSION} \
+                  -X github.com/scttfrdmn/petal/internal/version.BuildTime=${BUILD_TIME} \
+                  -X github.com/scttfrdmn/petal/internal/version.GitCommit=${COMMIT}"
 
 # Directories
 BUILD_DIR=bin
@@ -30,7 +30,7 @@ all: check build
 build:
 	@echo "Building $(BINARY_NAME) $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/pctl
+	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/petal
 
 ## clean: Remove build artifacts
 clean:

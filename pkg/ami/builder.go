@@ -33,8 +33,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/schollz/progressbar/v3"
-	"github.com/scttfrdmn/pctl/pkg/software"
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/software"
+	"github.com/scttfrdmn/petal/pkg/template"
 )
 
 // AMIMetadata contains information about a built AMI.

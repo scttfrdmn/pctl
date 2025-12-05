@@ -77,7 +77,7 @@ pctl includes several example templates. Let's start with the minimal example:
 
 ```bash
 # View the minimal template
-cat templates/examples/minimal.yaml
+cat seeds/examples/minimal.yaml
 ```
 
 This shows a basic cluster configuration:
@@ -101,7 +101,7 @@ compute:
 Before creating a cluster, validate the template:
 
 ```bash
-pctl validate -t templates/examples/minimal.yaml
+pctl validate -t seeds/examples/minimal.yaml
 ```
 
 You should see: `✅ Template is valid!`
@@ -111,7 +111,7 @@ You should see: `✅ Template is valid!`
 Use dry-run mode to see what will be created without actually creating resources:
 
 ```bash
-pctl create -t templates/examples/minimal.yaml --dry-run
+pctl create -t seeds/examples/minimal.yaml --dry-run
 ```
 
 This shows:
@@ -127,7 +127,7 @@ This shows:
 
 ```bash
 # This will validate and show the plan
-pctl create -t templates/examples/minimal.yaml
+pctl create -t seeds/examples/minimal.yaml
 ```
 
 When implemented (v0.2.0), this command will:
@@ -188,27 +188,27 @@ pctl includes several pre-built templates:
 
 **Minimal** - Simplest possible cluster:
 ```bash
-pctl validate -t templates/examples/minimal.yaml
+pctl validate -t seeds/examples/minimal.yaml
 ```
 
 **Starter** - Basic cluster with software and users:
 ```bash
-pctl validate -t templates/examples/starter.yaml
+pctl validate -t seeds/examples/starter.yaml
 ```
 
 **Bioinformatics** - Genomics and bioinformatics tools:
 ```bash
-pctl validate -t templates/library/bioinformatics.yaml
+pctl validate -t seeds/library/bioinformatics.yaml
 ```
 
 **Machine Learning** - GPU instances with PyTorch/TensorFlow:
 ```bash
-pctl validate -t templates/library/machine-learning.yaml
+pctl validate -t seeds/library/machine-learning.yaml
 ```
 
 **Computational Chemistry** - MD and quantum chemistry:
 ```bash
-pctl validate -t templates/library/computational-chemistry.yaml
+pctl validate -t seeds/library/computational-chemistry.yaml
 ```
 
 ### Creating Your Own Template
@@ -363,7 +363,7 @@ Quick cluster for testing code:
 
 ```bash
 # Use minimal template
-pctl create -t templates/examples/minimal.yaml --name dev-cluster
+pctl create -t seeds/examples/minimal.yaml --name dev-cluster
 
 # When done
 pctl delete dev-cluster --force

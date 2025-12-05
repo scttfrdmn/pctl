@@ -234,7 +234,7 @@ pctl create -t bioinformatics.yaml --name my-cluster
 
 ### Explicit Override in Template
 ```yaml
-# templates/my-ubuntu-cluster.yaml
+# seeds/my-ubuntu-cluster.yaml
 cluster:
   name: my-cluster
   region: us-west-2
@@ -246,7 +246,7 @@ compute:
 ```
 
 ```bash
-pctl create -t templates/my-ubuntu-cluster.yaml
+pctl create -t seeds/my-ubuntu-cluster.yaml
 # Uses Ubuntu 24.04 as specified in template
 ```
 

@@ -8,7 +8,7 @@ Test templates against real AWS infrastructure to validate functionality, identi
 ### Phase 1: Minimal Cluster (No Software)
 **Goal**: Validate core cluster provisioning without software complexity
 
-**Template**: `templates/examples/minimal.yaml` (17 lines)
+**Template**: `seeds/examples/minimal.yaml` (17 lines)
 - No software packages
 - No users
 - No data mounts
@@ -17,11 +17,11 @@ Test templates against real AWS infrastructure to validate functionality, identi
 **Test Cases**:
 ```bash
 # Test 1: Basic creation with auto VPC
-pctl validate -t templates/examples/minimal.yaml
-pctl create -t templates/examples/minimal.yaml --name test-minimal --key-name <key>
+pctl validate -t seeds/examples/minimal.yaml
+pctl create -t seeds/examples/minimal.yaml --name test-minimal --key-name <key>
 
 # Test 2: With existing subnet
-pctl create -t templates/examples/minimal.yaml --name test-minimal-subnet \
+pctl create -t seeds/examples/minimal.yaml --name test-minimal-subnet \
   --key-name <key> --subnet-id <subnet>
 
 # Test 3: Status and lifecycle
@@ -49,7 +49,7 @@ pctl delete test-minimal
 ### Phase 2: Starter Cluster (Basic Software)
 **Goal**: Test software installation workflow
 
-**Template**: `templates/examples/starter.yaml` (40 lines)
+**Template**: `seeds/examples/starter.yaml` (40 lines)
 - 5 basic packages: gcc, openmpi, python, cmake, git
 - 1 user
 - 1 S3 mount
@@ -57,7 +57,7 @@ pctl delete test-minimal
 **Test Cases**:
 ```bash
 # Create starter cluster
-pctl create -t templates/examples/starter.yaml --name test-starter --key-name <key>
+pctl create -t seeds/examples/starter.yaml --name test-starter --key-name <key>
 
 # Verify software installation
 # SSH and check:
@@ -92,7 +92,7 @@ pctl create -t templates/examples/starter.yaml --name test-starter --key-name <k
 ### Phase 3: Bioinformatics Template (Real Workload)
 **Goal**: Test simplest library template with domain-specific software
 
-**Template**: `templates/library/bioinformatics.yaml` (83 lines)
+**Template**: `seeds/library/bioinformatics.yaml` (83 lines)
 - ~10 bioinformatics packages
 - Specific instance types
 - Production-like configuration
@@ -100,10 +100,10 @@ pctl create -t templates/examples/starter.yaml --name test-starter --key-name <k
 **Test Cases**:
 ```bash
 # Validate first
-pctl validate -t templates/library/bioinformatics.yaml
+pctl validate -t seeds/library/bioinformatics.yaml
 
 # Create cluster
-pctl create -t templates/library/bioinformatics.yaml \
+pctl create -t seeds/library/bioinformatics.yaml \
   --name test-bio --key-name <key>
 
 # Verify software
@@ -134,7 +134,7 @@ pctl create -t templates/library/bioinformatics.yaml \
 **Test Cases**:
 ```bash
 # Build AMI from bioinformatics template
-pctl ami build -t templates/library/bioinformatics.yaml \
+pctl ami build -t seeds/library/bioinformatics.yaml \
   --name bio-test-v1 \
   --subnet-id <subnet> \
   --detach
@@ -144,7 +144,7 @@ pctl ami status <build-id> --watch
 
 # Once complete, use AMI
 pctl ami list
-pctl create -t templates/library/bioinformatics.yaml \
+pctl create -t seeds/library/bioinformatics.yaml \
   --name test-bio-ami \
   --custom-ami <ami-id> \
   --key-name <key>
@@ -172,7 +172,7 @@ pctl create -t templates/library/bioinformatics.yaml \
 **Test Cases**:
 ```bash
 # Test machine-learning template (94 lines)
-pctl create -t templates/library/machine-learning.yaml --name test-ml
+pctl create -t seeds/library/machine-learning.yaml --name test-ml
 
 # Test with multiple queues
 # Test with GPU instances (if needed)
@@ -189,7 +189,7 @@ For each test, record:
 ```markdown
 ### Test: [Template Name] - [Date]
 
-**Template**: templates/[path]
+**Template**: seeds/[path]
 **Region**: us-east-1 / us-west-2 / etc.
 **Command**:
 \`\`\`bash

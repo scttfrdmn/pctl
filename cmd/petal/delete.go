@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/scttfrdmn/pctl/pkg/provisioner"
+	"github.com/scttfrdmn/petal/pkg/provisioner"
 	"github.com/spf13/cobra"
 )
 
@@ -31,8 +31,9 @@ var (
 )
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete CLUSTER_NAME",
-	Short: "Delete a cluster",
+	Use:     "delete CLUSTER_NAME",
+	Aliases: []string{"harvest", "wilt"},
+	Short:   "Delete a cluster",
 	Long: `Delete an HPC cluster and all associated resources.
 
 This is a destructive operation that will:

@@ -360,7 +360,7 @@ After Phase 3 is complete, users can immediately benefit:
 
 ### Create a foundation template
 ```yaml
-# templates/foundation.yaml
+# seeds/foundation.yaml
 cluster:
   name: foundation
   region: us-west-2
@@ -375,7 +375,7 @@ software:
 
 ### Create derived templates
 ```yaml
-# templates/gromacs.yaml
+# seeds/gromacs.yaml
 extends: foundation.yaml
 
 cluster:

@@ -18,8 +18,8 @@ package config
 import (
 	"fmt"
 
-	"github.com/scttfrdmn/pctl/pkg/software"
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/software"
+	"github.com/scttfrdmn/petal/pkg/template"
 	"gopkg.in/yaml.v3"
 )
 

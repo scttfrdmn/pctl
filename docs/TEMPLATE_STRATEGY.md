@@ -12,11 +12,11 @@ This document outlines the comprehensive template library we'll build before tag
 ## Current Status (Baseline)
 
 ### Existing Templates (5 total)
-- ✅ templates/library/bioinformatics.yaml
-- ✅ templates/library/machine-learning.yaml
-- ✅ templates/library/computational-chemistry.yaml
-- ✅ templates/examples/minimal.yaml
-- ✅ templates/examples/starter.yaml
+- ✅ seeds/library/bioinformatics.yaml
+- ✅ seeds/library/machine-learning.yaml
+- ✅ seeds/library/computational-chemistry.yaml
+- ✅ seeds/examples/minimal.yaml
+- ✅ seeds/examples/starter.yaml
 
 ##Target: 25-30 Templates Across 8 Categories
 

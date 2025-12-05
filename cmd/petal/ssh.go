@@ -21,7 +21,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/scttfrdmn/pctl/pkg/provisioner"
+	"github.com/scttfrdmn/petal/pkg/provisioner"
 	"github.com/spf13/cobra"
 )
 
@@ -31,8 +31,9 @@ var (
 )
 
 var sshCmd = &cobra.Command{
-	Use:   "ssh CLUSTER_NAME",
-	Short: "SSH into cluster head node",
+	Use:     "ssh CLUSTER_NAME",
+	Aliases: []string{"stem", "connect"},
+	Short:   "SSH into cluster head node",
 	Long: `Connect to the cluster head node via SSH.
 
 Automatically uses the key specified during cluster creation and connects

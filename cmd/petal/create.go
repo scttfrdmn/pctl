@@ -19,14 +19,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/pctl/pkg/ami"
-	"github.com/scttfrdmn/pctl/pkg/provisioner"
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/ami"
+	"github.com/scttfrdmn/petal/pkg/provisioner"
+	"github.com/scttfrdmn/petal/pkg/template"
 	"github.com/spf13/cobra"
 )
 
 var (
-	createTemplate  string
+	createSeed      string
+	createTemplate  string // Deprecated, use createSeed
 	createName      string
 	createRegion    string
 	createKeyName   string
@@ -39,8 +40,9 @@ var (
 )
 
 var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a new HPC cluster",
+	Use:     "create",
+	Aliases: []string{"bloom", "grow"},
+	Short:   "Create a new HPC cluster",
 	Long: `Create a new AWS ParallelCluster from a template.
 
 This command:
@@ -78,9 +80,10 @@ and private subnets, internet gateway, route tables, and security groups.`,
 }
 
 func init() {
-	createCmd.Flags().StringVarP(&createTemplate, "template", "t", "", "path to template file (required)")
-	createCmd.Flags().StringVarP(&createName, "name", "n", "", "cluster name (overrides template)")
-	createCmd.Flags().StringVarP(&createRegion, "region", "r", "", "AWS region (overrides template)")
+	createCmd.Flags().StringVar(&createSeed, "seed", "", "path to seed file (required)")
+	createCmd.Flags().StringVarP(&createTemplate, "template", "t", "", "DEPRECATED: use --seed instead")
+	createCmd.Flags().StringVarP(&createName, "name", "n", "", "cluster name (overrides seed)")
+	createCmd.Flags().StringVarP(&createRegion, "region", "r", "", "AWS region (overrides seed)")
 	createCmd.Flags().StringVarP(&createKeyName, "key-name", "k", "", "EC2 key pair name for SSH access (required)")
 	createCmd.Flags().StringVarP(&createSubnetID, "subnet-id", "s", "", "subnet ID (optional, auto-creates VPC if not provided)")
 	createCmd.Flags().StringVar(&createCustomAMI, "custom-ami", "", "custom AMI ID to use")
@@ -88,17 +91,30 @@ func init() {
 	createCmd.Flags().BoolVar(&rebuildAMI, "rebuild-ami", false, "force rebuild of AMI even if cached version exists")
 	createCmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate and show plan without creating")
 	createCmd.Flags().BoolVar(&forceBootstrap, "force-bootstrap", false, "bypass AMI requirement and use bootstrap scripts (not recommended for production)")
-	createCmd.MarkFlagRequired("template")
 	rootCmd.AddCommand(createCmd)
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
-	if verbose {
-		fmt.Printf("Loading template: %s\n", createTemplate)
+	// Handle --seed and --template flags (with deprecation warning)
+	seedFile := createSeed
+	if createTemplate != "" {
+		if createSeed != "" {
+			return fmt.Errorf("cannot use both --seed and --template flags")
+		}
+		fmt.Printf("⚠️  Warning: --template is deprecated, use --seed instead\n\n")
+		seedFile = createTemplate
 	}
 
-	// Load and validate template
-	tmpl, err := template.Load(createTemplate)
+	if seedFile == "" {
+		return fmt.Errorf("--seed is required for cluster creation")
+	}
+
+	if verbose {
+		fmt.Printf("Loading seed: %s\n", seedFile)
+	}
+
+	// Load and validate seed
+	tmpl, err := template.Load(seedFile)
 	if err != nil {
 		return fmt.Errorf("failed to load template: %w", err)
 	}
@@ -222,15 +238,15 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  • With AMI: Build once (30-90 min), then every cluster is 3-5 minutes\n")
 			fmt.Printf("  • Production-ready: Software pre-installed, tested, and ready to use\n\n")
 
-			fmt.Printf("Build an AMI for this template:\n")
-			fmt.Printf("  pctl ami build -t %s --name %s --detach\n\n", createTemplate, amiName)
+			fmt.Printf("Build an AMI for this seed:\n")
+			fmt.Printf("  petal ami build --seed %s --name %s --detach\n\n", seedFile, amiName)
 
 			fmt.Printf("The AMI will build in the background (~30-90 minutes). Monitor with:\n")
-			fmt.Printf("  pctl ami status %s\n\n", amiName)
+			fmt.Printf("  petal ami status %s\n\n", amiName)
 
 			if !forceBootstrap {
 				fmt.Printf("To bypass this check (not recommended for production):\n")
-				fmt.Printf("  pctl create -t %s --key-name %s --force-bootstrap\n\n", createTemplate, createKeyName)
+				fmt.Printf("  petal create --seed %s --key-name %s --force-bootstrap\n\n", createTemplate, createKeyName)
 				return fmt.Errorf("AMI required for software packages - build AMI first or use --force-bootstrap")
 			}
 
@@ -252,7 +268,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	// Prepare create options
 	opts := &provisioner.CreateOptions{
-		TemplatePath: createTemplate,
+		TemplatePath: seedFile,
 		KeyName:      createKeyName,
 		SubnetID:     createSubnetID,
 		CustomAMI:    createCustomAMI,

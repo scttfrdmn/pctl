@@ -65,7 +65,7 @@ type Registry interface {
 }
 
 // DefaultRegistry is the default template registry URL.
-const DefaultRegistry = "https://github.com/scttfrdmn/pctl-registry"
+const DefaultRegistry = "https://github.com/scttfrdmn/petal-registry"
 
 // Manager manages template registries.
 type Manager struct {

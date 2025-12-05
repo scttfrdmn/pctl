@@ -31,9 +31,9 @@ func TestGetConfigDir(t *testing.T) {
 		t.Error("GetConfigDir() returned empty string")
 	}
 
-	// Should end with .pctl
-	if filepath.Base(dir) != ".pctl" {
-		t.Errorf("GetConfigDir() = %s, want directory ending with .pctl", dir)
+	// Should end with .petal
+	if filepath.Base(dir) != ".petal" {
+		t.Errorf("GetConfigDir() = %s, want directory ending with .petal", dir)
 	}
 
 	// Should be an absolute path
@@ -91,7 +91,7 @@ func TestEnsureConfigDir(t *testing.T) {
 	}
 
 	// Check that directory was created
-	configDir := filepath.Join(tempDir, ".pctl")
+	configDir := filepath.Join(tempDir, ".petal")
 	info, err := os.Stat(configDir)
 	if err != nil {
 		t.Fatalf("Config directory was not created: %v", err)
@@ -128,7 +128,7 @@ func TestEnsureStateDir(t *testing.T) {
 	}
 
 	// Check that directory was created
-	stateDir := filepath.Join(tempDir, ".pctl", "state")
+	stateDir := filepath.Join(tempDir, ".petal", "state")
 	info, err := os.Stat(stateDir)
 	if err != nil {
 		t.Fatalf("State directory was not created: %v", err)
@@ -203,7 +203,7 @@ func TestLoadWithConfigFile(t *testing.T) {
 	tempDir := t.TempDir()
 	os.Setenv("HOME", tempDir)
 
-	configDir := filepath.Join(tempDir, ".pctl")
+	configDir := filepath.Join(tempDir, ".petal")
 	err := os.MkdirAll(configDir, 0755)
 	if err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)

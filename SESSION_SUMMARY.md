@@ -133,7 +133,7 @@ pctl/
 ├── internal/
 │   ├── version/        # Version info
 │   └── config/         # User config
-├── templates/
+├── seeds/
 │   ├── library/        # 3 templates
 │   └── examples/       # 2 templates
 ├── docs/               # 5 docs
@@ -216,11 +216,11 @@ pctl/
 
 ```bash
 # Validate templates
-$ pctl validate -t templates/library/bioinformatics.yaml
+$ pctl validate -t seeds/library/bioinformatics.yaml
 ✅ Template is valid!
 
 # Preview what would be created
-$ pctl create -t templates/examples/starter.yaml --dry-run
+$ pctl create -t seeds/examples/starter.yaml --dry-run
 🔍 Dry run mode - no resources will be created
 
 Cluster Configuration:
@@ -298,11 +298,11 @@ pctl v0.1.0 (commit: 0a03408, built: 2025-11-09, ...)
 - internal/config/*.go
 
 **Templates:**
-- templates/library/bioinformatics.yaml
-- templates/library/machine-learning.yaml
-- templates/library/computational-chemistry.yaml
-- templates/examples/minimal.yaml
-- templates/examples/starter.yaml
+- seeds/library/bioinformatics.yaml
+- seeds/library/machine-learning.yaml
+- seeds/library/computational-chemistry.yaml
+- seeds/examples/minimal.yaml
+- seeds/examples/starter.yaml
 
 **Documentation:**
 - README.md

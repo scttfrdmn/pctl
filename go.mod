@@ -1,4 +1,4 @@
-module github.com/scttfrdmn/pctl
+module github.com/scttfrdmn/petal
 
 go 1.23.0
 

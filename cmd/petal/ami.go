@@ -22,13 +22,14 @@ import (
 	"time"
 
 	"github.com/schollz/progressbar/v3"
-	"github.com/scttfrdmn/pctl/pkg/ami"
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/ami"
+	"github.com/scttfrdmn/petal/pkg/template"
 	"github.com/spf13/cobra"
 )
 
 var (
-	amiTemplateFile string
+	amiSeedFile     string
+	amiTemplateFile string // Deprecated, use amiSeedFile
 	amiName         string
 	amiDescription  string
 	amiSubnetID     string
@@ -127,7 +128,8 @@ func init() {
 	amiCmd.AddCommand(listBuildsCmd)
 
 	// Build AMI flags
-	buildAMICmd.Flags().StringVarP(&amiTemplateFile, "template", "t", "", "template file (required)")
+	buildAMICmd.Flags().StringVar(&amiSeedFile, "seed", "", "seed file (required)")
+	buildAMICmd.Flags().StringVarP(&amiTemplateFile, "template", "t", "", "DEPRECATED: use --seed instead")
 	buildAMICmd.Flags().StringVar(&amiName, "name", "", "AMI name (required)")
 	buildAMICmd.Flags().StringVar(&amiDescription, "description", "", "AMI description")
 	buildAMICmd.Flags().StringVar(&amiSubnetID, "subnet-id", "", "subnet ID for build instance (required)")
@@ -147,9 +149,23 @@ func init() {
 func runBuildAMI(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	// Load and validate template
-	fmt.Printf("📄 Loading template: %s\n", amiTemplateFile)
-	tmpl, err := template.Load(amiTemplateFile)
+	// Handle --seed and --template flags (with deprecation warning)
+	seedFile := amiSeedFile
+	if amiTemplateFile != "" {
+		if amiSeedFile != "" {
+			return fmt.Errorf("cannot use both --seed and --template flags")
+		}
+		fmt.Printf("⚠️  Warning: --template is deprecated, use --seed instead\n\n")
+		seedFile = amiTemplateFile
+	}
+
+	if seedFile == "" {
+		return fmt.Errorf("--seed is required for AMI building")
+	}
+
+	// Load and validate seed
+	fmt.Printf("📄 Loading seed: %s\n", seedFile)
+	tmpl, err := template.Load(seedFile)
 	if err != nil {
 		return fmt.Errorf("failed to load template: %w", err)
 	}
@@ -217,7 +233,7 @@ func runBuildAMI(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Next steps:\n")
 	fmt.Printf("  1. Test the AMI:\n")
-	fmt.Printf("     pctl create -t %s --key-name <key> --custom-ami %s\n\n", amiTemplateFile, metadata.AMIID)
+	fmt.Printf("     petal create --seed %s --key-name <key> --custom-ami %s\n\n", seedFile, metadata.AMIID)
 	fmt.Printf("  2. Share the AMI with other AWS accounts if needed:\n")
 	fmt.Printf("     aws ec2 modify-image-attribute --image-id %s --launch-permission \"Add=[{UserId=123456789012}]\"\n\n", metadata.AMIID)
 

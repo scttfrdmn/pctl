@@ -19,7 +19,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/scttfrdmn/pctl/pkg/registry"
+	"github.com/scttfrdmn/petal/pkg/registry"
 	"github.com/spf13/cobra"
 )
 

@@ -157,7 +157,7 @@ pctl registry update
 pctl registry search bioinformatics
 
 # Create a cluster from a template
-pctl create -t templates/library/bioinformatics.yaml --name my-cluster
+pctl create -t seeds/library/bioinformatics.yaml --name my-cluster
 
 # Check cluster status
 pctl status my-cluster
@@ -271,7 +271,7 @@ pctl/
 ├── internal/              # Private packages
 │   ├── version/          # Version information
 │   └── config/           # Configuration management
-├── templates/library/     # Pre-built templates
+├── seeds/library/     # Pre-built templates
 ├── tests/                 # Test suites
 └── docs/                  # Documentation
 ```

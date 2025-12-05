@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/template"
 )
 
 // ClusterCapture contains information captured from a remote cluster.

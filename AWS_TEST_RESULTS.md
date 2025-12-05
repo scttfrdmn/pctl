@@ -2,14 +2,14 @@
 
 ## Test: Minimal Cluster (Phase 1) - 2025-11-10
 
-**Template**: templates/examples/minimal-usw2.yaml
+**Template**: seeds/examples/minimal-usw2.yaml
 **Region**: us-west-2
 **Command**:
 ```bash
 export PATH="$HOME/.pctl/venv/bin:$PATH"
 export AWS_PROFILE=aws
 export AWS_REGION=us-west-2
-./bin/pctl create -t templates/examples/minimal-usw2.yaml \
+./bin/pctl create -t seeds/examples/minimal-usw2.yaml \
   --name test-minimal-usw2 \
   --key-name scofri \
   --subnet-id subnet-0a73ca94ed00cdaf9
@@ -94,14 +94,14 @@ All Phase 1 issues resolved. Ready to proceed to Phase 2.
 
 ## Test: Starter Cluster (Phase 2) - 2025-11-10
 
-**Template**: templates/examples/starter-usw2.yaml (modified from starter.yaml)
+**Template**: seeds/examples/starter-usw2.yaml (modified from starter.yaml)
 **Region**: us-west-2
 **Command**:
 ```bash
 export PATH="$HOME/.pctl/venv/bin:$PATH"
 export AWS_PROFILE=aws
 export AWS_REGION=us-west-2
-./bin/pctl create -t templates/examples/starter-usw2.yaml \
+./bin/pctl create -t seeds/examples/starter-usw2.yaml \
   --name test-starter-usw2 \
   --key-name scofri \
   --subnet-id subnet-0a73ca94ed00cdaf9
@@ -167,14 +167,14 @@ export AWS_REGION=us-west-2
 ## Test: Issue #91 Fix Validation - 2025-11-10
 
 **Issue**: Bootstrap script not uploaded to S3 (Phase 2 blocker)
-**Template**: templates/examples/starter-usw2.yaml
+**Template**: seeds/examples/starter-usw2.yaml
 **Region**: us-west-2
 **Command**:
 ```bash
 export PATH="$HOME/.pctl/venv/bin:$PATH"
 export AWS_PROFILE=aws
 export AWS_REGION=us-west-2
-./bin/pctl create -t templates/examples/starter-usw2.yaml \
+./bin/pctl create -t seeds/examples/starter-usw2.yaml \
   --name test-starter-fix \
   --key-name scofri \
   --subnet-id subnet-0a73ca94ed00cdaf9
@@ -222,7 +222,7 @@ export AWS_REGION=us-west-2
 
 ### Template Analysis
 
-**Source**: `templates/library/bioinformatics.yaml`
+**Source**: `seeds/library/bioinformatics.yaml`
 
 **Complexity**:
 - 13 software packages (gcc, openmpi, samtools, bwa, gatk, blast-plus, bedtools2, bowtie2, fastqc, trimmomatic, python, r, perl, hdf5, parallel)

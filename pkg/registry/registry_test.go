@@ -121,7 +121,7 @@ func TestTemplateMetadata(t *testing.T) {
 		Version:     "1.0.0",
 		Tags:        []string{"bio", "genomics"},
 		Source:      "https://github.com/example/templates",
-		Path:        "/templates/bio.yaml",
+		Path:        "/seeds/bio.yaml",
 		UpdatedAt:   now,
 		Stars:       42,
 		Downloads:   1000,
@@ -425,7 +425,7 @@ func TestDefaultRegistry(t *testing.T) {
 		t.Error("DefaultRegistry should not be empty")
 	}
 
-	if DefaultRegistry != "https://github.com/scttfrdmn/pctl-registry" {
+	if DefaultRegistry != "https://github.com/scttfrdmn/petal-registry" {
 		t.Errorf("Expected default registry URL, got %s", DefaultRegistry)
 	}
 }
@@ -493,44 +493,44 @@ func TestParseGitHubURL(t *testing.T) {
 	}{
 		{
 			name:      "https URL",
-			url:       "https://github.com/scttfrdmn/pctl",
+			url:       "https://github.com/scttfrdmn/petal",
 			wantOwner: "scttfrdmn",
-			wantRepo:  "pctl",
+			wantRepo:  "petal",
 			wantErr:   false,
 		},
 		{
 			name:      "http URL",
-			url:       "http://github.com/scttfrdmn/pctl",
+			url:       "http://github.com/scttfrdmn/petal",
 			wantOwner: "scttfrdmn",
-			wantRepo:  "pctl",
+			wantRepo:  "petal",
 			wantErr:   false,
 		},
 		{
 			name:      "github.com URL",
-			url:       "github.com/scttfrdmn/pctl",
+			url:       "github.com/scttfrdmn/petal",
 			wantOwner: "scttfrdmn",
-			wantRepo:  "pctl",
+			wantRepo:  "petal",
 			wantErr:   false,
 		},
 		{
 			name:      "short form",
-			url:       "scttfrdmn/pctl",
+			url:       "scttfrdmn/petal",
 			wantOwner: "scttfrdmn",
-			wantRepo:  "pctl",
+			wantRepo:  "petal",
 			wantErr:   false,
 		},
 		{
 			name:      "with .git suffix",
-			url:       "https://github.com/scttfrdmn/pctl.git",
+			url:       "https://github.com/scttfrdmn/petal.git",
 			wantOwner: "scttfrdmn",
-			wantRepo:  "pctl",
+			wantRepo:  "petal",
 			wantErr:   false,
 		},
 		{
 			name:      "with trailing slash and .git",
-			url:       "github.com/scttfrdmn/pctl.git",
+			url:       "github.com/scttfrdmn/petal.git",
 			wantOwner: "scttfrdmn",
-			wantRepo:  "pctl",
+			wantRepo:  "petal",
 			wantErr:   false,
 		},
 		{
@@ -577,7 +577,7 @@ func TestParseGitHubURL(t *testing.T) {
 }
 
 func TestNewGitHubRegistry(t *testing.T) {
-	reg := NewGitHubRegistry("scttfrdmn", "pctl")
+	reg := NewGitHubRegistry("scttfrdmn", "petal")
 
 	if reg == nil {
 		t.Fatal("NewGitHubRegistry() returned nil")
@@ -587,16 +587,16 @@ func TestNewGitHubRegistry(t *testing.T) {
 		t.Errorf("Owner = %s, want scttfrdmn", reg.Owner)
 	}
 
-	if reg.Repo != "pctl" {
-		t.Errorf("Repo = %s, want pctl", reg.Repo)
+	if reg.Repo != "petal" {
+		t.Errorf("Repo = %s, want petal", reg.Repo)
 	}
 
 	if reg.Branch != "main" {
 		t.Errorf("Branch = %s, want main", reg.Branch)
 	}
 
-	if reg.BasePath != "templates" {
-		t.Errorf("BasePath = %s, want templates", reg.BasePath)
+	if reg.BasePath != "seeds" {
+		t.Errorf("BasePath = %s, want seeds", reg.BasePath)
 	}
 
 	if reg.client == nil {
@@ -607,7 +607,7 @@ func TestNewGitHubRegistry(t *testing.T) {
 func TestGitHubRegistryList(t *testing.T) {
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasSuffix(r.URL.Path, "/templates/index.json") {
+		if !strings.HasSuffix(r.URL.Path, "/seeds/index.json") {
 			t.Errorf("Unexpected path: %s", r.URL.Path)
 			http.NotFound(w, r)
 			return

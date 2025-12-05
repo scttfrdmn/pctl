@@ -87,14 +87,14 @@ Template specification
 Architecture overview
 Quick reference card
 File Structure
-pcluster-templates/
+pcluster-seeds/
 ├── cmd/pctl/              # CLI commands
 ├── pkg/
 │   ├── template/          # Template parser & validator
 │   ├── provisioner/       # Cluster orchestrator
 │   ├── config/            # ParallelCluster config generator
 │   └── spack/             # Software installer
-├── templates/library/     # Pre-built templates
+├── seeds/library/     # Pre-built templates
 ├── examples/              # Starter templates
 └── docs/                  # Comprehensive docs
 🚀 Quick Start
@@ -105,7 +105,7 @@ make build
 sudo make install
 
 # Create a cluster
-pctl create -t templates/library/bioinformatics.yaml
+pctl create -t seeds/library/bioinformatics.yaml
 
 # Or start simple
 pctl create -t examples/starter.yaml
@@ -286,7 +286,7 @@ CLI framework ✅
 🔧 Easy TODOs (Marked in Code)
 Git operations - Implement actual clone/pull (go-git library ready)
 SSH execution - Implement remote commands (golang.org/x/crypto/ssh ready)
-Create GitHub repos - aws-pcluster-templates/official and /community
+Create GitHub repos - aws-pcluster-seeds/official and /community
 All architecture is complete - just need to wire up the system calls!
 
 View your enhanced project

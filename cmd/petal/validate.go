@@ -17,7 +17,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/scttfrdmn/pctl/pkg/template"
+	"github.com/scttfrdmn/petal/pkg/template"
 	"github.com/spf13/cobra"
 )
 

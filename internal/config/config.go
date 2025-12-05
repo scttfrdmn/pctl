@@ -93,8 +93,17 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-// GetConfigDir returns the configuration directory for pctl.
+// GetConfigDir returns the configuration directory for petal.
 func GetConfigDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	return filepath.Join(home, ".petal"), nil
+}
+
+// getOldConfigDir returns the old pctl configuration directory.
+func getOldConfigDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
@@ -127,4 +136,50 @@ func EnsureStateDir() error {
 		return err
 	}
 	return os.MkdirAll(stateDir, 0755)
+}
+
+// MigrateFromPctl migrates configuration from ~/.pctl to ~/.petal if needed.
+// This should be called once on application startup.
+func MigrateFromPctl() error {
+	oldDir, err := getOldConfigDir()
+	if err != nil {
+		return err
+	}
+
+	newDir, err := GetConfigDir()
+	if err != nil {
+		return err
+	}
+
+	// Check if old directory exists
+	oldInfo, err := os.Stat(oldDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Old directory doesn't exist, nothing to migrate
+			return nil
+		}
+		return fmt.Errorf("failed to check old config directory: %w", err)
+	}
+
+	if !oldInfo.IsDir() {
+		// Old path exists but is not a directory, skip migration
+		return nil
+	}
+
+	// Check if new directory already exists
+	if _, err := os.Stat(newDir); err == nil {
+		// New directory already exists, skip migration
+		return nil
+	}
+
+	// Perform migration
+	fmt.Printf("🌸 Migrating pctl config to petal...\n")
+	fmt.Printf("   Moving %s → %s\n", oldDir, newDir)
+
+	if err := os.Rename(oldDir, newDir); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
+	}
+
+	fmt.Printf("✅ Migration complete!\n\n")
+	return nil
 }
