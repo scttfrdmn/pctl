@@ -1,0 +1,26 @@
+# Phase 1: Basic Cluster Functionality Test
+# Purpose: Validate software installation and basic SLURM functionality
+# Estimated cost: $2-3, Duration: 1.5 hours
+
+cluster:
+  name: workload-test-basic
+  region: us-west-2
+
+compute:
+  head_node: t3.medium  # Small/cheap head node
+  queues:
+    - name: compute
+      instance_types: [t3.small]  # Smallest practical instance
+      min_count: 0
+      max_count: 2
+
+software:
+  spack_packages:
+    - gcc@11.3.0
+    - openmpi@4.1.4
+    - python@3.10
+
+users:
+  - name: testuser
+    uid: 5001
+    gid: 5001
