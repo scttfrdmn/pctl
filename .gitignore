@@ -49,3 +49,4 @@ docs/.jekyll-cache/
 *.log
 venv/
 .aws-keys/
+/petal

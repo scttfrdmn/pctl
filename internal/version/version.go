@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package version provides version information for the pctl binary.
+// Package version provides version information for the petal binary.
 package version
 
 import (
@@ -53,7 +53,7 @@ func Get() Info {
 // String returns a human-readable version string.
 func (i Info) String() string {
 	return fmt.Sprintf(
-		"pctl %s (commit: %s, built: %s, go: %s, platform: %s)",
+		"petal %s (commit: %s, built: %s, go: %s, platform: %s)",
 		i.Version,
 		i.GitCommit,
 		i.BuildTime,

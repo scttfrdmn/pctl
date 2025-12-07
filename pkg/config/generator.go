@@ -57,7 +57,7 @@ func (g *Generator) buildParallelClusterConfig(tmpl *template.Template) map[stri
 	config := map[string]interface{}{
 		"Region": tmpl.Cluster.Region,
 		"Image": map[string]interface{}{
-			"Os": "al2023",
+			"Os": "alinux2023",
 		},
 	}
 

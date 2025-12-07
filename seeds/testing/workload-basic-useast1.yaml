@@ -1,10 +1,10 @@
-# Phase 1: Basic Cluster Functionality Test
+# Phase 1: Basic Cluster Functionality Test (US-EAST-1)
 # Purpose: Validate software installation and basic SLURM functionality
 # Estimated cost: $2-3, Duration: 1.5 hours
 
 cluster:
   name: workload-test-basic
-  region: us-east-2  # Using us-east-2 due to VPC limits in other regions
+  region: us-east-1  # Using us-east-1 due to VPC limit in us-west-2
 
 compute:
   head_node: t3.medium  # Small/cheap head node
