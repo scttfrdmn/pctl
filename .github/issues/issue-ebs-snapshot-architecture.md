@@ -672,20 +672,45 @@ petal create --seed bioinformatics.yaml --name research-1 --region us-east-1
 # 2. Check local snapshots in AWS → not found
 # 3. Fetch GitHub registry index
 # 4. Find matching fingerprint → bioinformatics-v1
-# 5. Look up snapshot for region → snap-0abc123 (in us-east-1)
-# 6. Use AWS snapshot → instant cluster!
+# 5. Filter snapshots: region=us-east-1, os=al2023 (from seed)
+# 6. Select best match → snap-0abc123
+# 7. Use AWS snapshot → instant cluster!
 
 # Output:
 📦 Using official software volume: bioinformatics-v1
-   Snapshot: snap-0abc123 (us-east-1)
+   Snapshot: snap-0abc123 (us-east-1, AL2023, 500GB)
+   Source: petal-official (AWS account 999888777666)
+✅ Cluster created in 2 minutes 18 seconds
+
+# User can override OS
+petal create --seed bioinformatics.yaml --name research-2 --os ubuntu2404
+
+# Output:
+📦 Using official software volume: bioinformatics-v1
+   Snapshot: snap-0def456 (us-east-1, Ubuntu 24.04, 500GB)
    Source: petal-official (AWS account 999888777666)
 ✅ Cluster created in 2 minutes 18 seconds
 ```
 
 **Flow:**
 ```
-Seed Template → Fingerprint → GitHub Registry → Snapshot ID → AWS EBS Snapshot
-bioinformatics.yaml → sha256:abc123... → bioinformatics-v1.json → snap-0abc123 → EBS in AWS
+Seed → Fingerprint → GitHub Registry → Filter by Region/OS → Snapshot ID → AWS EBS
+bioinformatics.yaml → sha256:abc123... → bioinformatics-v1.json →
+  filter(region=us-east-1, os=al2023) → snap-0abc123 → EBS in AWS
+```
+
+**Multiple Snapshots Support:**
+```
+Same seed + Same region + Different OS = Different snapshots
+bioinformatics.yaml (us-east-1):
+  - AL2023:      snap-0abc123
+  - Ubuntu 24.04: snap-0def456
+  - RHEL 9:      snap-0ghi789
+
+Same seed + Same region + Different size = Different snapshots
+bioinformatics.yaml (us-east-1, AL2023):
+  - Full (500GB):   snap-0abc123
+  - Minimal (250GB): snap-0xyz789
 ```
 
 ### Public Registry Implementation
@@ -767,14 +792,56 @@ https://github.com/scttfrdmn/petal-snapshots
   "fingerprint": "sha256:abc123def456...",
   "seed_url": "https://raw.githubusercontent.com/scttfrdmn/petal-snapshots/main/seeds/bioinformatics-v1.yaml",
 
-  "snapshots": {
-    "us-east-1": "snap-0abc123",
-    "us-west-2": "snap-0def456",
-    "eu-west-1": "snap-0ghi789"
-  },
-
-  "aws_account": "999888777666",
-  "size_gb": 500,
+  "snapshots": [
+    {
+      "region": "us-east-1",
+      "snapshot_id": "snap-0abc123",
+      "os": "al2023",
+      "size_gb": 500,
+      "description": "Full stack - Amazon Linux 2023",
+      "architecture": "x86_64"
+    },
+    {
+      "region": "us-east-1",
+      "snapshot_id": "snap-0def456",
+      "os": "ubuntu2404",
+      "size_gb": 500,
+      "description": "Full stack - Ubuntu 24.04",
+      "architecture": "x86_64"
+    },
+    {
+      "region": "us-east-1",
+      "snapshot_id": "snap-0ghi789",
+      "os": "al2023",
+      "size_gb": 250,
+      "description": "Minimal stack - Core tools only",
+      "architecture": "x86_64"
+    },
+    {
+      "region": "us-west-2",
+      "snapshot_id": "snap-0jkl012",
+      "os": "al2023",
+      "size_gb": 500,
+      "description": "Full stack - Amazon Linux 2023",
+      "architecture": "x86_64"
+    },
+    {
+      "region": "us-west-2",
+      "snapshot_id": "snap-0mno345",
+      "os": "ubuntu2404",
+      "size_gb": 500,
+      "description": "Full stack - Ubuntu 24.04",
+      "architecture": "x86_64"
+    },
+    {
+      "region": "eu-west-1",
+      "snapshot_id": "snap-0pqr678",
+      "os": "al2023",
+      "size_gb": 500,
+      "description": "Full stack - Amazon Linux 2023",
+      "architecture": "x86_64"
+    }
+  ],
 
   "packages": [
     "gcc@11.3.0",
@@ -784,6 +851,7 @@ https://github.com/scttfrdmn/petal-snapshots
     "gatk@4.3.0"
   ],
 
+  "aws_account": "999888777666",
   "public": true,
   "verified": true,
   "created": "2025-01-15",
@@ -791,13 +859,32 @@ https://github.com/scttfrdmn/petal-snapshots
 }
 ```
 
-**Key Point:** This JSON is just a **directory/pointer**. It says:
-- "If you need bioinformatics-v1 (fingerprint sha256:abc123...)"
-- "In us-east-1, use EBS snapshot snap-0abc123"
-- "In us-west-2, use EBS snapshot snap-0def456"
-- "Here's the seed template that was used to build it"
+**Multiple Snapshots Per Region:**
 
-The actual EBS snapshots (`snap-0abc123`, etc.) are stored in AWS, not GitHub.
+This supports multiple snapshot variants per region:
+- **Different OS**: AL2023, Ubuntu 24.04, RHEL 9
+- **Different sizes**: Full stack (500GB), Minimal (250GB)
+- **Different architectures**: x86_64, arm64
+- **Different configurations**: Debug builds, optimized builds
+
+**Selection Logic:**
+```go
+// User preferences
+region := "us-east-1"
+os := "al2023"        // Default or from seed
+size := 500           // Default or user override
+
+// Find matching snapshot
+for _, snap := range metadata.Snapshots {
+    if snap.Region == region &&
+       snap.OS == os &&
+       snap.SizeGB >= size {
+        return snap.SnapshotID
+    }
+}
+```
+
+The actual EBS snapshots are stored in AWS, not GitHub. GitHub just maps configurations to snapshot IDs.
 
 **Benefits of GitHub Registry:**
 - ✅ Version controlled
@@ -1035,7 +1122,12 @@ func (r *SnapshotRegistry) Get(name string) (*SnapshotMetadata, error) {
     return &metadata, nil
 }
 
-func (r *SnapshotRegistry) FindByFingerprint(fingerprint string, region string) (string, error) {
+func (r *SnapshotRegistry) FindByFingerprint(
+    fingerprint string,
+    region string,
+    os string,
+    minSize int) (string, error) {
+
     snapshots, err := r.List()
     if err != nil {
         return "", err
@@ -1049,14 +1141,40 @@ func (r *SnapshotRegistry) FindByFingerprint(fingerprint string, region string) 
                 continue
             }
 
-            // Return snapshot ID for region
-            if snapshotID, ok := metadata.Snapshots[region]; ok {
-                return snapshotID, nil
+            // Find matching snapshot with filters
+            for _, snap := range metadata.Snapshots {
+                if snap.Region == region &&
+                   (os == "" || snap.OS == os) &&
+                   snap.SizeGB >= minSize {
+                    return snap.SnapshotID, nil
+                }
             }
         }
     }
 
-    return "", fmt.Errorf("no snapshot found")
+    return "", fmt.Errorf("no snapshot found for region=%s, os=%s", region, os)
+}
+
+// List all available variants for a fingerprint
+func (r *SnapshotRegistry) ListVariants(fingerprint string, region string) ([]*SnapshotVariant, error) {
+    metadata, err := r.GetByFingerprint(fingerprint)
+    if err != nil {
+        return nil, err
+    }
+
+    var variants []*SnapshotVariant
+    for _, snap := range metadata.Snapshots {
+        if snap.Region == region {
+            variants = append(variants, &SnapshotVariant{
+                SnapshotID:  snap.SnapshotID,
+                OS:          snap.OS,
+                SizeGB:      snap.SizeGB,
+                Description: snap.Description,
+            })
+        }
+    }
+
+    return variants, nil
 }
 ```
 
