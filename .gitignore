@@ -48,3 +48,4 @@ docs/.jekyll-cache/
 .pctl/
 *.log
 venv/
+.aws-keys/
