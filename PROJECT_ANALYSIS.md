@@ -1,8 +1,8 @@
-# pctl (ParallelCluster Templates) - Extended Project Analysis
+# petal (ParallelCluster Seeds) - Extended Project Analysis
 
 ## Executive Summary
 
-pctl is a Go-based command-line tool designed to bridge the gap between AWS ParallelCluster's raw capabilities and the practical needs of HPC users. It provides a template-driven approach to cluster provisioning that abstracts away complexity while maintaining full functionality. The project addresses three critical pain points in cloud HPC adoption: software installation complexity, user management consistency, and data accessibility configuration.
+petal is a Go-based command-line tool designed to bridge the gap between AWS ParallelCluster's raw capabilities and the practical needs of HPC users. It provides a seed-driven approach to cluster provisioning that abstracts away complexity while maintaining full functionality. The project addresses three critical pain points in cloud HPC adoption: software installation complexity, user management consistency, and data accessibility configuration.
 
 ## Problem Space Analysis
 
@@ -29,7 +29,7 @@ AWS ParallelCluster is a powerful cluster management tool that automates much of
 4. **Configuration Complexity**
    - ParallelCluster configuration files are verbose and technical
    - Steep learning curve for users familiar with traditional HPC environments
-   - No reusable configuration patterns or templates
+   - No reusable configuration patterns or seeds
 
 ### Target Audience
 
@@ -46,13 +46,13 @@ The project follows several key design principles:
 
 1. **Abstraction with Escape Hatches**: Hide complexity by default but allow advanced users to override
 2. **Convention over Configuration**: Provide sensible defaults based on HPC best practices
-3. **Community-Driven**: Enable template sharing and collaboration
+3. **Community-Driven**: Enable seed sharing and collaboration
 4. **Cloud Migration Friendly**: Support capturing existing cluster configurations
 5. **Self-Contained**: Minimize external dependencies and setup requirements
 
 ### Core Components
 
-#### 1. Template System
+#### 1. Seed System
 
 **Purpose**: Provide a simple, declarative way to specify cluster requirements
 
@@ -62,7 +62,7 @@ The project follows several key design principles:
 - Support for multiple sections: cluster, compute, software, users, data
 - Extensible design for future enhancements
 
-**Example Template Structure**:
+**Example Seed Structure**:
 ```yaml
 cluster:
   name: my-hpc-cluster
@@ -107,16 +107,16 @@ data:
 
 ```
 pctl
-├── create        # Deploy cluster from template
+├── create        # Deploy cluster from seed
 ├── delete        # Remove cluster and resources
 ├── list          # Show all managed clusters
 ├── status        # Check cluster health and state
-├── validate      # Test template before deployment
-├── templates     # Manage local template library
-├── registry      # GitHub-based template sharing
+├── validate      # Test seed before deployment
+├── seeds     # Manage local seed library
+├── registry      # GitHub-based seed sharing
 │   ├── update    # Sync with remote repositories
-│   ├── search    # Find templates by tags/keywords
-│   ├── install   # Download template to local library
+│   ├── search    # Find seeds by tags/keywords
+│   ├── install   # Download seed to local library
 │   └── repos     # Manage registry sources
 ├── capture       # Reverse-engineer existing clusters
 │   ├── remote    # Capture from SSH-accessible cluster
@@ -150,7 +150,7 @@ pctl
 - Compiler/MPI hierarchy support
 
 **Workflow**:
-1. Parse software requirements from template
+1. Parse software requirements from seed
 2. Generate Spack installation commands
 3. Install packages on head node
 4. Generate Lmod module files
@@ -173,9 +173,9 @@ pctl
         └── netcdf/4.9.2
 ```
 
-#### 4. Template Registry
+#### 4. Seed Registry
 
-**Purpose**: Enable community sharing and discovery of cluster templates
+**Purpose**: Enable community sharing and discovery of cluster seeds
 
 **Architecture**:
 - GitHub-based storage (git as transport)
@@ -216,7 +216,7 @@ tested_regions: [us-east-1, us-west-2, eu-west-1]
 
 #### 5. Configuration Capture
 
-**Purpose**: Migrate existing on-premises clusters to cloud templates
+**Purpose**: Migrate existing on-premises clusters to cloud seeds
 
 **Capture Methods**:
 
@@ -225,7 +225,7 @@ tested_regions: [us-east-1, us-west-2, eu-west-1]
 - Detect loaded Lmod/Environment Modules
 - Extract user database (UID/GID mappings)
 - Identify shared filesystems
-- Generate compatible template
+- Generate compatible seed
 
 **Batch Script Analysis**:
 - Parse SLURM/PBS/LSF batch scripts
@@ -242,7 +242,7 @@ python3/3.10   → python@3.10
 ```
 
 **Output**:
-- Valid pctl template
+- Valid petal seed
 - Migration guide with manual steps
 - Compatibility notes
 
@@ -259,7 +259,7 @@ python3/3.10   → python@3.10
 - Easy upgrades
 
 **Fallback: pip + venv**
-- Virtual environment in ~/.pctl/parallelcluster
+- Virtual environment in ~/.petal/parallelcluster
 - Wrapper scripts for CLI access
 - Portable across systems
 
@@ -274,9 +274,9 @@ python3/3.10   → python@3.10
 #### Cluster Creation Flow
 
 ```
-User invokes: pctl create -t template.yaml
+User invokes: petal create -t seed.yaml
 
-1. Template Loading & Validation
+1. Seed Loading & Validation
    ├── Parse YAML
    ├── Validate schema
    ├── Check dependencies
@@ -344,13 +344,13 @@ pctl/
 │   ├── main.go           # Application entry
 │   ├── create.go         # Cluster creation
 │   ├── delete.go         # Cluster deletion
-│   ├── validate.go       # Template validation
+│   ├── validate.go       # Seed validation
 │   ├── registry.go       # Registry commands
 │   ├── capture.go        # Configuration capture
 │   └── pcluster.go       # ParallelCluster management
 │
 ├── pkg/                   # Core business logic
-│   ├── template/         # Template parsing and validation
+│   ├── seed/         # Seed parsing and validation
 │   │   ├── parser.go
 │   │   ├── validator.go
 │   │   └── types.go
@@ -362,14 +362,14 @@ pctl/
 │   │
 │   ├── config/           # ParallelCluster config generation
 │   │   ├── generator.go
-│   │   └── templates.go
+│   │   └── seeds.go
 │   │
 │   ├── spack/            # Software installation
 │   │   ├── installer.go
 │   │   ├── packages.go
 │   │   └── modules.go
 │   │
-│   ├── registry/         # Template registry
+│   ├── registry/         # Seed registry
 │   │   ├── registry.go
 │   │   ├── search.go
 │   │   └── sync.go
@@ -383,18 +383,18 @@ pctl/
 │       ├── installer.go
 │       └── version.go
 │
-├── seeds/library/     # Pre-built templates
+├── seeds/library/     # Pre-built seeds
 │   ├── bioinformatics.yaml
 │   ├── machine-learning.yaml
 │   └── computational-chemistry.yaml
 │
-├── examples/              # Starter templates
+├── examples/              # Starter seeds
 │   ├── minimal.yaml
 │   └── advanced.yaml
 │
 ├── docs/                  # Documentation
 │   ├── GETTING_STARTED.md
-│   ├── TEMPLATE_SPEC.md
+│   ├── SEED_SPEC.md
 │   ├── ARCHITECTURE.md
 │   └── NEW_FEATURES.md
 │
@@ -405,7 +405,7 @@ pctl/
 
 ### Key Algorithms and Logic
 
-#### Template Validation Algorithm
+#### Seed Validation Algorithm
 
 ```
 1. Schema Validation
@@ -487,7 +487,7 @@ brew install pctl
 # Option 2: Download binary
 wget https://github.com/aws-pcluster-seeds/pctl/releases/latest/pctl
 chmod +x pctl
-sudo mv pctl /usr/local/bin/
+sudo mv petal /usr/local/bin/
 
 # Option 3: Build from source
 git clone https://github.com/aws-pcluster-seeds/pctl
@@ -499,21 +499,21 @@ sudo make install
 **Initial Setup**:
 ```bash
 # Install ParallelCluster
-pctl pcluster install
+petal pcluster install
 
 # Configure AWS credentials (if not already done)
 aws configure
 
-# Update template registry
-pctl registry update
+# Update seed registry
+petal registry update
 
 # Validate setup
-pctl pcluster check
+petal pcluster check
 ```
 
 ### Configuration Management
 
-**Global Configuration** (~/.pctl/config.yaml):
+**Global Configuration** (~/.petal/config.yaml):
 ```yaml
 defaults:
   region: us-east-1
@@ -539,30 +539,30 @@ preferences:
 ```
 
 **State Management**:
-- Cluster state stored in ~/.pctl/state/
-- Tracks created clusters, templates used, configurations
+- Cluster state stored in ~/.petal/state/
+- Tracks created clusters, seeds used, configurations
 - Enables multi-cluster management
 - Supports state import/export for team sharing
 
 ### Typical Workflows
 
-#### Workflow 1: Create Cluster from Library Template
+#### Workflow 1: Create Cluster from Library Seed
 
 ```bash
-# Browse available templates
-pctl registry search bioinformatics
+# Browse available seeds
+petal registry search bioinformatics
 
-# Preview template
-pctl templates show bioinformatics
+# Preview seed
+petal seeds show bioinformatics
 
 # Validate before creation
-pctl validate -t seeds/library/bioinformatics.yaml
+petal validate -t seeds/library/bioinformatics.yaml
 
 # Create cluster
-pctl create -t seeds/library/bioinformatics.yaml --name bio-cluster-01
+petal create -t seeds/library/bioinformatics.yaml --name bio-cluster-01
 
 # Monitor creation
-pctl status bio-cluster-01
+petal status bio-cluster-01
 
 # Once ready, SSH in
 ssh -i ~/.ssh/my-key.pem ec2-user@<head-node-ip>
@@ -577,45 +577,45 @@ samtools --version
 
 ```bash
 # Capture existing cluster configuration
-pctl capture remote \
+petal capture remote \
   --host hpc.myuniversity.edu \
   --user myusername \
   --output migrated-cluster.yaml
 
-# Review generated template
+# Review generated seed
 cat migrated-cluster.yaml
 
 # Customize as needed
 vim migrated-cluster.yaml
 
 # Validate
-pctl validate -t migrated-cluster.yaml
+petal validate -t migrated-cluster.yaml
 
 # Create in AWS
-pctl create -t migrated-cluster.yaml --name cloud-hpc-01
+petal create -t migrated-cluster.yaml --name cloud-hpc-01
 ```
 
-#### Workflow 3: Custom Template Development
+#### Workflow 3: Custom Seed Development
 
 ```bash
 # Start from example
 cp examples/minimal.yaml my-cluster.yaml
 
-# Edit template
+# Edit seed
 vim my-cluster.yaml
 
 # Validate during development
-pctl validate -t my-cluster.yaml
+petal validate -t my-cluster.yaml
 
 # Test create
-pctl create -t my-cluster.yaml --name test-cluster
+petal create -t my-cluster.yaml --name test-cluster
 
 # Iterate based on results
 # ...
 
 # Share with team via registry
 git add my-cluster.yaml
-git commit -m "Add custom ML template"
+git commit -m "Add custom ML seed"
 git push origin main
 ```
 
@@ -623,7 +623,7 @@ git push origin main
 
 ### Completed Features (Per Design Document)
 
-1. Template System
+1. Seed System
    - YAML schema definition
    - Parser implementation
    - Validation framework
@@ -635,7 +635,7 @@ git push origin main
    - Configuration file support
    - Shell completion
 
-3. Example Templates
+3. Example Seeds
    - Bioinformatics workload
    - Machine learning with GPUs
    - Computational chemistry
@@ -697,7 +697,7 @@ The design document indicates the following areas need actual implementation:
 
 ### 2. Extensibility
 - Plugin architecture for future enhancements
-- Template system supports custom fields
+- Seed system supports custom fields
 - Registry enables community contributions
 
 ### 3. Production-Ready Thinking
@@ -756,8 +756,8 @@ The design document indicates the following areas need actual implementation:
    - Large clusters can be expensive
    - Need cost estimation and budget alerts
 
-3. **Template Quality**
-   - Community templates may be outdated or incorrect
+3. **Seed Quality**
+   - Community seeds may be outdated or incorrect
    - Need review process and quality metrics
 
 4. **Documentation Maintenance**
@@ -770,12 +770,12 @@ The design document indicates the following areas need actual implementation:
    - AWS credentials must be handled securely
    - SSH keys need proper permissions
 
-2. **Template Injection**
-   - Templates could contain malicious scripts
-   - Need sandboxing for template execution
+2. **Seed Injection**
+   - Seeds could contain malicious scripts
+   - Need sandboxing for seed execution
 
 3. **Registry Trust**
-   - Community templates could be compromised
+   - Community seeds could be compromised
    - Consider signing and verification
 
 4. **Network Security**
@@ -789,28 +789,28 @@ The design document indicates the following areas need actual implementation:
 1. **AWS ParallelCluster** (Direct Integration)
    - Pros: Official, comprehensive, well-maintained
    - Cons: Complex configuration, no software management, steep learning curve
-   - pctl Advantage: Dramatically simpler while building on PC foundation
+   - petal Advantage: Dramatically simpler while building on PC foundation
 
 2. **Terraform/CloudFormation** (Infrastructure as Code)
    - Pros: General-purpose, widely known, version controlled
    - Cons: Not HPC-specific, manual software management, verbose
-   - pctl Advantage: HPC-optimized, software included, opinionated
+   - petal Advantage: HPC-optimized, software included, opinionated
 
 3. **Cluster Management Platforms** (Bright Cluster Manager, etc.)
    - Pros: Comprehensive, mature, GUI-based
    - Cons: Expensive, complex, legacy-focused, commercial licensing
-   - pctl Advantage: Open source, cloud-native, modern, free
+   - petal Advantage: Open source, cloud-native, modern, free
 
 4. **Container Orchestration** (Kubernetes, EKS)
    - Pros: Modern, scalable, industry standard
    - Cons: Not HPC-native, different paradigm, networking complexity
-   - pctl Advantage: Traditional HPC workflow preservation
+   - petal Advantage: Traditional HPC workflow preservation
 
 ### Unique Value Propositions
 
 1. **Bridge Technology**: Connects on-prem HPC users to cloud
 2. **Time to Science**: Minutes to production cluster vs. days/weeks
-3. **Community-Driven**: Shared templates accelerate adoption
+3. **Community-Driven**: Shared seeds accelerate adoption
 4. **Migration Path**: Capture feature provides clear upgrade route
 5. **Cost Efficiency**: Right-sized configs prevent over-provisioning
 
@@ -846,19 +846,19 @@ The design document indicates the following areas need actual implementation:
    - VPN integration
 
 3. **Workflow Integration**
-   - Nextflow/Snakemake templates
+   - Nextflow/Snakemake seeds
    - Jupyter Hub deployment
    - RStudio Server configuration
 
 ### Long-Term Vision
 
 1. **AI-Assisted Configuration**
-   - Natural language template generation
+   - Natural language seed generation
    - Workload analysis and optimization
    - Automated troubleshooting
 
 2. **Marketplace**
-   - Commercial template offerings
+   - Commercial seed offerings
    - Support subscriptions
    - Training and certification
 
@@ -871,7 +871,7 @@ The design document indicates the following areas need actual implementation:
 
 ### Technical Metrics
 
-- Template validation success rate > 95%
+- Seed validation success rate > 95%
 - Cluster creation success rate > 90%
 - Mean time to working cluster < 30 minutes
 - Software installation success rate > 85%
@@ -879,9 +879,9 @@ The design document indicates the following areas need actual implementation:
 ### Adoption Metrics
 
 - Active users and installations
-- Template registry contributions
+- Seed registry contributions
 - Community engagement (issues, PRs)
-- Template reuse rate
+- Seed reuse rate
 
 ### Business Metrics
 
@@ -892,17 +892,17 @@ The design document indicates the following areas need actual implementation:
 
 ## Conclusion
 
-The pctl project represents a well-thought-out solution to real challenges in cloud HPC adoption. The design demonstrates:
+The petal project represents a well-thought-out solution to real challenges in cloud HPC adoption. The design demonstrates:
 
 - **Deep domain understanding** of HPC user needs
 - **Pragmatic technical choices** (Go, Spack, Lmod)
-- **Community-first approach** with template sharing
+- **Community-first approach** with seed sharing
 - **Production-ready architecture** with proper state management and error handling
 - **Clear value proposition** reducing complexity while maintaining power
 
 The project is architecturally complete and ready for implementation. The main work ahead is integrating with AWS services, implementing remote execution, and building out the git-based registry operations. The foundation is solid, the use cases are clear, and the potential impact is significant.
 
-This could become the de facto standard for AWS HPC cluster provisioning, similar to how Terraform became standard for infrastructure as code. The combination of simplicity, power, and community-driven templates addresses a real gap in the market.
+This could become the de facto standard for AWS HPC cluster provisioning, similar to how Terraform became standard for infrastructure as code. The combination of simplicity, power, and community-driven seeds addresses a real gap in the market.
 
 ## Recommendations
 
@@ -911,7 +911,7 @@ This could become the de facto standard for AWS HPC cluster provisioning, simila
 1. **Start with MVP**: Focus on core create/delete flow first
 2. **Binary Cache Priority**: Spack build times are critical - integrate buildcache early
 3. **Error Messages**: Invest heavily in helpful error messages and debugging
-4. **Example Templates**: High-quality examples will drive adoption
+4. **Example Seeds**: High-quality examples will drive adoption
 5. **Documentation**: Interactive tutorials and video walkthroughs
 
 ### For Launch
@@ -924,7 +924,7 @@ This could become the de facto standard for AWS HPC cluster provisioning, simila
 ### For Sustainability
 
 1. **Governance Model**: Clear contribution guidelines
-2. **Template Review**: Quality control for registry
+2. **Seed Review**: Quality control for registry
 3. **Funding**: Consider foundation or commercial support options
 4. **Roadmap**: Public roadmap with community input
 

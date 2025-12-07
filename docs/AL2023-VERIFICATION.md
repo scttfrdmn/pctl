@@ -4,7 +4,7 @@
 
 ## Summary
 
-Successfully verified that pctl has been fully upgraded to use **Amazon Linux 2023 (AL2023)** as the default operating system for ParallelCluster deployments.
+Successfully verified that petal has been fully upgraded to use **Amazon Linux 2023 (AL2023)** as the default operating system for ParallelCluster deployments.
 
 ## Verification Methods
 
@@ -21,7 +21,7 @@ Successfully verified that pctl has been fully upgraded to use **Amazon Linux 20
 
 ### 2. Generated Configuration Test
 
-Created test program to generate ParallelCluster configuration from template:
+Created test program to generate ParallelCluster configuration from seed:
 
 ```yaml
 Image:
@@ -98,16 +98,16 @@ All unit tests passing with AL2023 configuration:
 ### Backwards Compatibility
 - Existing AL2 clusters continue to work
 - Old AMIs remain functional
-- No breaking changes to user templates
+- No breaking changes to user seeds
 - Tests updated to reflect new defaults
 
 ## Future Work
 
-See `.github/issues/issue-template-os-override.md` for planned OS override feature allowing users to specify alternative operating systems via template or CLI flag.
+See `.github/issues/issue-template-os-override.md` for planned OS override feature allowing users to specify alternative operating systems via seed or CLI flag.
 
 ## Conclusion
 
-✅ **VERIFIED:** pctl successfully upgraded to Amazon Linux 2023
+✅ **VERIFIED:** petal successfully upgraded to Amazon Linux 2023
 
 All components of the system (code, configuration generation, fingerprinting, testing) have been verified to use AL2023 as the default operating system. The upgrade was completed on 2025-11-11 and has been validated through:
 

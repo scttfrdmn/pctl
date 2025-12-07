@@ -1,6 +1,6 @@
 # User Personas & Walkthroughs
 
-This document defines key user personas for pctl, their needs, workflows, and how features are prioritized. Use these personas to guide feature development and UX decisions.
+This document defines key user personas for petal, their needs, workflows, and how features are prioritized. Use these personas to guide feature development and UX decisions.
 
 ---
 
@@ -28,32 +28,32 @@ Sarah's lab has been using an aging on-premises HPC cluster for genomics pipelin
 - Worried about data transfer and S3 access
 - Limited time to learn new tools
 
-### pctl Solution
+### petal Solution
 
 #### Initial Setup (One Time)
 ```bash
 # Install pctl
 curl -LO https://github.com/scttfrdmn/pctl/releases/latest/download/pctl
-chmod +x pctl && sudo mv pctl /usr/local/bin/
+chmod +x petal && sudo mv petal /usr/local/bin/
 
-# Find a bioinformatics template
-pctl registry search bioinformatics
-pctl registry get bioinformatics/gatk-pipeline > gatk-cluster.yaml
+# Find a bioinformatics seed
+petal registry search bioinformatics
+petal registry get bioinformatics/gatk-pipeline > gatk-cluster.yaml
 ```
 
 #### Build Custom AMI (30-90 minutes, one time)
 ```bash
 # Build AMI with all genomics software pre-installed
-pctl ami build -t gatk-cluster.yaml --name genomics-v1 --detach
+petal ami build -t gatk-cluster.yaml --name genomics-v1 --detach
 
 # Check progress from laptop later
-pctl ami status <build-id> --watch
+petal ami status <build-id> --watch
 ```
 
 #### Daily Workflow (2-3 minutes per cluster)
 ```bash
 # Launch cluster for sequencing run (uses pre-built AMI)
-pctl create -t gatk-cluster.yaml --custom-ami ami-genomics-v1
+petal create -t gatk-cluster.yaml --custom-ami ami-genomics-v1
 
 # Upload data to S3 (auto-mounted in cluster)
 aws s3 sync ./fastq-files s3://lab-data/run-2024-03/
@@ -64,14 +64,14 @@ module load gatk bwa samtools
 sbatch pipeline.sh
 
 # Delete cluster when done
-pctl delete my-cluster
+petal delete my-cluster
 ```
 
 ### Key Features (Priority Order)
 1. **Custom AMIs** (v0.5.0) - Pre-install software, fast clusters
 2. **Auto VPC/networking** (v0.2.0) - No AWS networking knowledge needed
 3. **S3 mounts** - Easy data access
-4. **Template registry** (v0.4.0) - Find working bioinformatics configs
+4. **Seed registry** (v0.4.0) - Find working bioinformatics configs
 5. **Detached builds** (v0.5.1) - Build AMIs without waiting
 6. **Progress monitoring** (v0.5.1) - See build progress
 
@@ -108,9 +108,9 @@ Alex's team trains large language models and needs elastic GPU capacity. They cu
 - Hard to reproduce successful training runs
 - Wasted money on idle GPUs
 
-### pctl Solution
+### petal Solution
 
-#### Create ML Training Template
+#### Create ML Training Seed
 ```yaml
 cluster:
   name: ml-training
@@ -143,16 +143,16 @@ data:
 #### Build GPU AMI (90 minutes, one time)
 ```bash
 # Build AMI with CUDA, PyTorch, libraries
-pctl ami build -t ml-training.yaml --name ml-gpu-v1 --detach
+petal ami build -t ml-training.yaml --name ml-gpu-v1 --detach
 
 # Check progress via API/CI
-pctl ami status <build-id> --watch
+petal ami status <build-id> --watch
 ```
 
 #### Training Workflow (2-3 minutes)
 ```bash
 # Launch GPU cluster (software pre-installed)
-pctl create -t ml-training.yaml --custom-ami ami-ml-gpu-v1
+petal create -t ml-training.yaml --custom-ami ami-ml-gpu-v1
 
 # Run training (immediate, no waiting)
 ssh head-node
@@ -163,7 +163,7 @@ sbatch train-llm.sh
 # Auto-scales down to 0 when idle
 
 # Delete when experiment complete
-pctl delete ml-training
+petal delete ml-training
 ```
 
 ### Key Features (Priority Order)
@@ -208,11 +208,11 @@ Jamie supports 5 research teams using AWS. Each team has different software requ
 - Manual cluster creation is error-prone
 - No good way to share working configs between teams
 
-### pctl Solution
+### petal Solution
 
-#### Create Template Library
+#### Create Seed Library
 ```bash
-# Create team-specific templates
+# Create team-specific seeds
 seeds/
   chemistry/
     gromacs.yaml
@@ -238,29 +238,29 @@ jobs:
     steps:
       - name: Build Chemistry AMI
         run: |
-          pctl ami build -t seeds/chemistry/gromacs.yaml \
+          petal ami build -t seeds/chemistry/gromacs.yaml \
             --name gromacs-$(date +%Y%m%d) \
             --detach
 
           # Track build
-          BUILD_ID=$(pctl ami list-builds | tail -1 | awk '{print $1}')
-          pctl ami status $BUILD_ID --watch
+          BUILD_ID=$(petal ami list-builds | tail -1 | awk '{print $1}')
+          petal ami status $BUILD_ID --watch
 ```
 
 #### Self-Service for Researchers
 ```bash
 # Researchers can now self-service
-pctl registry search chemistry
-pctl create -t chemistry/gromacs --name my-experiment
+petal registry search chemistry
+petal create -t chemistry/gromacs --name my-experiment
 
-# Or customize their own template
+# Or customize their own seed
 cp seeds/chemistry/gromacs.yaml my-cluster.yaml
 # Edit my-cluster.yaml
-pctl create -t my-cluster.yaml
+petal create -t my-cluster.yaml
 ```
 
 ### Key Features (Priority Order)
-1. **Template registry** (v0.4.0) - Share configs between teams
+1. **Seed registry** (v0.4.0) - Share configs between teams
 2. **Custom AMIs** (v0.5.0) - Pre-build software, consistent environments
 3. **Detached builds** (v0.5.1) - CI/CD integration
 4. **Status monitoring** (v0.5.1) - Programmatic tracking
@@ -300,21 +300,21 @@ Michael's lab has a $50K annual AWS budget. Need to support multiple concurrent 
 - Can't easily share working configurations
 - Difficult to reproduce published results later
 
-### pctl Solution
+### petal Solution
 
 #### One-Time Lab Setup
 ```bash
 # Build lab's standard AMI with common software
-pctl ami build -t lab-standard.yaml --name lab-2024 --detach
+petal ami build -t lab-standard.yaml --name lab-2024 --detach
 
-# Template includes:
+# Seed includes:
 # - All common bioinformatics tools
 # - Shared Python/R environments
 # - Data analysis pipelines
 # - All student accounts (consistent UIDs)
 ```
 
-#### Project-Specific Templates
+#### Project-Specific Seeds
 ```bash
 # seeds/projects/
 project-a-genomics.yaml    # Uses lab-2024 AMI + specific tools
@@ -325,11 +325,11 @@ project-c-metabolomics.yaml # Uses lab-2024 AMI + metabolomics stack
 #### Student Workflow (Self-Service)
 ```bash
 # Student 1: Genomics project
-pctl create -t project-a-genomics --custom-ami ami-lab-2024
+petal create -t project-a-genomics --custom-ami ami-lab-2024
 # Ready in 2 minutes, all software installed
 
 # Student 2: Proteomics project
-pctl create -t project-b-proteomics --custom-ami ami-lab-2024
+petal create -t project-b-proteomics --custom-ami ami-lab-2024
 # Ready in 2 minutes, different software
 
 # Both students have their accounts
@@ -337,16 +337,16 @@ pctl create -t project-b-proteomics --custom-ami ami-lab-2024
 # Both use same module system
 
 # Delete clusters when done (save money)
-pctl delete project-a-cluster
+petal delete project-a-cluster
 ```
 
 #### Cost Control
 ```bash
 # List all running clusters
-pctl list
+petal list
 
 # Check what's been running
-pctl ami list-builds  # Track AMI usage
+petal ami list-builds  # Track AMI usage
 ```
 
 ### Key Features (Priority Order)
@@ -354,7 +354,7 @@ pctl ami list-builds  # Track AMI usage
 2. **Fast deployment** - Students work independently
 3. **User management** - Consistent accounts across projects
 4. **S3 mounts** - Shared lab data
-5. **Template library** - Project-specific configs
+5. **Seed library** - Project-specific configs
 6. **Simple CLI** - Non-expert students can use it
 
 ### Success Metrics
@@ -390,12 +390,12 @@ Carlos manages a 10,000-core on-premises cluster that's reaching end-of-life. Ma
 - Fear of breaking existing workflows
 - Need to prove AWS works before committing
 
-### pctl Solution
+### petal Solution
 
 #### Phase 1: Discovery & Capture
 ```bash
 # SSH to existing on-prem cluster, capture config
-pctl capture ssh cluster.example.org \
+petal capture ssh cluster.example.org \
   --user admin \
   --output onprem-config.yaml
 
@@ -408,34 +408,34 @@ pctl capture ssh cluster.example.org \
 # - Installed compilers and libraries
 ```
 
-#### Phase 2: Create AWS Template
+#### Phase 2: Create AWS Seed
 ```bash
 # Map on-prem modules to Spack packages
-pctl capture analyze onprem-config.yaml > aws-template.yaml
+petal capture analyze onprem-config.yaml > aws-template.yaml
 
 # Review and customize
 vim aws-template.yaml
 
-# Result: pctl template matching on-prem environment
+# Result: petal seed matching on-prem environment
 ```
 
 #### Phase 3: Build Test Cluster
 ```bash
 # Build AMI with all software
-pctl ami build -t aws-template.yaml --name migration-test --detach
+petal ami build -t aws-template.yaml --name migration-test --detach
 
 # Monitor progress
-pctl ami status <build-id> --watch
+petal ami status <build-id> --watch
 
 # Create test cluster
-pctl create -t aws-template.yaml --custom-ami ami-migration-test
+petal create -t aws-template.yaml --custom-ami ami-migration-test
 
 # Test with pilot users
 ```
 
 #### Phase 4: Gradual Migration
 ```bash
-# Create group-specific templates from base
+# Create group-specific seeds from base
 cp aws-template.yaml chemistry-group.yaml
 cp aws-template.yaml biology-group.yaml
 
@@ -449,7 +449,7 @@ cp aws-template.yaml biology-group.yaml
 2. **Module mapping** (v0.4.0) - Match existing software
 3. **Custom AMIs** (v0.5.0) - Recreate on-prem environment
 4. **User management** - Preserve UIDs/GIDs
-5. **Template library** - Share configs across groups
+5. **Seed library** - Share configs across groups
 6. **Detached builds** - Build test AMIs without waiting
 
 ### Success Metrics
@@ -471,7 +471,7 @@ Based on persona needs, here's how features are prioritized:
 | Custom AMIs (v0.5.0) | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | **CRITICAL** |
 | Auto VPC (v0.2.0) | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ | **CRITICAL** |
 | Software Management (v0.3.0) | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | **CRITICAL** |
-| Template Registry (v0.4.0) | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | **HIGH** |
+| Seed Registry (v0.4.0) | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | **HIGH** |
 | Detached Builds (v0.5.1) | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐ | ⭐⭐ | **HIGH** |
 | Progress Monitoring (v0.5.1) | ⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐ | ⭐⭐ | **HIGH** |
 | Config Capture (v0.4.0) | ⭐ | - | ⭐⭐ | - | ⭐⭐⭐ | **MEDIUM** |
@@ -501,7 +501,7 @@ Based on persona needs, here's how features are prioritized:
    - Measure impact on persona's goals
 
 3. **Does it reduce complexity?**
-   - pctl exists to simplify ParallelCluster
+   - petal exists to simplify ParallelCluster
    - Features should reduce user effort, not add
    - When in doubt, prioritize simplicity
 
@@ -545,7 +545,7 @@ All 5 personas can now:
 - Create clusters in 2-3 minutes with custom AMIs
 - Pre-install software once, use many times
 - Deploy without AWS networking knowledge
-- Share templates and capture on-prem configs
+- Share seeds and capture on-prem configs
 
 ### 🚧 v0.5.1 - IN PROGRESS (Issue #26)
 Enables Alex (ML) and Jamie (DevOps) to:
@@ -569,7 +569,7 @@ Strategic for large-scale deployments:
 - Multi-cluster management
 - Enterprise features
 
-**Impact**: Scales pctl to very large organizations
+**Impact**: Scales petal to very large organizations
 
 ---
 

@@ -1,10 +1,10 @@
-# Getting Started with pctl
+# Getting Started with petal
 
-This guide will help you get started with pctl (ParallelCluster Templates), a tool for simplified AWS ParallelCluster deployment.
+This guide will help you get started with petal (ParallelCluster Seeds), a tool for simplified AWS ParallelCluster deployment.
 
 ## Prerequisites
 
-Before using pctl, ensure you have:
+Before using petal, ensure you have:
 
 1. **AWS Account** with appropriate permissions
 2. **AWS CLI** configured with credentials
@@ -35,7 +35,7 @@ chmod +x pctl-linux-amd64
 sudo mv pctl-linux-amd64 /usr/local/bin/pctl
 
 # Verify installation
-pctl version
+petal version
 ```
 
 ### Option 2: Build from Source
@@ -50,7 +50,7 @@ make build
 sudo make install
 
 # Verify installation
-pctl version
+petal version
 ```
 
 ## Configure AWS Credentials
@@ -69,14 +69,14 @@ You'll be prompted for:
 
 ## Your First Cluster
 
-Let's create a simple HPC cluster using pctl.
+Let's create a simple HPC cluster using petal.
 
-### Step 1: Choose a Template
+### Step 1: Choose a Seed
 
-pctl includes several example templates. Let's start with the minimal example:
+petal includes several example seeds. Let's start with the minimal example:
 
 ```bash
-# View the minimal template
+# View the minimal seed
 cat seeds/examples/minimal.yaml
 ```
 
@@ -96,22 +96,22 @@ compute:
       max_count: 10
 ```
 
-### Step 2: Validate the Template
+### Step 2: Validate the Seed
 
-Before creating a cluster, validate the template:
+Before creating a cluster, validate the seed:
 
 ```bash
-pctl validate -t seeds/examples/minimal.yaml
+petal validate -t seeds/examples/minimal.yaml
 ```
 
-You should see: `✅ Template is valid!`
+You should see: `✅ Seed is valid!`
 
 ### Step 3: Review What Will Be Created
 
 Use dry-run mode to see what will be created without actually creating resources:
 
 ```bash
-pctl create -t seeds/examples/minimal.yaml --dry-run
+petal create -t seeds/examples/minimal.yaml --dry-run
 ```
 
 This shows:
@@ -123,15 +123,15 @@ This shows:
 
 ### Step 4: Create the Cluster
 
-**Note:** Actual cluster creation is not yet implemented (coming in v0.2.0). For now, pctl validates templates and shows you what would be created.
+**Note:** Actual cluster creation is not yet implemented (coming in v0.2.0). For now, petal validates seeds and shows you what would be created.
 
 ```bash
 # This will validate and show the plan
-pctl create -t seeds/examples/minimal.yaml
+petal create -t seeds/examples/minimal.yaml
 ```
 
 When implemented (v0.2.0), this command will:
-1. Validate the template
+1. Validate the seed
 2. Generate ParallelCluster configuration
 3. Create VPC and networking (if needed)
 4. Launch the head node
@@ -145,13 +145,13 @@ When implemented (v0.2.0), this command will:
 Once cluster creation is implemented:
 
 ```bash
-pctl status minimal-cluster
+petal status minimal-cluster
 ```
 
 ### Step 6: List All Clusters
 
 ```bash
-pctl list
+petal list
 ```
 
 ### Step 7: Connect to the Cluster
@@ -174,44 +174,44 @@ When you're done:
 
 ```bash
 # With confirmation prompt
-pctl delete minimal-cluster
+petal delete minimal-cluster
 
 # Skip confirmation
-pctl delete minimal-cluster --force
+petal delete minimal-cluster --force
 ```
 
-## Working with Templates
+## Working with Seeds
 
-### Using Example Templates
+### Using Example Seeds
 
-pctl includes several pre-built templates:
+petal includes several pre-built seeds:
 
 **Minimal** - Simplest possible cluster:
 ```bash
-pctl validate -t seeds/examples/minimal.yaml
+petal validate -t seeds/examples/minimal.yaml
 ```
 
 **Starter** - Basic cluster with software and users:
 ```bash
-pctl validate -t seeds/examples/starter.yaml
+petal validate -t seeds/examples/starter.yaml
 ```
 
 **Bioinformatics** - Genomics and bioinformatics tools:
 ```bash
-pctl validate -t seeds/library/bioinformatics.yaml
+petal validate -t seeds/library/bioinformatics.yaml
 ```
 
 **Machine Learning** - GPU instances with PyTorch/TensorFlow:
 ```bash
-pctl validate -t seeds/library/machine-learning.yaml
+petal validate -t seeds/library/machine-learning.yaml
 ```
 
 **Computational Chemistry** - MD and quantum chemistry:
 ```bash
-pctl validate -t seeds/library/computational-chemistry.yaml
+petal validate -t seeds/library/computational-chemistry.yaml
 ```
 
-### Creating Your Own Template
+### Creating Your Own Seed
 
 Create a new file `my-cluster.yaml`:
 
@@ -248,16 +248,16 @@ data:
       mount_point: /shared/data
 ```
 
-Validate your template:
+Validate your seed:
 
 ```bash
-pctl validate -t my-cluster.yaml
+petal validate -t my-cluster.yaml
 ```
 
-If validation fails, pctl will show detailed error messages:
+If validation fails, petal will show detailed error messages:
 
 ```
-❌ Template validation failed:
+❌ Seed validation failed:
 
 3 validation errors:
   - cluster.name must start with a letter and contain only alphanumeric characters and hyphens
@@ -267,9 +267,9 @@ If validation fails, pctl will show detailed error messages:
 
 Fix the errors and validate again.
 
-## Template Basics
+## Seed Basics
 
-A pctl template has five main sections:
+A petal seed has five main sections:
 
 ### 1. Cluster Configuration
 
@@ -326,10 +326,10 @@ data:
 
 ### Custom Cluster Name
 
-Override the cluster name from the template:
+Override the cluster name from the seed:
 
 ```bash
-pctl create -t my-template.yaml --name production-cluster
+petal create -t my-template.yaml --name production-cluster
 ```
 
 ### Verbose Output
@@ -337,13 +337,13 @@ pctl create -t my-template.yaml --name production-cluster
 Get detailed output for debugging:
 
 ```bash
-pctl validate -t my-template.yaml --verbose
-pctl create -t my-template.yaml --verbose
+petal validate -t my-template.yaml --verbose
+petal create -t my-template.yaml --verbose
 ```
 
 ### Configuration File
 
-pctl looks for configuration at `~/.pctl/config.yaml`:
+petal looks for configuration at `~/.petal/config.yaml`:
 
 ```yaml
 defaults:
@@ -362,11 +362,11 @@ preferences:
 Quick cluster for testing code:
 
 ```bash
-# Use minimal template
-pctl create -t seeds/examples/minimal.yaml --name dev-cluster
+# Use minimal seed
+petal create -t seeds/examples/minimal.yaml --name dev-cluster
 
 # When done
-pctl delete dev-cluster --force
+petal delete dev-cluster --force
 ```
 
 ### Workflow 2: Production Research Cluster
@@ -374,17 +374,17 @@ pctl delete dev-cluster --force
 Cluster with specific software and users:
 
 ```bash
-# Create custom template
+# Create custom seed
 vim production-cluster.yaml
 
 # Validate
-pctl validate -t production-cluster.yaml
+petal validate -t production-cluster.yaml
 
 # Review with dry-run
-pctl create -t production-cluster.yaml --dry-run
+petal create -t production-cluster.yaml --dry-run
 
 # Create
-pctl create -t production-cluster.yaml
+petal create -t production-cluster.yaml
 ```
 
 ### Workflow 3: Multiple Environments
@@ -393,16 +393,16 @@ Manage dev, staging, and production:
 
 ```bash
 # Development
-pctl create -t my-template.yaml --name dev-cluster
+petal create -t my-template.yaml --name dev-cluster
 
 # Staging
-pctl create -t my-template.yaml --name staging-cluster
+petal create -t my-template.yaml --name staging-cluster
 
 # Production
-pctl create -t my-template.yaml --name prod-cluster
+petal create -t my-template.yaml --name prod-cluster
 
 # List all
-pctl list
+petal list
 ```
 
 ## Troubleshooting
@@ -412,7 +412,7 @@ pctl list
 If validation fails, read the error messages carefully:
 
 ```bash
-pctl validate -t my-template.yaml --verbose
+petal validate -t my-template.yaml --verbose
 ```
 
 Common issues:
@@ -424,11 +424,11 @@ Common issues:
 - Invalid S3 bucket names
 - Relative paths for mount points
 
-### Template Syntax Errors
+### Seed Syntax Errors
 
 If YAML parsing fails:
 ```
-Error: failed to parse template: yaml: line 10: mapping values are not allowed in this context
+Error: failed to parse seed: yaml: line 10: mapping values are not allowed in this context
 ```
 
 Check your YAML syntax:
@@ -455,10 +455,10 @@ aws sts get-caller-identity
 
 ## Next Steps
 
-- Read the [Template Specification](TEMPLATE_SPEC.md) for complete template options
-- Explore the [Architecture Documentation](ARCHITECTURE.md) to understand how pctl works
+- Read the [Seed Specification](SEED_SPEC.md) for complete seed options
+- Explore the [Architecture Documentation](ARCHITECTURE.md) to understand how petal works
 - Check the [GitHub Issues](https://github.com/scttfrdmn/pctl/issues) for planned features
-- Contribute your own templates to the community
+- Contribute your own seeds to the community
 
 ## Getting Help
 
@@ -469,9 +469,9 @@ aws sts get-caller-identity
 ## What's Next (Roadmap)
 
 **v0.1.0 - Foundation** (Current)
-- ✅ Template system and validation
+- ✅ Seed system and validation
 - ✅ CLI commands (validate, create, list, status, delete)
-- ✅ Example templates
+- ✅ Example seeds
 
 **v0.2.0 - AWS Integration**
 - AWS ParallelCluster integration
@@ -484,9 +484,9 @@ aws sts get-caller-identity
 - Automatic software provisioning
 
 **v0.4.0 - Registry & Capture**
-- GitHub-based template registry
+- GitHub-based seed registry
 - Configuration capture from existing clusters
-- Community template sharing
+- Community seed sharing
 
 **v1.0.0 - Production Ready**
 - All features complete

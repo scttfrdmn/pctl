@@ -1,6 +1,6 @@
-# How pctl Works: Behind the Scenes
+# How petal Works: Behind the Scenes
 
-This guide explains what pctl does behind the scenes when building AMIs and creating clusters.
+This guide explains what petal does behind the scenes when building AMIs and creating clusters.
 
 ## Table of Contents
 - [AMI Build Process](#ami-build-process)
@@ -12,10 +12,10 @@ This guide explains what pctl does behind the scenes when building AMIs and crea
 
 ## AMI Build Process
 
-When you run `pctl ami build`, here's what happens:
+When you run `petal ami build`, here's what happens:
 
-### 1. Template Validation
-- Loads and validates your YAML template
+### 1. Seed Validation
+- Loads and validates your YAML seed
 - Checks cluster name, region, instance types, package specs, etc.
 - Validates Spack package syntax (e.g., `gcc@11.2.0`, `openmpi@4.1.4`)
 
@@ -65,7 +65,7 @@ git checkout v0.23.0
 ```
 
 ### Buildcache Configuration
-pctl configures Spack to use AWS's public buildcache for faster installations:
+petal configures Spack to use AWS's public buildcache for faster installations:
 
 ```bash
 # Add AWS public buildcache mirror
@@ -117,13 +117,13 @@ spack install --fail-fast --use-buildcache=auto <package>
 - Binary availability depends on exact spec match (version, variants, dependencies)
 
 ### Progress Reporting
-During installation, pctl reports progress:
+During installation, petal reports progress:
 - Base: Instance launch (0-10%), Spack install (10-20%)
 - Packages: 20-80% distributed across package count
 - Finalization: Module generation, cleanup (80-100%)
 
 ### Error Handling
-pctl uses strict error handling to fail fast:
+petal uses strict error handling to fail fast:
 
 ```bash
 if ! spack install --fail-fast <package>; then
@@ -151,7 +151,7 @@ make install
 ```
 
 ### Module Path Configuration
-pctl configures `MODULEPATH` to include both custom and Spack-generated modules:
+petal configures `MODULEPATH` to include both custom and Spack-generated modules:
 
 ```bash
 export MODULEPATH=/opt/modules/Core:\
@@ -164,7 +164,7 @@ export MODULEPATH=/opt/modules/Core:\
 - Spack's Lmod integration generates hierarchical modules automatically
 
 ### Spack Module Generation
-After package installation, pctl generates Lmod modules:
+After package installation, petal generates Lmod modules:
 
 ```bash
 # Configure Spack to use Lmod
@@ -238,7 +238,7 @@ This ensures:
 - Slight performance trade-off for reliability
 
 ### Instance Type Considerations
-pctl uses `c6a.4xlarge` for AMI builds:
+petal uses `c6a.4xlarge` for AMI builds:
 - **CPU**: AMD EPYC (16 vCPUs)
 - **Memory**: 32 GB
 - **Network**: 12.5 Gbps
@@ -247,7 +247,7 @@ pctl uses `c6a.4xlarge` for AMI builds:
 ## Bootstrap Script Generation
 
 ### Script Structure
-pctl generates a single comprehensive bootstrap script:
+petal generates a single comprehensive bootstrap script:
 
 ```bash
 #!/bin/bash
@@ -281,10 +281,10 @@ The bootstrap script runs via cloud-init:
 1. Uploaded to instance via SSH
 2. Executed as root
 3. Output logged to `/var/log/cloud-init-output.log`
-4. Progress reported back to pctl via stdout parsing
+4. Progress reported back to petal via stdout parsing
 
 ### Progress Monitoring
-pctl monitors progress by:
+petal monitors progress by:
 1. Reading cloud-init logs via EC2 console output
 2. Parsing `PCTL_PROGRESS:` markers in output
 3. Updating progress bar in terminal
@@ -323,14 +323,14 @@ module: command not found
 - **Solution**: Source `/etc/profile.d/z00_lmod.sh` or re-login
 
 ### Debug Mode
-To see exactly what pctl is doing:
+To see exactly what petal is doing:
 
 ```bash
 # Check bootstrap script
-pctl ami build --template template.yaml --dry-run
+petal ami build --template seed.yaml --dry-run
 
 # Monitor build process
-pctl ami build --template template.yaml --verbose
+petal ami build --template seed.yaml --verbose
 
 # SSH into build instance (if it fails)
 # Instance ID is shown in output
@@ -348,12 +348,12 @@ sudo tail -f /var/log/cloud-init-output.log
 
 ### Cost Optimization
 1. **Build AMI once, use many times**: Don't rebuild for every cluster
-2. **Clean up failed builds**: pctl auto-terminates failed instances
+2. **Clean up failed builds**: petal auto-terminates failed instances
 3. **Use spot instances**: (Future feature - not yet implemented)
 
 ## Best Practices
 
-### Template Design
+### Seed Design
 ```yaml
 software:
   spack_packages:

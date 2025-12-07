@@ -1,28 +1,28 @@
-# Template Collection Strategy for v1.0.0
+# Seed Collection Strategy for v1.0.0
 
-This document outlines the comprehensive template library we'll build before tagging v1.0.0.
+This document outlines the comprehensive seed library we'll build before tagging v1.0.0.
 
 ## Goals
 
 1. **Coverage** - Address major HPC/scientific computing domains
-2. **Quality** - Production-ready, well-tested templates
+2. **Quality** - Production-ready, well-tested seeds
 3. **Variation** - Provide options for different scales and use cases
 4. **Documentation** - Clear descriptions and use case guidance
 
 ## Current Status (Baseline)
 
-### Existing Templates (5 total)
+### Existing Seeds (5 total)
 - ✅ seeds/library/bioinformatics.yaml
 - ✅ seeds/library/machine-learning.yaml
 - ✅ seeds/library/computational-chemistry.yaml
 - ✅ seeds/examples/minimal.yaml
 - ✅ seeds/examples/starter.yaml
 
-##Target: 25-30 Templates Across 8 Categories
+##Target: 25-30 Seeds Across 8 Categories
 
 ---
 
-## Category 1: Bioinformatics (4-5 templates)
+## Category 1: Bioinformatics (4-5 seeds)
 
 ### ✅ bioinformatics.yaml (EXISTS)
 General genomics with samtools, bwa, gatk, blast+
@@ -69,7 +69,7 @@ General genomics with samtools, bwa, gatk, blast+
 
 ---
 
-## Category 2: Machine Learning / AI (5-6 templates)
+## Category 2: Machine Learning / AI (5-6 seeds)
 
 ### ✅ machine-learning.yaml (EXISTS)
 General ML with PyTorch, TensorFlow, CUDA
@@ -125,7 +125,7 @@ General ML with PyTorch, TensorFlow, CUDA
 
 ---
 
-## Category 3: Computational Chemistry / Physics (4 templates)
+## Category 3: Computational Chemistry / Physics (4 seeds)
 
 ### ✅ computational-chemistry.yaml (EXISTS)
 General chemistry with GROMACS, LAMMPS, Quantum ESPRESSO
@@ -161,7 +161,7 @@ General chemistry with GROMACS, LAMMPS, Quantum ESPRESSO
 
 ---
 
-## Category 4: Data Science / Analytics (4 templates)
+## Category 4: Data Science / Analytics (4 seeds)
 
 ### NEW: data-science.yaml
 **Use Case:** General data analysis, statistics
@@ -204,7 +204,7 @@ General chemistry with GROMACS, LAMMPS, Quantum ESPRESSO
 
 ---
 
-## Category 5: Engineering / CFD (3 templates)
+## Category 5: Engineering / CFD (3 seeds)
 
 ### NEW: cfd-openfoam.yaml
 **Use Case:** Computational fluid dynamics
@@ -235,7 +235,7 @@ General chemistry with GROMACS, LAMMPS, Quantum ESPRESSO
 
 ---
 
-## Category 6: General Purpose / Starter (4 templates)
+## Category 6: General Purpose / Starter (4 seeds)
 
 ### ✅ minimal.yaml (EXISTS)
 Bare minimum cluster
@@ -265,7 +265,7 @@ Basic cluster with common tools
 
 ---
 
-## Category 7: Specialized Scientific (3 templates)
+## Category 7: Specialized Scientific (3 seeds)
 
 ### NEW: climate-modeling.yaml
 **Use Case:** Climate and weather simulations
@@ -297,7 +297,7 @@ Basic cluster with common tools
 
 ---
 
-## Category 8: Cost-Optimized / Educational (2-3 templates)
+## Category 8: Cost-Optimized / Educational (2-3 seeds)
 
 ### NEW: spot-compute.yaml
 **Use Case:** Budget-conscious batch workloads
@@ -330,7 +330,7 @@ Basic cluster with common tools
 ## Implementation Priority
 
 ### Phase 1: Core Domains (Week 1)
-High-impact templates users need immediately:
+High-impact seeds users need immediately:
 1. rna-seq.yaml
 2. llm-training.yaml
 3. molecular-dynamics.yaml
@@ -353,20 +353,20 @@ Domain-specific needs:
 15. fem-analysis.yaml
 
 ### Phase 4: Polish & Documentation (Week 4)
-16-25. Remaining templates
-- Template testing and validation
-- Documentation for each template
-- README for template library
+16-25. Remaining seeds
+- Seed testing and validation
+- Documentation for each seed
+- README for seed library
 
 ---
 
-## Template Structure Standards
+## Seed Structure Standards
 
-Each template should include:
+Each seed should include:
 
 1. **Header Comment Block**
    ```yaml
-   # [Template Name]
+   # [Seed Name]
    # Use Case: [One-line description]
    # Domain: [Category]
    # Optimized for: [Specific workloads]
@@ -397,29 +397,29 @@ Each template should include:
 
 ## Success Metrics
 
-- ✅ 25-30 templates covering 8 major categories
-- ✅ Each template tested with `pctl create` (dry run minimum)
-- ✅ Documentation for each template
-- ✅ Template library README with decision tree
+- ✅ 25-30 seeds covering 8 major categories
+- ✅ Each seed tested with `petal create` (dry run minimum)
+- ✅ Documentation for each seed
+- ✅ Seed library README with decision tree
 - ✅ Cross-reference with persona use cases
 
 ---
 
-## Post-v1.0.0 Template Enhancements
+## Post-v1.0.0 Seed Enhancements
 
-Ideas for future template features:
-- Template variants (small/medium/large scale)
-- Industry-specific templates (pharma, finance, energy)
-- Container-based templates
-- PCS-compatible templates (v2.0)
-- Community-contributed templates
+Ideas for future seed features:
+- Seed variants (small/medium/large scale)
+- Industry-specific seeds (pharma, finance, energy)
+- Container-based seeds
+- PCS-compatible seeds (v2.0)
+- Community-contributed seeds
 
 ---
 
 ## Notes
 
 - Focus on **AWS Spack buildcache compatibility** - prefer packages with binary builds
-- Include **cost estimates** in template comments
+- Include **cost estimates** in seed comments
 - Provide **scaling guidance** (when to use spot, when to use on-demand)
 - Link to **persona walkthroughs** where applicable
-- Test templates with AMI building to ensure software installs correctly
+- Test seeds with AMI building to ensure software installs correctly

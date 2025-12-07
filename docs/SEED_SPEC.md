@@ -1,10 +1,10 @@
-# pctl Template Specification
+# petal Seed Specification
 
-This document provides the complete specification for pctl cluster templates.
+This document provides the complete specification for petal cluster seeds.
 
 ## Overview
 
-A pctl template is a YAML file that describes a **complete, ready-to-use HPC cluster**. Unlike raw ParallelCluster configurations that only provision infrastructure, pctl templates specify:
+A petal seed is a YAML file that describes a **complete, ready-to-use HPC cluster**. Unlike raw ParallelCluster configurations that only provision infrastructure, petal seeds specify:
 
 - **Infrastructure**: Instances, networking, queues
 - **Software**: Scientific packages, compilers, libraries, tools
@@ -13,9 +13,9 @@ A pctl template is a YAML file that describes a **complete, ready-to-use HPC clu
 
 The goal is to create a **usable cluster** where researchers can immediately submit jobs and run their workflows, not an empty cluster that needs days of manual configuration.
 
-## Template Structure
+## Seed Structure
 
-A template consists of five main sections:
+A seed consists of five main sections:
 
 ```yaml
 cluster:      # Required - Cluster identification and region
@@ -202,7 +202,7 @@ max_count: 100  # Scale up to 100
 
 **Optional but highly recommended.** Defines software packages to install on the cluster using Spack.
 
-**This is what makes pctl powerful** - you get a cluster with your scientific software already installed, not just empty compute nodes.
+**This is what makes petal powerful** - you get a cluster with your scientific software already installed, not just empty compute nodes.
 
 ```yaml
 software:
@@ -400,7 +400,7 @@ name: 123user        # Bad - starts with number
 **Range:** 1-60000
 **Recommended:** 5000-59999 (avoid system range 1-999)
 
-The user ID. Must be unique across all users in the template.
+The user ID. Must be unique across all users in the seed.
 
 #### `gid` (required)
 
@@ -455,7 +455,7 @@ Researchers need access to:
 - Input files (raw data, configurations)
 - Output storage (results, checkpoints, logs)
 
-pctl automatically mounts S3 buckets to the cluster filesystem, making cloud data accessible like local storage.
+petal automatically mounts S3 buckets to the cluster filesystem, making cloud data accessible like local storage.
 
 ### Fields
 
@@ -723,7 +723,7 @@ sbatch --partition=gpu train_model.sh
 
 ## Validation Rules
 
-pctl validates templates comprehensively:
+petal validates seeds comprehensively:
 
 ### Cluster Validation
 - Name must start with letter, alphanumeric and hyphens only, max 60 chars
@@ -755,7 +755,7 @@ pctl validates templates comprehensively:
 
 ### 1. Start with Examples
 
-Don't write templates from scratch. Start with an example and modify it:
+Don't write seeds from scratch. Start with an example and modify it:
 
 ```bash
 cp seeds/library/bioinformatics.yaml my-cluster.yaml
@@ -767,7 +767,7 @@ vim my-cluster.yaml
 Validate after each change:
 
 ```bash
-pctl validate -t my-cluster.yaml
+petal validate -t my-cluster.yaml
 ```
 
 ### 3. Use Dry Run
@@ -775,16 +775,16 @@ pctl validate -t my-cluster.yaml
 Always review what will be created:
 
 ```bash
-pctl create -t my-cluster.yaml --dry-run
+petal create -t my-cluster.yaml --dry-run
 ```
 
-### 4. Version Control Your Templates
+### 4. Version Control Your Seeds
 
-Templates are code. Use git:
+Seeds are code. Use git:
 
 ```bash
 git add my-cluster.yaml
-git commit -m "Add production genomics cluster template"
+git commit -m "Add production genomics cluster seed"
 ```
 
 ### 5. Software Selection
@@ -854,9 +854,9 @@ queues:
 
 Nodes launch on-demand and terminate when idle.
 
-### 10. Template Documentation
+### 10. Seed Documentation
 
-Add comments to your templates:
+Add comments to your seeds:
 
 ```yaml
 # Production genomics cluster
@@ -878,14 +878,14 @@ compute:
       max_count: 10
 ```
 
-## Troubleshooting Templates
+## Troubleshooting Seeds
 
 ### Validation Fails
 
 Read error messages carefully:
 
 ```
-❌ Template validation failed:
+❌ Seed validation failed:
 
 3 validation errors:
   - cluster.name must start with a letter
@@ -965,5 +965,5 @@ See [Spack Package List](https://packages.spack.io/) for complete list.
 
 - [Getting Started Guide](GETTING_STARTED.md)
 - [Architecture Documentation](ARCHITECTURE.md)
-- [Example Templates](../seeds/)
+- [Example Seeds](../seeds/)
 - [Spack Documentation](https://spack.readthedocs.io/)

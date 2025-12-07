@@ -13,7 +13,7 @@ Spack builds from source can take hours or days for complex software stacks:
 
 ## Solution: Multi-Tier Caching
 
-pctl will support multiple caching strategies, from fastest to most flexible:
+petal will support multiple caching strategies, from fastest to most flexible:
 
 ### Tier 1: Pre-built AMIs (Fastest)
 
@@ -45,13 +45,13 @@ software:
     - samtools@1.17
 ```
 
-**pctl workflow:**
-1. First time: `pctl build-ami -t template.yaml`
+**petal workflow:**
+1. First time: `petal build-ami -t seed.yaml`
    - Launches **build instance** (c5.18xlarge with 72 cores)
    - Installs all software in parallel (uses all cores)
    - Creates AMI
    - Terminates build instance
-   - Saves AMI ID to template or config
+   - Saves AMI ID to seed or config
 2. Subsequent clusters: Use pre-built AMI
    - Head node launches with small instance (t3.xlarge)
    - Nodes boot in 2-3 minutes with software ready
@@ -100,7 +100,7 @@ software:
     s3_prefix: /caches/bioinformatics
 ```
 
-**pctl workflow:**
+**petal workflow:**
 1. First cluster: Builds from source, uploads to S3
 2. Subsequent clusters: Downloads binaries from S3
    - 10-15 minute install time (download + extract)
@@ -108,7 +108,7 @@ software:
 
 **Pros:**
 - Shared across clusters
-- Automatic: pctl manages cache
+- Automatic: petal manages cache
 - Works across regions (with cross-region S3)
 - Updates easier than AMIs
 
@@ -139,7 +139,7 @@ software:
         - gatk
 ```
 
-**pctl workflow:**
+**petal workflow:**
 1. Pre-build container with software
 2. Push to ECR/Docker Hub
 3. Nodes pull container at boot
@@ -241,7 +241,7 @@ software:
 - Cache hit/miss metrics
 
 ### v0.5.0 - AMI Builder
-- `pctl build-ami` command
+- `petal build-ami` command
 - Automated AMI creation
 - AMI lifecycle management
 
@@ -250,53 +250,53 @@ software:
 - Container-based modules
 - ECR integration
 
-## pctl Commands
+## petal Commands
 
 ### Build Custom AMI
 ```bash
-# Build AMI from template (uses build instance from template)
-pctl build-ami -t production.yaml --name bio-v1
+# Build AMI from seed (uses build instance from seed)
+petal build-ami -t production.yaml --name bio-v1
 
 # Override build instance type
-pctl build-ami -t production.yaml --build-instance c5.24xlarge
+petal build-ami -t production.yaml --build-instance c5.24xlarge
 
 # Use spot instances (default) or on-demand
-pctl build-ami -t production.yaml --build-instance c5.18xlarge --spot
-pctl build-ami -t production.yaml --build-instance c5.18xlarge --on-demand
+petal build-ami -t production.yaml --build-instance c5.18xlarge --spot
+petal build-ami -t production.yaml --build-instance c5.18xlarge --on-demand
 
 # Watch build progress
-pctl build-ami -t production.yaml --watch
+petal build-ami -t production.yaml --watch
 
-# Save AMI ID to template
-pctl build-ami -t production.yaml --save-to-template
+# Save AMI ID to seed
+petal build-ami -t production.yaml --save-to-template
 
 # Use AMI in cluster creation
-pctl create -t production.yaml  # Uses AMI from template
-pctl create -t production.yaml --ami ami-0123456789  # Override
+petal create -t production.yaml  # Uses AMI from seed
+petal create -t production.yaml --ami ami-0123456789  # Override
 ```
 
 ### Manage Binary Cache
 ```bash
 # Initialize cache
-pctl cache init --bucket my-spack-cache
+petal cache init --bucket my-spack-cache
 
 # Check cache status
-pctl cache status
+petal cache status
 
 # Pre-populate cache
-pctl cache build -t template.yaml
+petal cache build -t seed.yaml
 
 # Clear cache
-pctl cache clear --older-than 90d
+petal cache clear --older-than 90d
 ```
 
 ### Monitor Build Progress
 ```bash
 # Watch build in real-time
-pctl create -t template.yaml --watch
+petal create -t seed.yaml --watch
 
 # Show build logs
-pctl logs my-cluster --build
+petal logs my-cluster --build
 ```
 
 ## Best Practices
@@ -371,7 +371,7 @@ Image:
   CustomAmi: ami-0123456789abcdef
 ```
 
-pctl will:
+petal will:
 1. Generate ParallelCluster config with CustomAmi
 2. Verify AMI exists and is compatible
 3. Bootstrap remaining software on first boot
@@ -391,21 +391,21 @@ spack buildcache install gcc openmpi samtools
 ### AMI Creation Process
 
 ```bash
-# pctl build-ami workflow
+# petal build-ami workflow
 1. Launch temporary build instance
-   - Use instance type from template (default: c5.18xlarge)
+   - Use instance type from seed (default: c5.18xlarge)
    - Prefer spot instances to save ~70% ($0.61/hr vs $2.04/hr)
    - Based on ParallelCluster AMI
 2. Install Spack
-3. Build all packages from template in parallel
+3. Build all packages from seed in parallel
    - Use all CPU cores (72 cores on c5.18xlarge)
    - Parallel builds reduce time by 4-8x
 4. Generate Lmod modules
 5. Run validation tests
 6. Create AMI from build instance
-7. Tag AMI with template hash and metadata
+7. Tag AMI with seed hash and metadata
 8. Terminate build instance
-9. Output AMI ID and save to template
+9. Output AMI ID and save to seed
 
 Total time: 2-4 hours (vs 8-24 hours on small head node)
 Total cost: $1.22-$4.08 (vs building on every cluster)

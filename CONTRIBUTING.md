@@ -19,7 +19,7 @@ Create a bug report with:
 - Detailed description of the issue
 - Steps to reproduce
 - Expected vs actual behavior
-- Environment details (OS, Go version, pctl version)
+- Environment details (OS, Go version, petal version)
 - Relevant logs or error messages
 
 ### Suggesting Enhancements
@@ -66,7 +66,7 @@ Enhancement suggestions are welcome! Please:
    git push origin feature/your-feature-name
    ```
    - Create PR on GitHub
-   - Fill out the PR template
+   - Fill out the PR seed
    - Link related issues
 
 ## Development Guidelines
@@ -134,7 +134,7 @@ pctl/
 ├── internal/              # Private packages
 ├── tests/                 # Test suites
 ├── docs/                  # Documentation
-└── seeds/             # Example templates
+└── seeds/             # Example seeds
 ```
 
 - `cmd/`: Command-line interface code
@@ -164,7 +164,7 @@ Types:
 
 Example:
 ```
-feat: add template validation for S3 mounts
+feat: add seed validation for S3 mounts
 
 Implements validation to ensure S3 bucket names are valid and
 mount points are absolute paths. Adds corresponding tests.

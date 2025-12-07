@@ -20,7 +20,7 @@
 
 ### Key Differences for pctl
 
-**Traditional ParallelCluster** (current pctl target):
+**Traditional ParallelCluster** (current petal target):
 - Software via Spack on shared NFS
 - Lmod modules on all nodes
 - SLURM native
@@ -32,7 +32,7 @@
 - Kubernetes-native workloads
 - Container orchestration
 
-## Should pctl Support PCS?
+## Should petal Support PCS?
 
 **YES - but it requires a different approach.** Here's why and how:
 
@@ -86,7 +86,7 @@
 
 ## Recommendation: Support Both
 
-pctl should support **both traditional ParallelCluster and PCS**, chosen at template creation time:
+petal should support **both traditional ParallelCluster and PCS**, chosen at seed creation time:
 
 ```yaml
 cluster:
@@ -134,11 +134,11 @@ Add PCS as alternative platform:
 - EKS cluster management
 - SLURM-on-Kubernetes setup
 
-## Template Design for PCS
+## Seed Design for PCS
 
-### Option A: Unified Template (Recommended)
+### Option A: Unified Seed (Recommended)
 
-One template format, platform-specific sections:
+One seed format, platform-specific sections:
 
 ```yaml
 cluster:
@@ -183,9 +183,9 @@ data:
       mount_point: /shared/data
 ```
 
-### Option B: Separate Templates
+### Option B: Separate Seeds
 
-Different templates for different platforms:
+Different seeds for different platforms:
 
 ```yaml
 # traditional-cluster.yaml
@@ -219,11 +219,11 @@ kubernetes:
 
 ### Building Containers for HPC
 
-pctl should help users containerize their software:
+petal should help users containerize their software:
 
 ```bash
-# Build container from template
-pctl build-container -t bioinformatics.yaml
+# Build container from seed
+petal build-container -t bioinformatics.yaml
 
 # This creates Dockerfile:
 FROM amazonlinux:2023
@@ -232,10 +232,10 @@ RUN spack install samtools@1.17 bwa@0.7.17 gatk@4.3.0
 RUN spack module lmod refresh
 
 # Push to ECR
-pctl push-container my-bio-stack --ecr my-registry
+petal push-container my-bio-stack --ecr my-registry
 ```
 
-### Container-Native Templates
+### Container-Native Seeds
 
 For PCS, users can specify pre-built containers:
 
@@ -286,14 +286,14 @@ Users submit to appropriate queue based on workload.
 
 ### v0.6.0 - Container Foundation
 **Goal:** Enable container-based software for traditional PC
-- Container building from templates
+- Container building from seeds
 - ECR integration
 - Singularity/Apptainer support
 - Container modules in Lmod
 
 **Deliverables:**
-- `pctl build-container` command
-- Container templates
+- `petal build-container` command
+- Container seeds
 - ECR push/pull
 - Container-based software option
 
@@ -305,7 +305,7 @@ Users submit to appropriate queue based on workload.
 - Single-tenant clusters
 
 **Deliverables:**
-- `platform: pcs` in templates
+- `platform: pcs` in seeds
 - EKS provisioner
 - PCS documentation
 - Migration guide from traditional PC
@@ -318,7 +318,7 @@ Users submit to appropriate queue based on workload.
 - Cost optimization
 
 **Deliverables:**
-- Multi-tenant templates
+- Multi-tenant seeds
 - Hybrid cluster support
 - PCS best practices guide
 - Performance benchmarks
@@ -336,7 +336,7 @@ Users submit to appropriate queue based on workload.
 
 PCS requires EKS cluster:
 ```yaml
-# pctl manages EKS lifecycle
+# petal manages EKS lifecycle
 cluster:
   name: my-pcs-cluster
   platform: pcs
@@ -381,16 +381,16 @@ PCS provides SLURM compatibility:
 
 ```bash
 # 1. Containerize software
-pctl build-container -t traditional-cluster.yaml --output containers/
+petal build-container -t traditional-cluster.yaml --output containers/
 
-# 2. Update template
-pctl convert --from parallelcluster --to pcs traditional-cluster.yaml
+# 2. Update seed
+petal convert --from parallelcluster --to pcs traditional-cluster.yaml
 
 # 3. Test PCS cluster
-pctl create -t pcs-cluster.yaml --validate-only
+petal create -t pcs-cluster.yaml --validate-only
 
 # 4. Create PCS cluster
-pctl create -t pcs-cluster.yaml
+petal create -t pcs-cluster.yaml
 
 # 5. Run parallel for testing
 # Keep traditional PC running, test PCS alongside
@@ -400,10 +400,10 @@ pctl create -t pcs-cluster.yaml
 
 ```bash
 # Extract software from containers
-pctl extract-software --from containers/ --to spack-packages.yaml
+petal extract-software --from containers/ --to spack-packages.yaml
 
-# Create traditional PC template
-pctl create -t traditional-cluster.yaml
+# Create traditional PC seed
+petal create -t traditional-cluster.yaml
 ```
 
 ## Cost Comparison

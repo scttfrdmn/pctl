@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🌸 BREAKING: Project Renamed to Petal
+
+**pctl → petal** with gardening metaphor and fun command aliases!
+
+**What Changed:**
+- **Binary name**: `pctl` → `petal`
+- **Module path**: `github.com/scttfrdmn/pctl` → `github.com/scttfrdmn/petal`
+- **Terminology**: "templates" → "seeds" (primary term)
+- **Config directory**: `~/.pctl` → `~/.petal` (auto-migrates on first run)
+- **Directories**: `templates/` → `seeds/`, `cmd/pctl/` → `cmd/petal/`
+
+**New Command Aliases (Fun, Optional):**
+- `petal bloom` = create cluster 🌸
+- `petal harvest` = delete cluster
+- `petal garden` = list clusters
+- `petal stem` = SSH to cluster
+- `petal inspect` = cluster status
+
+Professional commands (`create`, `delete`, `list`, `ssh`, `status`) remain primary and unchanged!
+
+**Backwards Compatibility:**
+- `--template` flag still works (shows deprecation warning, use `--seed`)
+- All seed files work without changes (just YAML syntax)
+- Config/state automatically migrated from `~/.pctl` to `~/.petal`
+
+**Migration Steps:**
+1. Reinstall: Download new `petal` binary or `brew upgrade petal`
+2. Update scripts: Replace `pctl` with `petal`
+3. Update flags: Use `--seed` instead of `--template` (optional, `--template` still works)
+4. First run auto-migrates `~/.pctl` directory
+
+See `.github/issues/issue-rename-pctl-to-petal.md` for full details.
+
 ### Added
 - **Real-time progress monitoring for cluster creation** (Phases 1-4 complete)
   - CloudFormation resource tracking (0-70% infrastructure phase)

@@ -1,18 +1,20 @@
-# pctl - Templated AWS ParallelCluster Deployment
+# petal 🌸 - Grow HPC Clusters from Seeds
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/scttfrdmn/pctl)](https://goreportcard.com/report/github.com/scttfrdmn/pctl)
-[![CI](https://github.com/scttfrdmn/pctl/actions/workflows/ci.yml/badge.svg)](https://github.com/scttfrdmn/pctl/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/scttfrdmn/pctl/branch/main/graph/badge.svg)](https://codecov.io/gh/scttfrdmn/pctl)
+[![Go Report Card](https://goreportcard.com/badge/github.com/scttfrdmn/petal)](https://goreportcard.com/report/github.com/scttfrdmn/petal)
+[![CI](https://github.com/scttfrdmn/petal/actions/workflows/ci.yml/badge.svg)](https://github.com/scttfrdmn/petal/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/scttfrdmn/petal/branch/main/graph/badge.svg)](https://codecov.io/gh/scttfrdmn/petal)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/scttfrdmn/pctl)](https://github.com/scttfrdmn/pctl)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/scttfrdmn/petal)](https://github.com/scttfrdmn/petal)
 
-A Go-based CLI tool that simplifies AWS ParallelCluster deployment using intuitive YAML templates. pctl bridges the gap between ParallelCluster's power and what users actually need - a simple, repeatable way to deploy HPC clusters with software, users, and data pre-configured.
+**Plant a seed, watch your cluster bloom!** 🌱
+
+A Go-based CLI tool that simplifies AWS ParallelCluster deployment using intuitive seed files (YAML). petal bridges the gap between ParallelCluster's power and what users actually need - a simple, repeatable way to deploy HPC clusters with software, users, and data pre-configured.
 
 ## Overview
 
 **Deploy production-ready HPC clusters in minutes, not days.**
 
-pctl bridges the gap between AWS ParallelCluster's infrastructure provisioning and what researchers actually need: clusters with software installed, users configured, and data accessible.
+petal bridges the gap between AWS ParallelCluster's infrastructure provisioning and what researchers actually need: clusters with software installed, users configured, and data accessible.
 
 ### The Problem
 - Days of manual software installation (compilers, MPI, scientific packages)
@@ -21,7 +23,7 @@ pctl bridges the gap between AWS ParallelCluster's infrastructure provisioning a
 - No easy way to recreate working environments
 
 ### The Solution
-One YAML template → Complete, working HPC cluster
+One YAML seed → Complete, working HPC cluster
 
 - **Software pre-installed** via Spack + Lmod modules
 - **97% faster deployment** with custom AMIs (2-3 min vs 30-90 min)
@@ -36,17 +38,20 @@ One YAML template → Complete, working HPC cluster
 Pre-build custom AMIs with all software installed, then deploy unlimited clusters instantly:
 ```bash
 # Build AMI once (30-90 min, runs in background)
-pctl ami build -t bioinformatics.yaml --name bio-v1 --detach
+petal ami build --seed bioinformatics.yaml --name bio-v1 --detach
 
 # Monitor progress anytime
-pctl ami status <build-id> --watch
+petal ami status <build-id> --watch
 
 # Deploy clusters instantly (2-3 minutes)
-pctl create -t bioinformatics.yaml --custom-ami ami-xxx
+petal create --seed bioinformatics.yaml --custom-ami ami-xxx
+
+# Or use the fun alias: petal bloom! 🌸
+petal bloom --seed bioinformatics.yaml --custom-ami ami-xxx
 ```
 
 ### 🌐 Zero AWS Networking Knowledge Required
-Automatic VPC creation with proper subnets and security groups. Or use existing VPC with `--subnet-id`. Just run `pctl create` - networking handled automatically.
+Automatic VPC creation with proper subnets and security groups. Or use existing VPC with `--subnet-id`. Just run `petal create` - networking handled automatically.
 
 ### 📦 Automatic Software Installation
 Specify packages in YAML, get working modules on your cluster:
@@ -64,11 +69,13 @@ software:
 Users run `module load samtools` and start working immediately.
 
 ### 🚀 Pre-Configured Software Stacks
-36+ ready-to-use templates for common workloads:
+36+ ready-to-use seeds for common workloads:
 - **Bioinformatics**: samtools, bwa, gatk, blast+
 - **Machine Learning**: PyTorch, TensorFlow, CUDA
 - **Chemistry**: GROMACS, LAMMPS, Quantum ESPRESSO
 - **And more**: astronomy, climate modeling, CFD, rendering
+
+Browse all seeds in `seeds/library/` directory.
 
 ### 👥 Consistent User Management
 Define users once, consistent UID/GID across all nodes:
@@ -88,13 +95,13 @@ data:
 ```
 
 ### 🔄 On-Prem to AWS Migration
-Capture existing cluster configurations and generate pctl templates automatically:
+Capture existing cluster configurations and generate petal seeds automatically:
 - SSH to existing clusters, extract config
 - Parse SLURM/PBS/SGE batch scripts
 - 50+ pre-configured module-to-Spack mappings
-- Auto-generate migration templates
+- Auto-generate migration seeds
 
-### 📝 Simple, Intuitive Templates
+### 📝 Simple, Intuitive Seeds
 20-50 lines vs 100+ for raw ParallelCluster configs. Focus on what matters: instances, software, users, data.
 
 ## Quick Start
@@ -103,21 +110,21 @@ Capture existing cluster configurations and generate pctl templates automaticall
 
 **macOS (Homebrew)**
 ```bash
-brew install scttfrdmn/tap/pctl
+brew install scttfrdmn/tap/petal
 ```
 
 **Linux/macOS (Direct Download)**
 ```bash
 # Download the latest release for your platform
-curl -LO https://github.com/scttfrdmn/pctl/releases/latest/download/pctl_linux_x86_64.tar.gz
-tar xzf pctl_linux_x86_64.tar.gz
-sudo mv pctl /usr/local/bin/
+curl -LO https://github.com/scttfrdmn/petal/releases/latest/download/petal_linux_x86_64.tar.gz
+tar xzf petal_linux_x86_64.tar.gz
+sudo mv petal /usr/local/bin/
 ```
 
 **From Source**
 ```bash
-git clone https://github.com/scttfrdmn/pctl.git
-cd pctl
+git clone https://github.com/scttfrdmn/petal.git
+cd petal
 make build
 sudo make install
 ```
@@ -125,7 +132,7 @@ sudo make install
 ### System Requirements
 
 **AWS ParallelCluster**
-- Version: **3.14.0** (latest stable, auto-installed via `pctl pcluster install`)
+- Version: **3.14.0** (latest stable, auto-installed via `petal pcluster install`)
 - Includes Slurm 24.05.7, NICE DCV support, and P6e instance compatibility
 
 **Operating System**
@@ -141,32 +148,41 @@ sudo make install
 
 ```bash
 # Install ParallelCluster (required dependency)
-pctl pcluster install
+petal pcluster install
 
 # Configure AWS credentials (if not already done)
 aws configure
 
-# Update template registry
-pctl registry update
+# Update seed registry
+petal registry update
 ```
 
 ### Create Your First Cluster
 
 ```bash
-# Browse available templates
-pctl registry search bioinformatics
+# Browse available seeds
+petal registry search bioinformatics
 
-# Create a cluster from a template
-pctl create -t seeds/library/bioinformatics.yaml --name my-cluster
+# Create a cluster from a seed (professional commands)
+petal create --seed seeds/library/bioinformatics.yaml --name my-cluster --key-name your-key
+
+# Or use fun aliases! 🌸
+petal bloom --seed seeds/library/bioinformatics.yaml --name my-cluster --key-name your-key
 
 # Check cluster status
-pctl status my-cluster
+petal status my-cluster  # or: petal inspect my-cluster
 
 # List all clusters
-pctl list
+petal list  # or: petal garden
+
+# SSH to your cluster
+petal ssh my-cluster  # or: petal stem my-cluster
+
+# Delete cluster when done
+petal delete my-cluster  # or: petal harvest my-cluster
 ```
 
-## Example Template
+## Example Seed
 
 ```yaml
 cluster:
@@ -205,16 +221,16 @@ Build custom AMIs once, deploy clusters instantly forever:
 
 ```bash
 # Build custom AMI (runs in background)
-pctl ami build -t template.yaml --name my-ami --detach
+petal ami build --seed seed.yaml --name my-ami --detach
 
 # Monitor progress
-pctl ami status <build-id> --watch
+petal ami status <build-id> --watch
 
 # List all builds
-pctl ami list-builds
+petal ami list-builds
 
 # Deploy with custom AMI
-pctl create -t template.yaml --custom-ami ami-xxxxx
+petal create --seed seed.yaml --custom-ami ami-xxxxx
 ```
 
 **Why?** Build once (30-90 min) → deploy unlimited clusters in 2-3 min. Perfect for CI/CD, testing, and production workloads.
@@ -223,7 +239,7 @@ pctl create -t template.yaml --custom-ami ami-xxxxx
 
 - [Getting Started](docs/GETTING_STARTED.md)
 - [User Personas & Walkthroughs](docs/PERSONAS.md) - See how different users benefit from pctl
-- [Template Specification](docs/TEMPLATE_SPEC.md)
+- [Seed Specification](docs/SEED_SPEC.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Project Analysis](PROJECT_ANALYSIS.md)
 - [Design Document](DESIGN.md)
@@ -265,13 +281,13 @@ pctl/
 │   ├── provisioner/      # Cluster orchestration
 │   ├── config/           # ParallelCluster config generation
 │   ├── spack/            # Software installation
-│   ├── registry/         # Template registry
+│   ├── registry/         # Seed registry
 │   ├── capture/          # Configuration capture
 │   └── pclusterinstaller/ # ParallelCluster management
 ├── internal/              # Private packages
 │   ├── version/          # Version information
 │   └── config/           # Configuration management
-├── seeds/library/     # Pre-built templates
+├── seeds/library/     # Pre-built seeds
 ├── tests/                 # Test suites
 └── docs/                  # Documentation
 ```
