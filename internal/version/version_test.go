@@ -78,8 +78,8 @@ func TestInfo_String(t *testing.T) {
 	if !strings.Contains(result, "linux/amd64") {
 		t.Error("String output should contain platform")
 	}
-	if !strings.Contains(result, "pctl") {
-		t.Error("String output should contain 'pctl'")
+	if !strings.Contains(result, "petal") {
+		t.Error("String output should contain 'petal'")
 	}
 }
 
