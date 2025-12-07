@@ -665,17 +665,27 @@ petal create --seed bioinformatics.yaml --name my-cluster
 
 ```bash
 # First time user - no build needed!
-petal create --seed bioinformatics.yaml --name research-1
+petal create --seed bioinformatics.yaml --name research-1 --region us-east-1
 
 # Behind the scenes:
-# 1. Compute fingerprint from seed
-# 2. Check local snapshots → not found
-# 3. Query petal registry → snap-0abc123 (public)
-# 4. Use public snapshot → instant cluster!
+# 1. Compute fingerprint from seed → sha256:abc123...
+# 2. Check local snapshots in AWS → not found
+# 3. Fetch GitHub registry index
+# 4. Find matching fingerprint → bioinformatics-v1
+# 5. Look up snapshot for region → snap-0abc123 (in us-east-1)
+# 6. Use AWS snapshot → instant cluster!
 
 # Output:
-📦 Using official software volume: bioinformatics-v1 (snap-0abc123)
+📦 Using official software volume: bioinformatics-v1
+   Snapshot: snap-0abc123 (us-east-1)
+   Source: petal-official (AWS account 999888777666)
 ✅ Cluster created in 2 minutes 18 seconds
+```
+
+**Flow:**
+```
+Seed Template → Fingerprint → GitHub Registry → Snapshot ID → AWS EBS Snapshot
+bioinformatics.yaml → sha256:abc123... → bioinformatics-v1.json → snap-0abc123 → EBS in AWS
 ```
 
 ### Public Registry Implementation
@@ -700,21 +710,33 @@ snapshots:
     updated: 2025-01-15
 ```
 
-**GitHub Registry Repository:**
+**GitHub Registry Repository (Metadata Only):**
+
+The GitHub repo stores **metadata** about snapshots, NOT the snapshots themselves. The actual EBS snapshots live in AWS.
 
 ```
 https://github.com/scttfrdmn/petal-snapshots
 ├── README.md
 ├── snapshots/
-│   ├── index.json              # Master index
-│   ├── bioinformatics-v1.json  # Individual snapshot metadata
+│   ├── index.json              # Master index (snapshot directory)
+│   ├── bioinformatics-v1.json  # Snapshot metadata (regions, IDs)
 │   ├── machine-learning-v1.json
 │   └── chemistry-v1.json
-└── seeds/                      # Associated seed files
+└── seeds/                      # Associated seed templates
     ├── bioinformatics-v1.yaml
     ├── machine-learning-v1.yaml
     └── chemistry-v1.yaml
 ```
+
+**What's in the GitHub repo:**
+- ✅ Snapshot metadata (which regions, snapshot IDs)
+- ✅ Fingerprint/hash to match seed templates
+- ✅ Seed template files
+- ✅ Package lists, descriptions
+
+**What's NOT in GitHub:**
+- ❌ Actual EBS snapshots (those are in AWS)
+- ❌ Software binaries (those are in the snapshots)
 
 **snapshots/index.json:**
 ```json
@@ -736,17 +758,24 @@ https://github.com/scttfrdmn/petal-snapshots
 }
 ```
 
-**snapshots/bioinformatics-v1.json:**
+**snapshots/bioinformatics-v1.json (Metadata):**
 ```json
 {
   "name": "bioinformatics-v1",
   "description": "Genomics and bioinformatics software stack",
-  "fingerprint": "sha256:abc123...",
+
+  "fingerprint": "sha256:abc123def456...",
+  "seed_url": "https://raw.githubusercontent.com/scttfrdmn/petal-snapshots/main/seeds/bioinformatics-v1.yaml",
+
   "snapshots": {
     "us-east-1": "snap-0abc123",
     "us-west-2": "snap-0def456",
     "eu-west-1": "snap-0ghi789"
   },
+
+  "aws_account": "999888777666",
+  "size_gb": 500,
+
   "packages": [
     "gcc@11.3.0",
     "openmpi@4.1.4",
@@ -754,15 +783,21 @@ https://github.com/scttfrdmn/petal-snapshots
     "bwa@0.7.17",
     "gatk@4.3.0"
   ],
-  "size_gb": 500,
-  "seed_url": "https://raw.githubusercontent.com/scttfrdmn/petal-snapshots/main/seeds/bioinformatics-v1.yaml",
+
   "public": true,
   "verified": true,
   "created": "2025-01-15",
-  "updated": "2025-01-20",
-  "account_id": "999888777666"
+  "updated": "2025-01-20"
 }
 ```
+
+**Key Point:** This JSON is just a **directory/pointer**. It says:
+- "If you need bioinformatics-v1 (fingerprint sha256:abc123...)"
+- "In us-east-1, use EBS snapshot snap-0abc123"
+- "In us-west-2, use EBS snapshot snap-0def456"
+- "Here's the seed template that was used to build it"
+
+The actual EBS snapshots (`snap-0abc123`, etc.) are stored in AWS, not GitHub.
 
 **Benefits of GitHub Registry:**
 - ✅ Version controlled
