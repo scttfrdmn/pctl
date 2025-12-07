@@ -446,6 +446,7 @@ petal create --seed bio-updated.yaml --name cluster-3
 ### Speed
 - **Build once**: 45-90 minutes (background, one-time)
 - **Deploy forever**: 2-3 minutes per cluster
+- **Public snapshots**: ZERO build time (use pre-built official snapshots)
 - **Same as custom AMI approach** but cleaner architecture
 
 ### AWS Alignment
@@ -459,6 +460,7 @@ petal create --seed bio-updated.yaml --name cluster-3
 - Attach multiple volumes if needed
 - Easy to manage and update
 - Clean separation: infrastructure vs software
+- **Snapshot sharing**: Share across accounts or publicly
 
 ### Cost
 - Only pay for EBS when cluster running
@@ -610,11 +612,305 @@ Add detailed explanation of EBS snapshot architecture vs custom AMI approach.
 - Issue: AOCC and Intel Compiler Support (benefits from this)
 - Workload Testing Plan (validates this approach)
 
+## Public Snapshot Registry (Future Feature)
+
+### Overview
+
+EBS snapshots can be shared publicly or with specific AWS accounts, enabling a **petal official software registry** for instant cluster deployment.
+
+According to [AWS documentation](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-modifying-snapshot-permissions.html), snapshots can be:
+- ✅ Shared publicly (all AWS accounts)
+- ✅ Shared privately (specific accounts)
+- ✅ Copied to other regions
+
+### Architecture Tiers
+
+#### Tier 1: Private Snapshots (Default, Phase 1)
+```bash
+# User builds their own snapshots (encrypted, private)
+petal build --seed bioinformatics.yaml --name bio-v1
+# → Creates snapshot in user's account
+# → Only that user can access
+# → Encrypted by default
+```
+
+#### Tier 2: Organization Sharing (Phase 2)
+```bash
+# Share with specific AWS accounts
+petal build --seed bioinformatics.yaml \
+  --share-with 123456789012,987654321098
+
+# → Creates snapshot
+# → Shares with specified accounts only
+# → Encrypted with customer-managed key (CMK)
+```
+
+#### Tier 3: Public Official Registry (Phase 3)
+```bash
+# petal maintains official public snapshots
+petal registry list --official
+
+Official Software Volumes:
+  bioinformatics-v1     snap-0abc123  us-east-1  ⭐⭐⭐⭐⭐
+  machine-learning-v1   snap-0def456  us-west-2  ⭐⭐⭐⭐⭐
+  chemistry-v1          snap-0ghi789  eu-west-1  ⭐⭐⭐⭐⭐
+
+# Use official snapshot (ZERO build time!)
+petal create --seed bioinformatics.yaml --name my-cluster
+# → petal automatically uses public snapshot
+# → Instant deployment, no 45-90 min build needed
+```
+
+### User Workflow with Public Registry
+
+```bash
+# First time user - no build needed!
+petal create --seed bioinformatics.yaml --name research-1
+
+# Behind the scenes:
+# 1. Compute fingerprint from seed
+# 2. Check local snapshots → not found
+# 3. Query petal registry → snap-0abc123 (public)
+# 4. Use public snapshot → instant cluster!
+
+# Output:
+📦 Using official software volume: bioinformatics-v1 (snap-0abc123)
+✅ Cluster created in 2 minutes 18 seconds
+```
+
+### Public Registry Implementation
+
+**petal Official Account:**
+```yaml
+# petal-owned AWS account maintains public snapshots
+account: 999888777666  # petal-official
+snapshots:
+  bioinformatics-v1:
+    snapshot_id: snap-0abc123
+    regions: [us-east-1, us-west-2, eu-west-1]
+    packages:
+      - gcc@11.3.0
+      - openmpi@4.1.4
+      - samtools@1.17
+      - bwa@0.7.17
+      - gatk@4.3.0
+    size: 500GB
+    public: true
+    verified: true
+    updated: 2025-01-15
+```
+
+**Registry Index (JSON):**
+```json
+{
+  "version": "1.0",
+  "snapshots": [
+    {
+      "name": "bioinformatics-v1",
+      "fingerprint": "sha256:abc123...",
+      "snapshots": {
+        "us-east-1": "snap-0abc123",
+        "us-west-2": "snap-0def456",
+        "eu-west-1": "snap-0ghi789"
+      },
+      "packages": ["gcc@11.3.0", "openmpi@4.1.4", "samtools@1.17"],
+      "size": 500,
+      "public": true,
+      "verified": true,
+      "updated": "2025-01-15"
+    }
+  ]
+}
+```
+
+**User Config:**
+```yaml
+# ~/.petal/config.yaml
+registry:
+  use_public_snapshots: true  # Default: false for security
+  trusted_accounts:
+    - 999888777666  # petal-official
+    - 123456789012  # my-organization
+```
+
+### Snapshot Sharing Commands
+
+```bash
+# Share with specific accounts
+petal build share snap-0abc123 \
+  --accounts 123456789012,987654321098
+
+# Make public (for petal team only)
+petal build share snap-0abc123 --public
+
+# Copy to other regions
+petal build copy snap-0abc123 \
+  --from us-east-1 \
+  --to us-west-2,eu-west-1
+
+# List shared snapshots
+petal build list --shared
+
+# Revoke sharing
+petal build unshare snap-0abc123 --accounts 123456789012
+```
+
+### Security Considerations
+
+#### For petal Official Snapshots:
+- ✅ **Unencrypted** (required for public sharing)
+- ✅ **Only open-source software** (no proprietary packages)
+- ✅ **Security scanned** before publishing
+- ✅ **CVE monitored** and updated regularly
+- ✅ **No sensitive data** (verified clean)
+- ✅ **Clearly documented** contents
+
+#### For User Snapshots:
+- ✅ **Private by default** (encrypted)
+- ⚠️ **Be cautious sharing** (review contents)
+- ❌ **Never share with sensitive data**
+- ✅ **Use Block Public Access** in AWS settings
+
+#### AWS Security Features:
+```bash
+# Enable Block Public Access for EBS snapshots (recommended)
+aws ec2 enable-snapshot-block-public-access --region us-east-1
+
+# Prevents accidental public sharing
+```
+
+### Community Contributions
+
+Future feature: Allow community to contribute snapshots
+
+```bash
+# Submit community snapshot
+petal build submit snap-0abc123 \
+  --name "genomics-pipeline-v2" \
+  --description "Advanced genomics pipeline with latest tools" \
+  --tags bioinformatics,genomics,ngs
+
+# petal team reviews and verifies
+# If approved: added to community registry
+# Users can opt-in to community snapshots
+```
+
+### Implementation Phases
+
+#### Phase 1: Private Snapshots (Immediate)
+- Users build their own snapshots
+- Encrypted by default
+- No sharing
+
+#### Phase 2: Team/Organization Sharing (6 months)
+```go
+// pkg/ebs/sharing.go
+func (s *Snapshot) ShareWithAccounts(accountIDs []string) error {
+    // Modify snapshot permissions
+    // Share with specific accounts only
+}
+```
+
+#### Phase 3: Public Official Registry (12 months)
+- petal team maintains official snapshots
+- Public registry infrastructure
+- Multi-region replication
+- Community contribution process
+
+### Benefits of Public Registry
+
+1. **Zero Build Time**: Users deploy instantly with pre-built snapshots
+2. **Curated Stacks**: Tested, verified software combinations
+3. **Community**: Share successful configurations
+4. **Cost Savings**: No need to rebuild common stacks
+5. **Best Practices**: Official snapshots follow HPC best practices
+
+### Risks and Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Security vulnerabilities | Regular CVE scanning and updates |
+| Unintended data exposure | Strict review process, automated checks |
+| Account compromise | Separate official account, limited access |
+| Snapshot costs | Lifecycle policies, deprecate old versions |
+| Regional availability | Multi-region replication |
+
+### Configuration Options
+
+```yaml
+# User preferences for snapshot sources
+snapshot_sources:
+  # Check order (stops at first match)
+  - type: local        # User's own snapshots
+    priority: 1
+
+  - type: organization # Organization-shared
+    account: 123456789012
+    priority: 2
+
+  - type: official     # petal-official
+    account: 999888777666
+    priority: 3
+    enabled: true      # Opt-in for security
+
+  - type: community    # Community snapshots
+    priority: 4
+    enabled: false     # Opt-in required
+```
+
+### Example User Experience
+
+**Without Public Registry:**
+```bash
+# User must build (45-90 minutes)
+$ petal build --seed bioinformatics.yaml --name bio-v1
+⏳ Building software volume... (this takes 45-90 minutes)
+   [████████░░░░░░░░] 50% - Installing samtools...
+```
+
+**With Public Registry:**
+```bash
+# User deploys instantly
+$ petal create --seed bioinformatics.yaml --name my-cluster
+
+📦 Using official software volume: bioinformatics-v1
+   Source: petal-official (snap-0abc123)
+   Packages: gcc, openmpi, samtools, bwa, gatk
+   Last updated: 2025-01-15
+
+✅ Cluster created in 2 minutes 18 seconds
+```
+
+### CLI Commands for Registry
+
+```bash
+# List official snapshots
+petal registry list --official
+
+# Search for snapshots
+petal registry search bioinformatics
+
+# Show snapshot details
+petal registry info bioinformatics-v1
+
+# List available regions
+petal registry regions bioinformatics-v1
+
+# Check if snapshot exists for seed
+petal registry check --seed bioinformatics.yaml
+
+# Update local registry cache
+petal registry update
+```
+
 ## References
 
 - [AWS ParallelCluster SharedStorage](https://docs.aws.amazon.com/parallelcluster/latest/ug/SharedStorage-v3.html)
 - [EBS Snapshots](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html)
 - [ParallelCluster Best Practices](https://docs.aws.amazon.com/parallelcluster/latest/ug/best-practices-v3.html)
+- [Share EBS Snapshots](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-modifying-snapshot-permissions.html)
+- [Block Public Sharing of EBS Snapshots](https://aws.amazon.com/blogs/aws/new-block-public-sharing-of-amazon-ebs-snapshots/)
+- [EBS Snapshot Security](https://www.trendmicro.com/cloudoneconformity/knowledge-base/aws/EBS/public-snapshots.html)
 
 ## Priority Justification
 
