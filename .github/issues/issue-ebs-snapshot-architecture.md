@@ -700,28 +700,78 @@ snapshots:
     updated: 2025-01-15
 ```
 
-**Registry Index (JSON):**
+**GitHub Registry Repository:**
+
+```
+https://github.com/scttfrdmn/petal-snapshots
+├── README.md
+├── snapshots/
+│   ├── index.json              # Master index
+│   ├── bioinformatics-v1.json  # Individual snapshot metadata
+│   ├── machine-learning-v1.json
+│   └── chemistry-v1.json
+└── seeds/                      # Associated seed files
+    ├── bioinformatics-v1.yaml
+    ├── machine-learning-v1.yaml
+    └── chemistry-v1.yaml
+```
+
+**snapshots/index.json:**
 ```json
 {
   "version": "1.0",
+  "registry": "https://github.com/scttfrdmn/petal-snapshots",
   "snapshots": [
     {
       "name": "bioinformatics-v1",
       "fingerprint": "sha256:abc123...",
-      "snapshots": {
-        "us-east-1": "snap-0abc123",
-        "us-west-2": "snap-0def456",
-        "eu-west-1": "snap-0ghi789"
-      },
-      "packages": ["gcc@11.3.0", "openmpi@4.1.4", "samtools@1.17"],
-      "size": 500,
-      "public": true,
-      "verified": true,
-      "updated": "2025-01-15"
+      "metadata_url": "https://raw.githubusercontent.com/scttfrdmn/petal-snapshots/main/snapshots/bioinformatics-v1.json"
+    },
+    {
+      "name": "machine-learning-v1",
+      "fingerprint": "sha256:def456...",
+      "metadata_url": "https://raw.githubusercontent.com/scttfrdmn/petal-snapshots/main/snapshots/machine-learning-v1.json"
     }
   ]
 }
 ```
+
+**snapshots/bioinformatics-v1.json:**
+```json
+{
+  "name": "bioinformatics-v1",
+  "description": "Genomics and bioinformatics software stack",
+  "fingerprint": "sha256:abc123...",
+  "snapshots": {
+    "us-east-1": "snap-0abc123",
+    "us-west-2": "snap-0def456",
+    "eu-west-1": "snap-0ghi789"
+  },
+  "packages": [
+    "gcc@11.3.0",
+    "openmpi@4.1.4",
+    "samtools@1.17",
+    "bwa@0.7.17",
+    "gatk@4.3.0"
+  ],
+  "size_gb": 500,
+  "seed_url": "https://raw.githubusercontent.com/scttfrdmn/petal-snapshots/main/seeds/bioinformatics-v1.yaml",
+  "public": true,
+  "verified": true,
+  "created": "2025-01-15",
+  "updated": "2025-01-20",
+  "account_id": "999888777666"
+}
+```
+
+**Benefits of GitHub Registry:**
+- ✅ Version controlled
+- ✅ Easy to update (git push)
+- ✅ Community contributions via PR
+- ✅ Free hosting
+- ✅ Built-in review process (PR reviews)
+- ✅ Issue tracking for snapshots
+- ✅ Same pattern as seed registry
 
 **User Config:**
 ```yaml
@@ -885,22 +935,130 @@ $ petal create --seed bioinformatics.yaml --name my-cluster
 
 ```bash
 # List official snapshots
-petal registry list --official
+petal registry snapshots list
 
 # Search for snapshots
-petal registry search bioinformatics
+petal registry snapshots search bioinformatics
 
 # Show snapshot details
-petal registry info bioinformatics-v1
+petal registry snapshots info bioinformatics-v1
 
 # List available regions
-petal registry regions bioinformatics-v1
+petal registry snapshots regions bioinformatics-v1
 
 # Check if snapshot exists for seed
-petal registry check --seed bioinformatics.yaml
+petal registry snapshots check --seed bioinformatics.yaml
 
-# Update local registry cache
-petal registry update
+# Update registry cache (fetch from GitHub)
+petal registry snapshots update
+```
+
+### Registry Implementation (GitHub-based)
+
+```go
+// pkg/registry/snapshots.go
+type SnapshotRegistry struct {
+    Owner  string  // "scttfrdmn"
+    Repo   string  // "petal-snapshots"
+    Branch string  // "main"
+    client *http.Client
+}
+
+func (r *SnapshotRegistry) List() ([]*SnapshotMetadata, error) {
+    // Fetch index.json from GitHub
+    indexURL := fmt.Sprintf(
+        "https://raw.githubusercontent.com/%s/%s/%s/snapshots/index.json",
+        r.Owner, r.Repo, r.Branch)
+
+    resp, err := r.client.Get(indexURL)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    var index SnapshotIndex
+    json.NewDecoder(resp.Body).Decode(&index)
+
+    return index.Snapshots, nil
+}
+
+func (r *SnapshotRegistry) Get(name string) (*SnapshotMetadata, error) {
+    // Fetch individual snapshot metadata
+    metadataURL := fmt.Sprintf(
+        "https://raw.githubusercontent.com/%s/%s/%s/snapshots/%s.json",
+        r.Owner, r.Repo, r.Branch, name)
+
+    resp, err := r.client.Get(metadataURL)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    var metadata SnapshotMetadata
+    json.NewDecoder(resp.Body).Decode(&metadata)
+
+    return &metadata, nil
+}
+
+func (r *SnapshotRegistry) FindByFingerprint(fingerprint string, region string) (string, error) {
+    snapshots, err := r.List()
+    if err != nil {
+        return "", err
+    }
+
+    for _, s := range snapshots {
+        if s.Fingerprint == fingerprint {
+            // Fetch full metadata
+            metadata, err := r.Get(s.Name)
+            if err != nil {
+                continue
+            }
+
+            // Return snapshot ID for region
+            if snapshotID, ok := metadata.Snapshots[region]; ok {
+                return snapshotID, nil
+            }
+        }
+    }
+
+    return "", fmt.Errorf("no snapshot found")
+}
+```
+
+### Community Contributions via GitHub
+
+Users contribute snapshots via pull requests:
+
+```bash
+# 1. Fork petal-snapshots repo
+# 2. Add snapshot metadata
+cat > snapshots/my-custom-stack.json <<EOF
+{
+  "name": "my-custom-stack",
+  "description": "Custom genomics pipeline",
+  "fingerprint": "sha256:xyz789...",
+  "snapshots": {
+    "us-east-1": "snap-0xyz789"
+  },
+  "packages": ["gcc@11.3.0", "custom-tool@1.0"],
+  "size_gb": 300,
+  "public": true,
+  "verified": false,
+  "created": "2025-01-25"
+}
+EOF
+
+# 3. Add seed file
+cp my-seed.yaml seeds/my-custom-stack.yaml
+
+# 4. Update index.json
+# 5. Create PR
+git add .
+git commit -m "Add my-custom-stack snapshot"
+git push origin my-custom-stack
+# Open PR on GitHub
+
+# petal team reviews and merges
 ```
 
 ## References
